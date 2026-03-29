@@ -61,6 +61,29 @@ const styles = `
     overflow-x: hidden;
   }
 
+  /* App.jsx 상단 styles 문자열 안에 추가 */
+html {
+  /* 기기 회전 시 글자 크기 멋대로 커지는 것 방지 */
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  /* 기본 폰트 크기 설정 (모바일 기준) */
+  font-size: 14px; 
+}
+
+@media (min-width: 768px) {
+  html {
+    /* 태블릿/PC에서는 글자를 조금 더 크게 */
+    font-size: 16px;
+  }
+}
+
+#game-root {
+  width: 100%;
+  min-height: 100dvh;
+  /* 모바일에서 옆으로 흔들리는 현상 방지 */
+  overflow-x: hidden;
+}
+
 
   /* --- 여기서부터 추가된 코드 (깨짐 및 회전 방지) --- */
   html {
@@ -1422,7 +1445,9 @@ const handleExitGame = async () => {
       <div 
         key={card.id} 
         onClick={customClick}
-        className={`border-2 p-2 md:p-3 rounded-xl flex flex-col justify-between relative transition-all ${customClick ? 'cursor-pointer hover:-translate-y-2' : ''} ${lockStyle} w-full h-[220px] md:h-[280px] shrink-0 overflow-hidden`}
+        className={`border-2 p-2 rounded-xl flex flex-col justify-between relative transition-all 
+            ${customClick ? 'cursor-pointer hover:-translate-y-2' : ''} ${lockStyle} 
+            w-full aspect-[3/4.2] max-w-[160px] mx-auto shrink-0 overflow-hidden text-sm md:text-base`}
       >
         {isLocked && (
           <div className="absolute inset-0 bg-slate-900/80 z-10 flex flex-col items-center justify-center backdrop-blur-[1px] rounded-xl pointer-events-none">
@@ -2667,11 +2692,21 @@ const handleExitGame = async () => {
                 <h3 className="text-xl md:text-2xl font-bold text-white">{pileTitle} ({pileCards.length}장)</h3>
                 <button onClick={() => setViewingPile(null)} className="px-3 py-1 md:px-4 md:py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold text-sm md:text-base border border-slate-500">닫기</button>
               </div>
-              <div className="flex flex-wrap gap-3 md:gap-4 overflow-y-auto hide-scrollbar pb-4 p-2 justify-center items-start">
-                {pileCards.map((card, idx) => {
-                  return <div key={idx} className="w-28 h-40 md:w-36 md:h-48 pointer-events-none">{renderCard(card)}</div>; 
-                })}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 overflow-y-auto hide-scrollbar pb-10 max-w-6xl mx-auto px-2">
+        {combatState.baseDeck.map((card, idx) => {
+          if (!card) return null;
+          return (
+            <div key={idx} className="relative group cursor-pointer w-full aspect-[3/4.2]" onClick={() => setConfirmSelection({ action: 'remove', idx, card })}>
+              <div className="pointer-events-none w-full h-full">
+                {renderCard(card)}
               </div>
+              <div className="absolute inset-0 bg-red-900/0 group-hover:bg-red-900/70 rounded-xl transition-colors flex items-center justify-center border-2 border-transparent group-hover:border-red-500 z-30">
+                 <Trash2 className="w-8 h-8 md:w-12 md:h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
             </div>
           </div>
         )}
