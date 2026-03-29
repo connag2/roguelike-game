@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eraser, Download, Upload, Save, Maximize } from 'lucide-react';
+import { Eraser, Download, Upload, Save, Maximize, HelpCircle } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 
@@ -17,11 +17,12 @@ export default function DeckBuilder({
   filterEffect, setEffect,
   filterRarity, setRarity,
   searchQuery, setSearchQuery,
-  filteredCards, // 부모에서 계산해서 넘겨줌
+  filteredCards,
   getCardDef,
   shopUpgrades,
   handleAddCard,
-  handleRemoveCard
+  handleRemoveCard,
+  setTutorialModalOpen
 }) {
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white pt-16 md:pt-4 p-4 md:p-10 relative">
@@ -37,6 +38,13 @@ export default function DeckBuilder({
             총 {getTotalCards(tempDeckCounts)}/20장
           </span>
           
+          <button 
+            onClick={() => setTutorialModalOpen(true)}
+            className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors"
+          >
+            <HelpCircle className="w-5 h-5 text-indigo-400" />
+          </button>
+
           <button onClick={handleClearDeck} className="flex items-center gap-1 md:gap-2 py-2 px-3 bg-red-800 hover:bg-red-700 rounded-lg font-bold transition-all text-xs md:text-sm border border-red-600">
             <Eraser className="w-4 h-4"/> 비우기
           </button>
@@ -68,15 +76,8 @@ export default function DeckBuilder({
         rarity={filterRarity} setRarity={setRarity}
         search={searchQuery} setSearch={setSearchQuery}
       />
-      // DeckBuilder.jsx 상단 버튼 그룹
-<div className="flex items-center gap-2">
-  <button onClick={() => setTutorialModalOpen(true)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600">
-    <HelpCircle className="w-5 h-5 text-indigo-400" />
-  </button>
-  {/* 나머지 저장/복사 버튼들... */}
-</div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-4 mt-4">
         {filteredCards.map(baseCard => {
           const count = tempDeckCounts[baseCard.id] || 0;
           const card = getCardDef(baseCard.id, shopUpgrades); 

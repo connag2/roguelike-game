@@ -1,5 +1,5 @@
-import React from 'react';
-import { Shield, RefreshCw, Skull, ArrowRightCircle } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle } from 'lucide-react';
 import Card from '../common/Card';
 
 export default function BattleScreen({
@@ -13,7 +13,8 @@ export default function BattleScreen({
   setCombatState,
   MAX_HAND_SIZE,
   setShowEnemyDeck,
-  setViewingEnemy
+  setViewingEnemy,
+  setTutorialModalOpen
 }) {
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
@@ -25,7 +26,14 @@ export default function BattleScreen({
         <div className="font-bold text-sm md:text-lg flex items-center gap-1 md:gap-2 text-indigo-300">
           <RefreshCw className="w-4 h-4 md:w-5 md:h-5" /> {mode === 'HARD' ? '하드 모드' : '일반 모드'} - STAGE {stage} 
         </div>
-        <div className="flex items-center gap-2 md:gap-6 font-bold text-xs md:text-base">
+        <div className="flex items-center gap-2 md:gap-4 font-bold text-xs md:text-base">
+          <button 
+            onClick={() => setTutorialModalOpen(true)}
+            className="bg-slate-700 hover:bg-slate-600 p-2 rounded-full border border-slate-500 transition-colors"
+            title="전투 방법"
+          >
+            <HelpCircle className="w-4 h-4 md:w-5 md:h-5 text-indigo-300" />
+          </button>
           <span 
             className="text-slate-400 cursor-pointer hover:text-white transition-colors bg-slate-700/50 px-2 py-1 rounded border border-slate-600"
             onClick={() => setViewingPile('baseDeck')}
@@ -35,18 +43,6 @@ export default function BattleScreen({
           <button onClick={() => setGameState('GAME_OVER')} className="text-slate-500 hover:text-red-500 opacity-60 hover:opacity-100 transition-all border border-slate-600 rounded px-2 py-1">포기</button>
         </div>
       </div>
-
-      // BattleScreen.jsx 상단 정보바 안쪽에 추가
-<div className="flex items-center gap-2 md:gap-4 font-bold">
-  <button 
-    onClick={() => setTutorialModalOpen(true)} // 👈 App.jsx에서 넘겨준 props 사용
-    className="bg-slate-700 hover:bg-slate-600 p-2 rounded-full border border-slate-500 transition-colors"
-    title="전투 방법"
-  >
-    <HelpCircle className="w-5 h-5 text-indigo-300" />
-  </button>
-  {/* 기존 코드 (총 덱 보기 등)... */}
-</div>
 
       {/* 턴 배경 텍스트 */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-[0.03]">
@@ -136,7 +132,7 @@ export default function BattleScreen({
             </div>
           </div>
 
-          {/* 카드 핸드 (부채꼴 배치) */}
+          {/* 카드 핸드 */}
           <div className="flex justify-center items-end w-full px-16 h-full pb-4 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost;
@@ -174,7 +170,6 @@ export default function BattleScreen({
                <span className="text-slate-400 font-bold mt-1 text-[9px] md:text-sm">무덤</span>
             </div>
           </div>
-          
         </div>
       </div>
     </div>

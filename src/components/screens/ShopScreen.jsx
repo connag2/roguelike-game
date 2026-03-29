@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store, Heart, Gift, Coins, Maximize, Zap, Star } from 'lucide-react';
+import { Store, Heart, Gift, Coins, Maximize, Zap, Star, HelpCircle } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { CARD_LIBRARY } from '../../constants/gameData';
@@ -16,9 +16,9 @@ export default function ShopScreen({
   handlePremiumGacha,
   gachaResult, setGachaResult,
   premiumGachaResult, setPremiumGachaResult,
-  selectPremiumCard
+  selectPremiumCard,
+  setTutorialModalOpen
 }) {
-  // 상점 내부 전용 필터 상태
   const [filterType, setFilterType] = useState('all');
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
@@ -28,7 +28,6 @@ export default function ShopScreen({
 
   const hpCost = 50 + (shopUpgrades.maxHp * 40);
 
-  // 강화 가능한 카드 필터링
   const upgradableIds = unlockedCards.filter(id => {
     const c = CARD_LIBRARY.find(item => item.id === id);
     if (!c) return false;
@@ -57,7 +56,10 @@ export default function ShopScreen({
 
       <div className="flex justify-between items-center mb-8 pl-0 md:pl-32 pt-12 md:pt-0">
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3"><Store className="w-8 h-8 text-yellow-500"/> 크레딧 상점</h2>
-        <div className="flex items-center gap-4 md:gap-6">
+        <div className="flex items-center gap-3 md:gap-6">
+          <button onClick={() => setTutorialModalOpen(true)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors">
+            <HelpCircle className="w-5 h-5 text-yellow-500" />
+          </button>
           <span className="text-xl md:text-2xl font-bold text-yellow-400 flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-yellow-900">
             <Coins className="w-5 h-5 md:w-6 md:h-6"/> {credits}
           </span>
@@ -225,13 +227,6 @@ export default function ShopScreen({
           <button onClick={() => setGachaResult(null)} className="mt-12 py-3 px-10 bg-indigo-600 rounded-full text-xl font-bold">확인</button>
         </div>
       )}
-      // ShopScreen.jsx 상단 우측 버튼 그룹
-<div className="flex items-center gap-3">
-  <button onClick={() => setTutorialModalOpen(true)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors">
-    <HelpCircle className="w-5 h-5 text-yellow-500" />
-  </button>
-  <button onClick={() => setGameState('MENU')} className="...">메인으로</button>
-</div>
 
       {/* 프리미엄 가챠 선택창 */}
       {premiumGachaResult && (
