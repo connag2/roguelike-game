@@ -4,11 +4,9 @@ import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { HelpCircle } from 'lucide-react'; 
 
-// 데이터 및 로직 Import
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
-// 컴포넌트들 Import
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
 import ShopScreen from './components/screens/ShopScreen';
@@ -19,25 +17,16 @@ import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 
-// 💡 [에러 추적기] 화면이 하얗게 멈추는 대신 에러 원인을 화면에 띄워주는 특수 안전 장치입니다!
 class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
   render() {
     if (this.state.hasError) {
       return (
         <div style={{ padding: '40px', backgroundColor: '#0f172a', minHeight: '100vh', color: 'white' }}>
-          <h1 style={{ fontSize: '2rem', color: '#ef4444', fontWeight: 'bold', marginBottom: '1rem' }}>🚨 화면 오류(크래시) 발생!</h1>
-          <p style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>하얀 화면 대신 에러를 잡아냈습니다! 아래 빨간색 영어를 복사해서 저에게 보내주세요.</p>
-          <pre style={{ backgroundColor: 'black', padding: '20px', borderRadius: '8px', color: '#fca5a5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+          <h1 style={{ fontSize: '2rem', color: '#ef4444', fontWeight: 'bold' }}>🚨 화면 오류(크래시) 발생!</h1>
+          <pre style={{ marginTop: '20px', backgroundColor: 'black', padding: '20px', color: '#fca5a5', whiteSpace: 'pre-wrap' }}>
             {this.state.error?.toString()}
-            {'\n\n'}
-            {this.state.error?.stack}
           </pre>
         </div>
       );
@@ -115,9 +104,7 @@ export default function App() {
   const saveGame = async (payload = {}) => {
     const data = { credits, shopUpgrades, unlockedCards, deckCounts, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
-    if (user && db) {
-      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
-    }
+    if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
 
   useEffect(() => {
@@ -352,7 +339,6 @@ export default function App() {
     else if (code === 'GEMS') { creditsToAdd = 500; msg = '보석 쿠폰: 500 크레딧 획득!'; valid = true; }
 
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
-
     const updatedCoupons = [...usedCoupons, code];
     const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
 
@@ -374,13 +360,11 @@ export default function App() {
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('세이브 코드가 복사되었습니다!');
   };
-
   const handleDeckExport = () => {
     const data = JSON.stringify(tempDeckCounts);
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('현재 덱이 복사되었습니다!');
   };
-
   const handleExitGame = async () => {
     setToastMsg('저장 중...'); await saveGame();
     if (window.require) window.close(); else setGameState('MENU');
@@ -409,15 +393,10 @@ export default function App() {
               <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
                 <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
                   <HelpCircle className="w-8 h-8" />
-                  {gameState === 'MENU' ? "게임 가이드" : 
-                  gameState === 'BATTLE' ? "전투 가이드" : 
-                  gameState === 'SHOP' ? "상점 이용 가이드" : 
-                  gameState === 'DECK_BUILDING' ? "덱 구성 가이드" : 
-                  (gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') ? "도감 가이드" : "도움말"}
+                  {gameState === 'MENU' ? "게임 가이드" : gameState === 'BATTLE' ? "전투 가이드" : gameState === 'SHOP' ? "상점 이용 가이드" : gameState === 'DECK_BUILDING' ? "덱 구성 가이드" : (gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') ? "도감 가이드" : "도움말"}
                 </h2>
                 <button onClick={() => setTutorialModalOpen(false)} className="text-slate-400 hover:text-white text-3xl font-bold transition-colors">×</button>
               </div>
-
               <div className="space-y-6 text-slate-200 text-sm md:text-base leading-relaxed">
                 {(gameState === 'MENU' || gameState === 'BATTLE') && (
                   <section>
@@ -429,52 +408,11 @@ export default function App() {
                     </ul>
                   </section>
                 )}
-
-                {gameState === 'SHOP' && (
-                  <section>
-                    <h3 className="text-lg font-bold text-yellow-400 mb-2">💰 상점 이용법</h3>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300">
-                      <li>전투에서 얻은 크레딧으로 <b>카드 강화</b>를 하거나 <b>뽑기</b>를 할 수 있습니다.</li>
-                      <li>강화된 카드의 효과는 덱에 있는 동일한 모든 카드에 영구적으로 적용됩니다.</li>
-                      <li>프리미엄 뽑기에서는 전설과 희귀 카드가 나올 확률이 대폭 상승합니다.</li>
-                    </ul>
-                  </section>
-                )}
-
-                {gameState === 'DECK_BUILDING' && (
-                  <section>
-                    <h3 className="text-lg font-bold text-indigo-400 mb-2">🃏 덱 구성 팁</h3>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300">
-                      <li>모험을 시작하려면 덱이 반드시 <b>20장</b>이어야 합니다.</li>
-                      <li>카드를 클릭하여 덱에 추가하거나 제거할 수 있습니다.</li>
-                      <li>마나 카드, 방어 카드, 공격 카드의 비율을 적절히 섞는 것이 생존의 핵심입니다.</li>
-                    </ul>
-                  </section>
-                )}
-
-                {(gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') && (
-                  <section>
-                    <h3 className="text-lg font-bold text-blue-400 mb-2">📖 도감 이용법</h3>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300">
-                      <li>지금까지 만난 적과 해금한 카드들의 상세 정보를 확인할 수 있습니다.</li>
-                      <li>적을 클릭하면 해당 적이 사용하는 스킬(의도) 덱을 미리 엿볼 수 있습니다.</li>
-                    </ul>
-                  </section>
-                )}
-
                 <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
                   <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
-                    <div className="space-y-2">
-                      <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 3% 감소합니다.</p>
-                      <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 30% 증가합니다.</p>
-                      <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.</p>
-                    </div>
-                    <div className="space-y-2">
-                      <p><span className="text-red-400 font-bold">근력:</span> 가하는 피해량이 수치만큼 영구적으로 증가합니다.</p>
-                      <p><span className="text-blue-400 font-bold">민첩:</span> 얻는 방어도가 수치만큼 영구적으로 증가합니다.</p>
-                      <p><span className="text-emerald-400 font-bold">가시:</span> 피격 시 공격자에게 수치만큼 피해를 반사합니다.</p>
-                    </div>
+                    <div className="space-y-2"><p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 3% 감소합니다.</p><p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 30% 증가합니다.</p><p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 1 감소합니다.</p></div>
+                    <div className="space-y-2"><p><span className="text-red-400 font-bold">근력:</span> 피해량이 수치만큼 영구적으로 증가합니다.</p><p><span className="text-blue-400 font-bold">민첩:</span> 방어도가 수치만큼 영구적으로 증가합니다.</p><p><span className="text-emerald-400 font-bold">가시:</span> 피격 시 공격자에게 수치만큼 피해를 반사합니다.</p></div>
                   </div>
                 </section>
               </div>
@@ -487,24 +425,14 @@ export default function App() {
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setDeckImportModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-indigo-500 w-full max-w-md animate-draw" onClick={e => e.stopPropagation()}>
               <h3 className="text-xl font-bold mb-4 text-white">덱 불러오기</h3>
-              <textarea 
-                className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm mb-4 outline-none focus:border-indigo-400"
-                placeholder="여기에 복사한 덱 코드를 붙여넣으세요..."
-                value={deckImportText}
-                onChange={e => setDeckImportText(e.target.value)}
-              />
+              <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm mb-4 outline-none focus:border-indigo-400" placeholder="여기에 복사한 덱 코드를 붙여넣으세요..." value={deckImportText} onChange={e => setDeckImportText(e.target.value)} />
               <div className="flex gap-3">
                 <button onClick={() => setDeckImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition-colors">취소</button>
                 <button onClick={() => {
                   try {
                     const data = JSON.parse(decodeURIComponent(atob(deckImportText.trim())));
-                    setTempDeckCounts(data);
-                    setToastMsg('덱을 성공적으로 불러왔습니다!');
-                    setDeckImportModalOpen(false);
-                    setDeckImportText('');
-                  } catch(e) {
-                    setToastMsg('잘못된 덱 코드입니다.');
-                  }
+                    setTempDeckCounts(data); setToastMsg('덱을 성공적으로 불러왔습니다!'); setDeckImportModalOpen(false); setDeckImportText('');
+                  } catch(e) { setToastMsg('잘못된 덱 코드입니다.'); }
                 }} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors shadow-lg">불러오기</button>
               </div>
             </div>
@@ -515,12 +443,7 @@ export default function App() {
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setImportModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md animate-draw" onClick={e => e.stopPropagation()}>
               <h3 className="text-xl font-bold mb-4 text-white">세이브 데이터 불러오기</h3>
-              <textarea 
-                className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm mb-4 outline-none focus:border-emerald-400"
-                placeholder="여기에 복사한 세이브 코드를 붙여넣으세요..."
-                value={importText}
-                onChange={e => setImportText(e.target.value)}
-              />
+              <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm mb-4 outline-none focus:border-emerald-400" placeholder="여기에 복사한 세이브 코드를 붙여넣으세요..." value={importText} onChange={e => setImportText(e.target.value)} />
               <div className="flex gap-3">
                 <button onClick={() => setImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition-colors">취소</button>
                 <button onClick={() => {
@@ -534,51 +457,34 @@ export default function App() {
                     if(data.maxStageReached !== undefined) setMaxStageReached(data.maxStageReached);
                     if(data.seenEnemies) setSeenEnemies(data.seenEnemies);
                     if(data.usedCoupons) setUsedCoupons(data.usedCoupons);
-                    saveGame(data);
-                    setToastMsg('세이브를 성공적으로 불러왔습니다!');
-                    setImportModalOpen(false);
-                    setImportText('');
-                  } catch(e) {
-                    setToastMsg('잘못된 세이브 데이터입니다.');
-                  }
+                    saveGame(data); setToastMsg('세이브를 성공적으로 불러왔습니다!'); setImportModalOpen(false); setImportText('');
+                  } catch(e) { setToastMsg('잘못된 세이브 데이터입니다.'); }
                 }} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition-colors shadow-lg">불러오기</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* 💡 화면 컴포넌트 렌더링 영역 */}
         {gameState === 'MENU' && (
           <MainMenu
-            credits={credits} getTotalCards={getTotalCards}
-            openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia}
-            openMonsterDex={openMonsterDex} openShop={openShop}
-            setTutorialModalOpen={setTutorialModalOpen} 
-            setGameState={setGameState} handleCoupon={handleCoupon} startBattle={startBattle}
-            normalCleared={normalCleared} maxStageReached={maxStageReached}
+            credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia}
+            openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} 
+            setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached}
             setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
           />
         )}
 
         {gameState === 'STATISTICS' && (
-          <Statistics
-            maxStageReached={maxStageReached} normalCleared={normalCleared}
-            seenEnemies={seenEnemies} unlockedCards={unlockedCards}
-            credits={credits} setGameState={setGameState}
-          />
+          <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} setGameState={setGameState} />
         )}
 
         {gameState === 'DECK_BUILDING' && (
           <DeckBuilder
-            toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
-            getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts}
-            handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={handleDeckExport} 
-            setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} 
-            saveGame={saveGame} setGameState={setGameState}
-            filterType={filterType} setFilterType={setFilterType}
-            filterEffect={filterEffect} setEffect={setFilterEffect}
-            filterRarity={filterRarity} setRarity={setFilterRarity}
-            searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+            toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts}
+            handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={handleDeckExport} setDeckImportModalOpen={setDeckImportModalOpen} 
+            setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState}
+            filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect}
+            filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
             filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)}
             getCardDef={getCardDef} shopUpgrades={shopUpgrades}
             handleAddCard={(id) => {
@@ -605,25 +511,18 @@ export default function App() {
         {gameState === 'BATTLE' && (
           <BattleScreen
             combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'}
-            setViewingPile={setViewingPile} viewingPile={viewingPile}
-            setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
+            setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
             playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10}
             setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} 
           />
         )}
 
         {gameState === 'ENCYCLOPEDIA' && (
-          <Encyclopedia
-            unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} 
-            setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} 
-          />
+          <Encyclopedia unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} />
         )}
 
         {gameState === 'MONSTER_DEX' && (
-          <MonsterDex
-            seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy}
-            toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} 
-          />
+          <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />
         )}
 
         {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD'].includes(gameState)) && (
