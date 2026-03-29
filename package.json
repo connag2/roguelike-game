@@ -2,13 +2,12 @@
   "name": "roguelike-game",
   "version": "0.0.0",
   "main": "main.js",
-  
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "electron": "electron .", 
-  "dist": "vite build && electron-builder"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "electron": "electron .",
+    "dist": "vite build && electron-builder"
+  },
   "build": {
     "appId": "com.moonhs.roguelike",
     "productName": "RoguelikeTactics",
@@ -31,6 +30,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.19",
     "cross-env": "^7.0.3",
     "electron": "^30.0.0",
