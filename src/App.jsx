@@ -306,6 +306,19 @@ export default function App() {
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [isActionLocked, setIsActionLocked] = useState(false);
 
+  const getTotalCards = (counts = deckCounts) => {
+    return Object.values(counts || {}).reduce((a, b) => a + b, 0);
+  };
+
+  const shuffle = (array) => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+  };
+
   // --- Firebase 로드 및 저장 ---
   useEffect(() => {
     if(!auth) return;
@@ -1882,6 +1895,7 @@ const handleExitGame = async () => {
                   setShopUpgrades(newUpgrades);
                   saveGame({ credits: newCredits, shopUpgrades: newUpgrades });
                   setToastMsg('최대 체력이 증가했습니다!');
+                  setTimeout(() => setToastMsg(''), 2000);
                 }
               }}
               disabled={credits < hpCost}
@@ -1956,6 +1970,7 @@ const handleExitGame = async () => {
                             setShopUpgrades(newUpgrades);
                             saveGame({ credits: newCredits, shopUpgrades: newUpgrades });
                             setToastMsg(`${cardDef.name} 강화 완료!`);
+                            setTimeout(() => setToastMsg(''), 2000);
                           }
                         }}
                         disabled={credits < upgradeCost}
@@ -2004,6 +2019,7 @@ const handleExitGame = async () => {
                             setUnlockedCards(newUnlocked);
                             saveGame({ credits: newCredits, unlockedCards: newUnlocked });
                             setToastMsg(`${cardDef.name} 획득!`);
+                            setTimeout(() => setToastMsg(''), 2000);
                           }
                         }}
                         disabled={credits < cost}
