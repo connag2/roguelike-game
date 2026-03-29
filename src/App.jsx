@@ -3,6 +3,11 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+import MonsterDex from './components/screens/MonsterDex';
+import Rewards from './components/screens/Rewards';
+import Settings from './components/screens/Settings';
+import Statistics from './components/screens/Statistics'; // 👈 이거 한 줄 추가
+
 // 💡 HelpCircle 아이콘 유지
 import { HelpCircle } from 'lucide-react'; 
 
