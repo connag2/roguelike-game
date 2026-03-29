@@ -1098,10 +1098,11 @@ export default function App() {
       if (targetFilterEffect === 'buff' && !(c.selfStrength || c.selfDex)) return false;
       if (targetFilterOwnership === 'owned' && !(unlockedCards || []).includes(c.id)) return false;
       if (targetFilterOwnership === 'unowned' && (unlockedCards || []).includes(c.id)) return false;
+      
+      // 검색 시 튕김 방지
       if (targetSearchQuery) {
         const query = targetSearchQuery.toLowerCase();
-        const cardDef = getCardDef(c.id, shopUpgrades); 
-        // 안전 장치 추가: || '' 를 넣어서 undefined일 때 앱이 터지는 것을 막습니다.
+        const cardDef = getCardDef(c.id); 
         if (cardDef && !(cardDef.name || '').toLowerCase().includes(query) && !(cardDef.desc || '').toLowerCase().includes(query)) return false;
       }
       return true;
@@ -1205,71 +1206,44 @@ export default function App() {
       bgStyle = card.rarity === 'special' ? 'special-bg' : 'bg-slate-900';
     }
 
-    const lockStyle = isLocked ? 'opacity-60 grayscale border-slate-700 bg-slate-900' : `${borderStyle} ${rarityShadow} ${bgStyle}`;
+    const lockStyle = isLocked ? 'border-slate-700 bg-slate-900' : `${borderStyle} ${rarityShadow} ${bgStyle}`;
 
     return (
-                  <div 
-                    key={card.uid} 
-                    onMouseEnter={() => setHoveredCard(idx)}
-                    onMouseLeave={() => setHoveredCard(null)}
-                    className="relative transition-all duration-300 ease-out origin-bottom -ml-6 md:-ml-10 first:ml-0 shrink-0"
-                    style={{ 
-                      animationDelay: `${idx * 0.05}s`,
-                      zIndex: isHovered ? 100 : 10 + idx, 
-                      transform: isHovered 
-                          ? `translateY(-80px) scale(1.15) rotate(0deg)` 
-                          : `translateY(${translateY}px) rotate(${rotation}deg)`
-                    }}
-                  >
-                    {/* 카드 프리뷰 인디케이터 */}
-                    {actualDmg > 0 && (
-                      <div className="absolute -top-4 md:-top-5 left-1/2 -translate-x-1/2 bg-red-950 text-red-300 border border-red-500 rounded-full px-2 py-0.5 text-[9px] md:text-[11px] font-black whitespace-nowrap shadow-[0_0_10px_rgba(239,68,68,0.5)] z-20">
-                        {previewText} {card.gamble && ' (성공 시)'}
-                      </div>
-                    )}
-                    {actualBlock > 0 && (
-                      <div className={`absolute ${actualDmg > 0 ? '-top-10 md:-top-12' : '-top-4 md:-top-5'} left-1/2 -translate-x-1/2 bg-blue-950 text-blue-300 border border-blue-500 rounded-full px-2 py-0.5 text-[9px] md:text-[11px] font-black whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.5)] z-20 transition-all`}>
-                        🛡️ {actualBlock} {card.doubleBlock ? '(현재 방어도x2)' : ''}
-                      </div>
-                    )}
-                    {card.doubleBlock && actualBlock === 0 && (
-                        <div className={`absolute -top-4 md:-top-5 left-1/2 -translate-x-1/2 bg-blue-950 text-blue-300 border border-blue-500 rounded-full px-2 py-0.5 text-[9px] md:text-[11px] font-black whitespace-nowrap shadow-[0_0_10px_rgba(59,130,246,0.5)] z-20 transition-all`}>
-                        🛡️ 방어도 2배!
-                      </div>
-                    )}
-
-                    {/* 카드 본체 (비율 및 글자 잘림 방지 적용) */}
-                    <div 
-                      onClick={() => canPlay && playCard(idx)} 
-                      className={`w-[100px] sm:w-[120px] md:w-[140px] aspect-[3/4.2] rounded-xl border-2 p-2 md:p-2.5 flex flex-col relative cursor-pointer shadow-2xl bg-slate-900 ${cardColor} ${bgSpecial} ${canPlay ? '' : 'opacity-50 grayscale cursor-not-allowed'} overflow-hidden`} 
-                    >
-                      <div className="flex justify-between items-start z-10 shrink-0">
-                        <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
-                        <div className="flex flex-col items-end gap-1">
-                          {card.gamble && <span className="text-[8px] md:text-[9px] text-green-400 font-bold bg-slate-800/80 px-1 rounded border border-green-800">🎲 도박</span>}
-                          {card.rarity === 'uncommon' && <span className="text-[8px] md:text-[9px] text-cyan-400 font-bold bg-slate-800/80 px-1 rounded border border-cyan-800">희귀</span>}
-                          {card.rarity === 'rare' && <span className="text-[8px] md:text-[9px] text-yellow-400 font-bold bg-slate-800/80 px-1 rounded border border-yellow-700">전설</span>}
-                          {card.rarity === 'special' && <span className="text-[8px] md:text-[9px] text-fuchsia-400 font-bold bg-slate-800/80 px-1 rounded border border-fuchsia-800"><Star className="w-2 h-2 inline mb-0.5"/>특수</span>}
-                          {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded?'text-yellow-400':'text-red-300'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded?'text-yellow-400':'text-blue-300'}`}/>}
-                        </div>
-                      </div>
-                      
-                      <div className="text-center z-10 shrink-0 mt-1 md:mt-2 mb-1">
-                        <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight drop-shadow-md truncate break-keep ${card.isUpgraded?'text-yellow-400': card.rarity==='rare'?'text-yellow-300' : card.rarity==='special'?'text-fuchsia-300' : 'text-white'}`}>{card.name}</h4>
-                      </div>
-                      
-                      <div className="text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1.5 md:p-2 rounded relative border border-slate-700 flex-1 flex flex-col items-center justify-center mt-1 z-10 overflow-hidden w-full">
-                        <div className="line-clamp-4 w-full break-keep px-0.5">{card.desc}</div>
-                        <div className="mt-1 shrink-0">{renderTooltipIcon(card.desc)}</div>
-                      </div>
-                    </div>
+      <div 
+        key={card.uid || card.id} 
+        onClick={customClick}
+        className={`border-2 p-2 md:p-2.5 rounded-xl flex flex-col relative transition-all ${customClick && !isLocked ? 'cursor-pointer hover:-translate-y-2' : ''} ${lockStyle} w-full aspect-[3/4.2] max-w-[180px] mx-auto overflow-hidden shrink-0`}
+      >
+        {/* 잠금(미보유) 오버레이 - z-50으로 최상단에 배치하여 글자 겹침 방지 */}
+        {isLocked && (
+          <div className="absolute inset-0 bg-slate-950/80 z-50 flex flex-col items-center justify-center backdrop-blur-[2px] rounded-xl cursor-not-allowed">
+            <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-500 mb-2 drop-shadow-md"/>
+            <span className="text-yellow-500 font-black text-[11px] md:text-sm bg-black/90 px-3 py-1.5 rounded-md border border-slate-700 shadow-xl">미보유</span>
+          </div>
+        )}
         
-        {/* + / - 버튼 영역 */}
-        {count !== null && onAdd && onRemove && (
+        <div className={`z-10 relative flex justify-between items-start shrink-0 ${isLocked ? 'opacity-40 grayscale' : ''}`}>
+          <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
+          <div className="flex flex-col items-end gap-1">
+            {tagUi}
+            {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded?'text-yellow-400': card.rarity==='rare'?'text-yellow-300' : card.rarity==='special'?'text-fuchsia-300' : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded?'text-yellow-400': card.rarity==='rare'?'text-yellow-300' : card.rarity==='special'?'text-fuchsia-300' : 'text-blue-400'}`}/>}
+          </div>
+        </div>
+        
+        <div className={`text-center z-10 shrink-0 mt-1 md:mt-2 mb-1 ${isLocked ? 'opacity-40 grayscale' : ''}`}>
+          <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight drop-shadow-md truncate break-keep ${nameColor}`}>{card.name}</h4>
+        </div>
+        
+        <div className={`text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1.5 md:p-2 rounded relative flex-1 flex flex-col items-center justify-center overflow-hidden z-10 font-medium border border-white/5 w-full ${isLocked ? 'opacity-40 grayscale' : ''}`}>
+          <div className="line-clamp-4 w-full break-keep px-0.5">{card.desc}</div>
+          <div className="mt-1 shrink-0">{renderTooltipIcon(card.desc)}</div>
+        </div>
+        
+        {count !== null && onAdd && onRemove && !isLocked && (
           <div className="mt-2 flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1.5 py-1 md:px-2 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm">
-            <button onClick={(e) => { e.stopPropagation(); onRemove(card.id); }} disabled={isLocked} className={`w-5 h-5 md:w-7 md:h-7 flex justify-center items-center rounded-full font-bold text-sm md:text-base ${count > 0 && !isLocked ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}>-</button>
+            <button onClick={(e) => { e.stopPropagation(); onRemove(card.id); }} className={`w-5 h-5 md:w-7 md:h-7 flex justify-center items-center rounded-full font-bold text-sm md:text-base ${count > 0 ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}>-</button>
             <span className="w-4 text-center font-bold text-xs md:text-sm text-white">{count}</span>
-            <button onClick={(e) => { e.stopPropagation(); onAdd(card.id); }} disabled={isLocked} className={`w-5 h-5 md:w-7 md:h-7 flex justify-center items-center rounded-full font-bold text-sm md:text-base ${count < 3 && getTotalCards(tempDeckCounts) < 20 && !isLocked ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}>+</button>
+            <button onClick={(e) => { e.stopPropagation(); onAdd(card.id); }} className={`w-5 h-5 md:w-7 md:h-7 flex justify-center items-center rounded-full font-bold text-sm md:text-base ${count < 3 && getTotalCards(tempDeckCounts) < 20 ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}>+</button>
           </div>
         )}
       </div>
@@ -1688,9 +1662,14 @@ export default function App() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-4">
           {filteredCards.map(baseCard => {
             const isOwned = (unlockedCards || []).includes(baseCard.id);
-            const card = getCardDef(baseCard.id, shopUpgrades);
+            const card = getCardDef(baseCard.id);
             if (!card) return null;
-            return renderCard(card, null, !isOwned);
+            return (
+              // React 렌더링 에러를 막기 위해 key를 명시한 div로 감싸줍니다.
+              <div key={baseCard.id} className="flex justify-center items-center w-full h-full">
+                {renderCard(card, null, !isOwned)}
+              </div>
+            );
           })}
         </div>
       </div>
