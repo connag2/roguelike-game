@@ -5,9 +5,11 @@ export default function Tooltip({ desc }) {
   if (!desc) return null;
   
   const tooltips = [];
-  if (desc.includes('약화')) tooltips.push({ title: '약화', desc: '공격력이 3% 감소합니다.' });
-  if (desc.includes('취약')) tooltips.push({ title: '취약', desc: '받는 피해가 30% 증가합니다.' });
-  if (desc.includes('중독')) tooltips.push({ title: '중독', desc: '턴 시작 시 피해를 입고 수치가 1 감소합니다.' });
+  if (desc.includes('약화')) tooltips.push({ title: '약화', desc: '가하는 피해량이 3% 감소합니다.' });
+  if (desc.includes('취약')) tooltips.push({ title: '취약', desc: '받는 피해량이 30% 증가합니다.' });
+  if (desc.includes('중독')) tooltips.push({ title: '중독', desc: '턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.' });
+  if (desc.includes('근력')) tooltips.push({ title: '근력', desc: '가하는 피해량이 수치만큼 영구적으로 증가합니다.' });
+  if (desc.includes('민첩')) tooltips.push({ title: '민첩', desc: '얻는 방어도가 수치만큼 영구적으로 증가합니다.' });
   if (desc.includes('가시')) tooltips.push({ title: '가시', desc: '피격 시 공격자에게 수치만큼 피해를 반사합니다.' });
 
   if (tooltips.length === 0) return null;

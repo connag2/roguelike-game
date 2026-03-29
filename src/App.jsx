@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db, appId } from './config/firebase';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-// 💡 1. 여기서 HelpCircle 아이콘을 반드시 불러와야 흰 화면이 안 뜹니다!
+// 💡 HelpCircle 아이콘 유지됨
 import { HelpCircle } from 'lucide-react'; 
 
 // 데이터 및 로직 Import
@@ -378,7 +378,7 @@ export default function App() {
     <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
       {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
-      {/* 💡 2. 중복 없이 완벽하게 하나만 렌더링되는 통합 모달 */}
+      {/* 💡 중복 없이 완벽하게 하나만 렌더링되는 통합 모달 (수치 및 신규 버프 수정본) */}
       {tutorialModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
           <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
@@ -405,18 +405,19 @@ export default function App() {
                 </section>
               )}
 
+              {/* ✨ 상태이상 설명 업데이트 (수치 수정 및 근력/민첩 분리) */}
               <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
                 <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
-                  <div>
-                    <p className="mb-1"><span className="text-red-400 font-bold">약화:</span> 가하는 피해량이 25% 감소합니다.</p>
-                    <p className="mb-1"><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 50% 증가합니다.</p>
+                  <div className="space-y-2">
+                    <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 3% 감소합니다.</p>
+                    <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 30% 증가합니다.</p>
                     <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.</p>
                   </div>
-                  <div>
-                    <p className="mb-1"><span className="text-yellow-400 font-bold">근력/민첩:</span> 공격력과 방어력을 수치만큼 영구히 올립니다.</p>
-                    <p className="mb-1"><span className="text-emerald-400 font-bold">가시:</span> 피격 시 공격자에게 수치만큼 피해를 반사합니다.</p>
-                    <p><span className="text-blue-400 font-bold">마나:</span> 카드를 낼 때 필요한 에너지입니다. 매 턴 초기화됩니다.</p>
+                  <div className="space-y-2">
+                    <p><span className="text-red-400 font-bold">근력:</span> 가하는 피해량이 수치만큼 영구적으로 증가합니다.</p>
+                    <p><span className="text-blue-400 font-bold">민첩:</span> 얻는 방어도가 수치만큼 영구적으로 증가합니다.</p>
+                    <p><span className="text-emerald-400 font-bold">가시:</span> 피격 시 공격자에게 수치만큼 피해를 반사합니다.</p>
                   </div>
                 </div>
               </section>
@@ -440,13 +441,13 @@ export default function App() {
         </div>
       )}
 
-      {/* 💡 3. 하위 컴포넌트들에 모두 setTutorialModalOpen 프롭스를 정확히 넘겨주었습니다 */}
+      {/* 💡 하위 컴포넌트 프롭스 */}
       {gameState === 'MENU' && (
         <MainMenu
           credits={credits} getTotalCards={getTotalCards}
           openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia}
           openMonsterDex={openMonsterDex} openShop={openShop}
-          setTutorialModalOpen={setTutorialModalOpen} // ✅
+          setTutorialModalOpen={setTutorialModalOpen} 
           setGameState={setGameState} handleCoupon={handleCoupon} startBattle={startBattle}
           normalCleared={normalCleared} maxStageReached={maxStageReached}
           setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
@@ -472,7 +473,7 @@ export default function App() {
             setTempDeckCounts({ ...tempDeckCounts, [id]: (tempDeckCounts[id] || 0) + 1 });
           }}
           handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })}
-          setTutorialModalOpen={setTutorialModalOpen} // ✅
+          setTutorialModalOpen={setTutorialModalOpen} 
         />
       )}
 
@@ -488,7 +489,7 @@ export default function App() {
           gachaResult={gachaResult} setGachaResult={setGachaResult}
           premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult}
           selectPremiumCard={() => {}}
-          setTutorialModalOpen={setTutorialModalOpen} // ✅
+          setTutorialModalOpen={setTutorialModalOpen} 
         />
       )}
 
@@ -500,7 +501,7 @@ export default function App() {
           playCard={playCard} setCombatState={setCombatState}
           MAX_HAND_SIZE={GAME_RULES.MAX_HAND_SIZE}
           setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy}
-          setTutorialModalOpen={setTutorialModalOpen} // ✅
+          setTutorialModalOpen={setTutorialModalOpen} 
         />
       )}
 
@@ -509,7 +510,7 @@ export default function App() {
           unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades}
           getFilteredCards={getFilteredCards} setGameState={setGameState}
           toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
-          setTutorialModalOpen={setTutorialModalOpen} // ✅
+          setTutorialModalOpen={setTutorialModalOpen} 
         />
       )}
 
@@ -519,7 +520,7 @@ export default function App() {
           setDexViewingEnemy={setDexViewingEnemy}
           toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
           setGameState={setGameState}
-          setTutorialModalOpen={setTutorialModalOpen} // ✅
+          setTutorialModalOpen={setTutorialModalOpen} 
         />
       )}
 
