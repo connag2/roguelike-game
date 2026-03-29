@@ -1,5 +1,6 @@
 import React from 'react';
-import { Sword, Coins, Book, Skull, Store, HelpCircle, Settings, Maximize } from 'lucide-react';
+// 💡 BarChart2가 누락되어 흰 화면이 떴던 문제를 수정했습니다!
+import { Sword, Coins, Book, Skull, Store, HelpCircle, Settings, Maximize, BarChart2 } from 'lucide-react';
 
 export default function MainMenu({ 
   credits, 
@@ -35,20 +36,24 @@ export default function MainMenu({
           덱 구성 ({getTotalCards()}/20)
         </button>
         
-        <div className="flex gap-2">
-          <button onClick={openEncyclopedia} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 border border-slate-600 flex-1">
-            <Book className="w-5 h-5"/> 도감
+        {/* 💡 도감, 적 정보, 통계를 3열 그리드로 변경 */}
+        <div className="grid grid-cols-3 gap-2">
+          <button onClick={openEncyclopedia} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold transition-all flex flex-col justify-center items-center gap-1 border border-slate-600">
+            <Book className="w-5 h-5 text-blue-400"/> 도감
           </button>
-          <button onClick={openMonsterDex} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 border border-slate-600 flex-1">
+          <button onClick={openMonsterDex} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold transition-all flex flex-col justify-center items-center gap-1 border border-slate-600">
             <Skull className="w-5 h-5 text-red-400"/> 적 정보
+          </button>
+          <button onClick={() => setGameState('STATISTICS')} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold transition-all flex flex-col justify-center items-center gap-1 border border-slate-600">
+            <BarChart2 className="w-5 h-5 text-indigo-400"/> 통계
           </button>
         </div>
 
-        <button onClick={openShop} className="py-3 px-6 bg-yellow-600 hover:bg-yellow-500 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 shadow-[0_0_10px_rgba(202,138,4,0.3)]">
+        <button onClick={openShop} className="py-3 px-6 bg-yellow-600 hover:bg-yellow-500 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 shadow-[0_0_10px_rgba(202,138,4,0.3)] mt-1">
           <Store className="w-5 h-5"/> 상점
         </button>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-1">
           <button onClick={() => setTutorialModalOpen(true)} className="py-3 bg-blue-800 hover:bg-blue-700 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 border border-blue-600 flex-1">
             <HelpCircle className="w-5 h-5"/> 방법
           </button>

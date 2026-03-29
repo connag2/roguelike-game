@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-
 import { HelpCircle } from 'lucide-react'; 
 
 // 데이터 및 로직 Import
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
-// 분리한 컴포넌트들 깔끔하게 Import (중복 제거)
+// 💡 분리한 컴포넌트들을 중복 없이 딱 1번씩만 불러오도록 정리했습니다.
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
 import ShopScreen from './components/screens/ShopScreen';
@@ -18,7 +17,7 @@ import Encyclopedia from './components/screens/Encyclopedia';
 import MonsterDex from './components/screens/MonsterDex';
 import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
-import Statistics from './components/screens/Statistics'; // 💡 통계 컴포넌트 추가
+import Statistics from './components/screens/Statistics';
 
 export default function App() {
   // --- [1. 상태 관리 - 영구 데이터] ---
@@ -384,7 +383,6 @@ export default function App() {
     <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
       {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
-      {/* 💡 화면별 맞춤형 도움말 모달 */}
       {tutorialModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
           <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
@@ -401,8 +399,6 @@ export default function App() {
             </div>
 
             <div className="space-y-6 text-slate-200 text-sm md:text-base leading-relaxed">
-              
-              {/* 화면별 설명 섹션 */}
               {(gameState === 'MENU' || gameState === 'BATTLE') && (
                 <section>
                   <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
@@ -446,7 +442,6 @@ export default function App() {
                 </section>
               )}
 
-              {/* 공통 상태이상 설명 섹션 */}
               <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
                 <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
@@ -545,7 +540,6 @@ export default function App() {
         />
       )}
 
-      {/* 💡 1. 통계 렌더링 블록 (여기 추가됨!) */}
       {gameState === 'STATISTICS' && (
         <Statistics
           maxStageReached={maxStageReached}
