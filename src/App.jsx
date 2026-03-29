@@ -17,6 +17,7 @@ import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 
+// 💡 [에러 추적기] 화면이 하얗게 멈추는 것을 막아주는 특수 안전 장치
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -77,6 +78,20 @@ export default function App() {
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // 💡 [핵심 해결책] Vite의 쓸데없는 기본 여백과 흰색 배경을 강제로 박살냅니다!
+  useEffect(() => {
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.backgroundColor = '#0f172a'; // slate-900 (어두운 배경 고정)
+    
+    const rootNode = document.getElementById('root');
+    if (rootNode) {
+      rootNode.style.padding = '0';
+      rootNode.style.margin = '0';
+      rootNode.style.maxWidth = '100%';
+    }
+  }, []);
 
   useEffect(() => {
     if (!auth) return;
@@ -339,6 +354,7 @@ export default function App() {
     else if (code === 'GEMS') { creditsToAdd = 500; msg = '보석 쿠폰: 500 크레딧 획득!'; valid = true; }
 
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
+
     const updatedCoupons = [...usedCoupons, code];
     const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
 
@@ -360,11 +376,13 @@ export default function App() {
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('세이브 코드가 복사되었습니다!');
   };
+
   const handleDeckExport = () => {
     const data = JSON.stringify(tempDeckCounts);
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('현재 덱이 복사되었습니다!');
   };
+
   const handleExitGame = async () => {
     setToastMsg('저장 중...'); await saveGame();
     if (window.require) window.close(); else setGameState('MENU');
