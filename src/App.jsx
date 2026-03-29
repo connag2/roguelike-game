@@ -285,6 +285,39 @@ export default function App() {
     const unsubscribe = onAuthStateChanged(auth, setUser);
     return () => unsubscribe();
   }, []);
+  // App.jsx 상단이나 적절한 useEffect 안에 추가
+// App.jsx 내부, 다른 useEffect들 근처에 배치
+useEffect(() => {
+  if (window.require) {
+    const { ipcRenderer } = window.require('electron');
+
+    const handleSaveRequest = () => {
+      console.log("종료 신호 감지: 자동 저장 시작");
+      // 현재 모든 상태를 객체로 묶어서 저장 함수에 전달
+      saveGame({
+        deckCounts,
+        unlockedCards,
+        credits,
+        shopUpgrades,
+        normalCleared,
+        fastMode,
+        maxStageReached,
+        usedCoupons,
+        seenEnemies
+      });
+    };
+
+    // Electron(main.js)에서 보내는 'save-request' 이벤트를 기다림
+    ipcRenderer.on('save-request', handleSaveRequest);
+    
+    return () => {
+      ipcRenderer.removeListener('save-request', handleSaveRequest);
+    };
+  }
+  // 아래 리스트의 값이 바뀔 때마다 리스너가 최신 값을 참조하도록 업데이트함
+}, [deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, usedCoupons, seenEnemies]);
+
+   
 
   useEffect(() => {
     if (!user || !db) return;
@@ -663,6 +696,26 @@ export default function App() {
       setToastMsg('크레딧 99,999 지급 완료!');
       setTimeout(() => setToastMsg(''), 2000);
   };
+
+  // 저장 후 종료를 처리하는 새 함수
+const handleExitGame = async () => {
+  setToastMsg('데이터를 안전하게 저장 중입니다...');
+  
+  // 1. 현재 상태 저장
+  await saveGame({
+    deckCounts, unlockedCards, credits, shopUpgrades, 
+    normalCleared, fastMode, maxStageReached, usedCoupons, seenEnemies 
+  });
+
+  // 2. Electron 환경이면 창 닫기, 아니면 메뉴로 이동
+  if (window.require) {
+    window.close();
+  } else {
+    setGameState('MENU');
+    setToastMsg('저장 완료!');
+    setTimeout(() => setToastMsg(''), 2000);
+  }
+};
 
   const adminUnlockAllCards = () => {
       const allIds = CARD_LIBRARY.map(c => c.id);
@@ -1600,6 +1653,21 @@ export default function App() {
           </div>
           <p className="text-xs text-slate-400 mt-3">* 쿠폰은 계정당 1회만 사용할 수 있습니다.</p>
         </div>
+        
+        <div className="bg-gray-950 p-6 rounded-xl border-2 border-red-900 mt-6 shadow-[0_0_25px_rgba(153,27,27,0.3)] animate-draw">
+        <h3 className="text-xl font-bold mb-4 text-red-400 flex items-center gap-2 border-b border-red-900/30 pb-2">
+          <AlertTriangle className="w-5 h-5"/> 프로그램 안전 종료
+        </h3>
+        <button 
+          onClick={handleExitGame} // 이전에 만든 종료 함수 호출
+          className="w-full py-4 bg-red-700 hover:bg-red-600 rounded-xl font-black text-xl flex justify-center items-center gap-3 transition-all active:scale-95 shadow-[0_0_20px_rgba(185,28,28,0.4)]"
+        >
+          <Save className="w-6 h-6"/> 저장하고 완전히 나가기
+        </button>
+        <p className="text-center text-slate-500 text-xs mt-3">
+          ※ 클릭 시 모든 진행 상황을 저장하고 게임을 종료합니다.
+        </p>
+      </div>
 
         <div className="bg-gray-950 p-6 rounded-xl border border-red-900 mt-2 shadow-[0_0_20px_rgba(153,27,27,0.2)]">
           <h3 className="text-xl font-bold mb-4 border-b border-red-900 pb-2 flex items-center gap-2 text-red-400">
