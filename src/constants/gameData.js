@@ -1,26 +1,22 @@
-// --- 게임의 전역 규칙 및 설정값 ---
+// --- 게임 규칙 및 설정값 ---
 export const GAME_RULES = {
-  MAX_DECK_SIZE: 20,      // 덱 고정 크기
-  MAX_MANA_CARDS: 2,      // 마나 카드 최대 보유 제한
-  MAX_HAND_SIZE: 10,      // 최대 손패 제한
-  BASE_HP: 100,           // 플레이어 기본 체력
-  HP_PER_UPGRADE: 15,     // 상점 강화 당 체력 증가량
-  INITIAL_MANA: 3         // 매 턴 시작 마나
+  MAX_DECK_SIZE: 20,
+  MAX_MANA_CARDS: 2,
+  MAX_HAND_SIZE: 10,
+  BASE_HP: 100,
+  HP_PER_UPGRADE: 15
 };
 
-// --- 마나 관련 카드 ID 리스트 (유효성 검사용) ---
+// --- 마나 관련 카드 ID 리스트 ---
 export const MANA_CARD_IDS = [
-  'mana_potion', 'overcharge', 'meditate', 'dark_bargain', 
-  'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 
-  'mana_burst', 'lucky_coin'
+  'mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 
+  'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'
 ];
 
-// --- 게임 시작 시 기본 제공 카드 세트 ---
 export const BASE_CARDS = ['strike', 'defend', 'heavy_strike', 'shield_bash', 'heal', 'mana_potion', 'focus'];
 
-// --- 플레이어 카드 전체 라이브러리 ---
+// --- 플레이어 카드 라이브러리 ---
 export const CARD_LIBRARY = [
-  // --- Common (일반 등급) ---
   { id: 'strike', name: '타격', type: 'attack', cost: 1, rarity: 'common', damage: 8, desc: '적에게 8의 피해를 줍니다.' },
   { id: 'defend', name: '방어', type: 'skill', cost: 1, rarity: 'common', block: 6, desc: '6의 방어도를 얻습니다.' },
   { id: 'heavy_strike', name: '강타', type: 'attack', cost: 2, rarity: 'common', damage: 18, desc: '적에게 18의 피해를 줍니다.' },
@@ -54,8 +50,6 @@ export const CARD_LIBRARY = [
   { id: 'kihap', name: '기합', type: 'skill', cost: 1, rarity: 'common', manaGain: 1, selfStrength: 1, desc: '마나를 1 얻고 근력을 1 얻습니다.' },
   { id: 'short_rest', name: '짧은 휴식', type: 'skill', cost: 1, rarity: 'common', manaGain: 1, heal: 8, desc: '마나를 1 얻고 체력을 8 회복합니다.' },
   { id: 'gamblers_strike', name: '도박의 일격', type: 'attack', cost: 1, rarity: 'common', gamble: true, gambleWinChance: 0.5, winDamage: 25, loseDamage: 1, desc: '50% 확률로 25의 피해를 주거나, 실패 시 1의 피해를 줍니다.' },
-
-  // --- Uncommon (희귀 등급) ---
   { id: 'heal', name: '치유', type: 'skill', cost: 2, rarity: 'uncommon', heal: 12, desc: '체력을 12 회복합니다.' },
   { id: 'mana_potion', name: '마나 물약', type: 'skill', cost: 1, rarity: 'uncommon', manaGain: 3, desc: '마나를 1 소모하여 마나 3을 얻습니다.' },
   { id: 'wind_slash', name: '순풍 베기', type: 'attack', cost: 1, rarity: 'uncommon', damage: 7, draw: 1, desc: '7의 피해를 주고 카드를 1장 뽑습니다.' },
@@ -92,8 +86,6 @@ export const CARD_LIBRARY = [
   { id: 'mana_amp', name: '마나 증폭', type: 'skill', cost: 0, rarity: 'uncommon', manaGain: 3, enemyVuln: 1, desc: '마나를 3 얻고 적에게 취약 1을 부여합니다.' },
   { id: 'unstable_bomb', name: '불안정한 폭약', type: 'attack', cost: 2, rarity: 'uncommon', gamble: true, gambleWinChance: 0.7, winDamage: 35, loseSelfDamage: 15, desc: '70% 확률로 35의 피해를 줍니다. 실패 시 내 체력을 15 잃습니다.' },
   { id: 'lucky_coin', name: '행운의 동전', type: 'skill', cost: 1, rarity: 'uncommon', gamble: true, gambleWinChance: 0.5, winManaGain: 3, desc: '50% 확률로 마나를 3 얻습니다. 실패 시 아무 효과도 없습니다.' },
-
-  // --- Rare (전설 등급) ---
   { id: 'vampire_sword', name: '뱀파이어의 검', type: 'attack', cost: 2, rarity: 'rare', damage: 20, heal: 10, enemyWeak: 1, desc: '20의 피해를 주고 체력을 10 회복하며 약화 1을 부여합니다.' },
   { id: 'absolute_defense', name: '절대 방어', type: 'skill', cost: 2, rarity: 'rare', block: 30, enemyWeak: 2, desc: '30의 방어도를 얻고 적에게 약화 2를 부여합니다.' },
   { id: 'execute', name: '처형', type: 'attack', cost: 2, rarity: 'rare', damage: 30, enemyVuln: 2, desc: '적에게 30의 피해를 주고 취약 2를 부여합니다.' },
@@ -121,8 +113,6 @@ export const CARD_LIBRARY = [
   { id: 'absolute_domain', name: '절대 영역', type: 'skill', cost: 3, rarity: 'rare', block: 50, selfDex: 3, enemyWeak: 1, desc: '50의 방어도를 얻고 민첩을 3 얻으며 약화 1을 부여합니다.' },
   { id: 'russian_roulette', name: '러시안 룰렛', type: 'attack', cost: 0, rarity: 'rare', gamble: true, gambleWinChance: 0.16, winDamage: 9999, winDamageBoss: 150, loseDamage: 1, loseDraw: 1, desc: '16% 확률로 적을 즉사시킵니다(보스 150). 실패 시 1의 피해를 주고 1장 뽑습니다.' },
   { id: 'devils_dice', name: '악마의 주사위', type: 'skill', cost: 2, rarity: 'rare', gamble: true, gambleWinChance: 0.5, winHeal: 50, losePercentMaxHpDamage: 0.2, desc: '50% 확률로 체력을 50 회복합니다. 실패 시 최대 체력의 20%를 잃습니다.' },
-
-  // --- Special Rare (특수 및 보스 보상 등급) ---
   { id: 'super_tiger_slash', name: '초절맹호살격난참', type: 'attack', cost: 3, rarity: 'special', damage: 15, multiHit: 6, enemyVuln: 2, desc: '15의 피해를 6번 연속 주고 취약 2를 부여합니다. (총 90)' },
   { id: 'true_dragon_slayer', name: '진·용살검', type: 'attack', cost: 3, rarity: 'special', damage: 80, selfStrength: 3, enemyVuln: 2, desc: '80의 피해를 주고 근력을 3 얻으며 취약 2를 부여합니다.' },
   { id: 'absolute_zero', name: '절대영도', type: 'skill', cost: 3, rarity: 'special', block: 40, enemyWeak: 4, enemyVuln: 4, desc: '40의 방어도를 얻고 적에게 약화 4, 취약 4를 부여합니다.' },
@@ -137,7 +127,7 @@ export const CARD_LIBRARY = [
   { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'special', damage: 12, multiHit: 9, increasingDamage: 7, desc: '12의 피해를 9번 연속 줍니다. (타격 시마다 피해량이 7씩 증가합니다.)' },
 ];
 
-// --- 일반 적 라이브러리 ---
+// --- 적 및 보스 라이브러리 ---
 export const ENEMIES = [
   { name: '슬라임', baseHp: 30, deck: [{ name: '몸통 박치기', type: 'attack', value: 8, desc: '8의 피해를 줍니다.' }, { name: '점액 세례', type: 'attack', value: 4, multi: 2, desc: '4의 피해를 2번 줍니다.' }, { name: '끈적임', type: 'debuff', debuff: 'weak', turns: 2, desc: '약화 2를 부여합니다.' }] },
   { name: '박쥐', baseHp: 25, deck: [{ name: '흡혈 송곳니', type: 'attack_heal', value: 7, heal: 5, desc: '7의 피해를 주고 체력을 5 회복합니다.' }, { name: '초음파', type: 'debuff', debuff: 'vulnerable', turns: 1, desc: '취약 1을 부여합니다.' }] },
@@ -156,7 +146,6 @@ export const ENEMIES = [
   { name: '켄타우로스', baseHp: 60, deck: [{ name: '돌격', type: 'attack', value: 20, desc: '20의 피해를 줍니다.' }, { name: '연속 화살', type: 'attack', value: 8, multi: 3, desc: '8의 피해를 3번 줍니다.' }] },
 ];
 
-// --- 일반 보스 라이브러리 (5층 단위 등) ---
 export const NORMAL_BOSSES = [
   { name: '킹 슬라임', baseHp: 150, deck: [{ name: '대지진', type: 'attack', value: 25, desc: '25의 피해를 줍니다.' }, { name: '굳어지기', type: 'defend', value: 30, desc: '30의 방어도를 얻습니다.' }, { name: '강산성 점액', type: 'attack_debuff', value: 15, debuff: 'weak', turns: 3, desc: '15의 피해를 주고 약화 3을 부여합니다.' }] }, 
   { name: '고블린 족장', baseHp: 250, deck: [{ name: '연속 찌르기', type: 'attack', value: 10, multi: 3, desc: '10의 피해를 3번 줍니다.' }, { name: '총공격 지시', type: 'debuff', debuff: 'vulnerable', turns: 3, desc: '취약 3을 부여합니다.' }, { name: '철벽 방어', type: 'defend', value: 40, desc: '40의 방어도를 얻습니다.' }] }, 
@@ -168,40 +157,9 @@ export const NORMAL_BOSSES = [
   { name: '돌연변이 키메라', baseHp: 800, deck: [{ name: '독사 꼬리', type: 'attack_debuff', value: 20, debuff: 'weak', turns: 3, desc: '20의 피해를 주고 약화 3을 부여합니다.' }, { name: '사자후', type: 'debuff', debuff: 'vulnerable', turns: 3, desc: '취약 3을 부여합니다.' }, { name: '무자비한 찢기', type: 'attack', value: 40, desc: '40의 피해를 줍니다.' }] },
 ];
 
-// --- 특정 스테이지 전용 특수 보스 ---
 export const SPECIAL_BOSSES = {
-  25: { 
-    name: '거미 여왕', baseHp: 500, passives: [], 
-    deck: [
-      { name: '맹독 샤워', type: 'attack_debuff', value: 15, multi: 2, debuff: 'weak', turns: 2, desc: '15의 피해를 2번 주고 약화 2를 부여합니다.' }, 
-      { name: '여왕의 명령', type: 'defend_debuff', value: 50, debuff: 'vulnerable', turns: 2, desc: '50의 방어도를 얻고 취약 2를 부여합니다.' }
-    ] 
-  },
-  50: { 
-    name: '김삠삐', baseHp: 1500, 
-    passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], 
-    deck: [
-      { name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, 
-      { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, 
-      { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }
-    ] 
-  },
-  75: { 
-    name: '수라의 왕', baseHp: 2500, 
-    passives: [{ id: 'scaling_strength', name: '끝없는 분노', desc: '매 턴 시작 시 근력이 3 증가합니다.' }], 
-    deck: [
-      { name: '육도윤회', type: 'attack', value: 15, multi: 6, desc: '15의 피해를 6번 줍니다.' }, 
-      { name: '금강불괴', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }, 
-      { name: '파괴의 눈', type: 'debuff', debuff: 'vulnerable', turns: 5, desc: '취약 5를 부여합니다.' }
-    ] 
-  },
-  100: { 
-    name: '스스스슬라임', baseHp: 800, 
-    passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], 
-    deck: [
-      { name: '트리플 어택', type: 'attack', value: 20, multi: 3, desc: '20의 피해를 3번 줍니다.' }, 
-      { name: '산성비', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3, desc: '40의 피해를 주고 약화 3을 부여합니다.' }, 
-      { name: '단단한 결속', type: 'defend_buff', value: 100, buff: 'strength', buffValue: 5, desc: '100의 방어도를 얻고 근력을 5 얻습니다.' }
-    ] 
-  }
+  25: { name: '거미 여왕', baseHp: 500, passives: [], deck: [{ name: '맹독 샤워', type: 'attack_debuff', value: 15, multi: 2, debuff: 'weak', turns: 2, desc: '15의 피해를 2번 주고 약화 2를 부여합니다.' }, { name: '여왕의 명령', type: 'defend_debuff', value: 50, debuff: 'vulnerable', turns: 2, desc: '50의 방어도를 얻고 취약 2를 부여합니다.' }] },
+  50: { name: '김삠삐', baseHp: 1500, passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }] },
+  75: { name: '수라의 왕', baseHp: 2500, passives: [{ id: 'scaling_strength', name: '끝없는 분노', desc: '매 턴 시작 시 근력이 3 증가합니다.' }], deck: [{ name: '육도윤회', type: 'attack', value: 15, multi: 6, desc: '15의 피해를 6번 줍니다.' }, { name: '금강불괴', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }, { name: '파괴의 눈', type: 'debuff', debuff: 'vulnerable', turns: 5, desc: '취약 5를 부여합니다.' }] },
+  100: { name: '스스스슬라임', baseHp: 800, passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트리플 어택', type: 'attack', value: 20, multi: 3, desc: '20의 피해를 3번 줍니다.' }, { name: '산성비', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3, desc: '40의 피해를 주고 약화 3을 부여합니다.' }, { name: '단단한 결속', type: 'defend_buff', value: 100, buff: 'strength', buffValue: 5, desc: '100의 방어도를 얻고 근력을 5 얻습니다.' }] }
 };
