@@ -17,60 +17,107 @@ export const decayStack = (val) => {
   return Math.max(0, val - drop);
 };
 
-export const getCardDef = (id, shopUpgrades) => {
-  if (!id) return null;
-  const base = CARD_LIBRARY.find(c => c.id === id);
-  if (!base) return null;
-  const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(cId => cId === id).length;
-  if (upgradeLevel <= 0) return base;
+export const getCardDef = (id) => {
+    if (!id) return null;
+    const base = CARD_LIBRARY.find(c => c.id === id);
+    if (!base) return null;
+    
+    const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(cId => cId === id).length;
+    
+    if (upgradeLevel > 0) {
+      let ratePerLevel = 0.3; // 일반
+      if (base.rarity === 'uncommon') ratePerLevel = 0.4; 
+      else if (base.rarity === 'rare') ratePerLevel = 0.5; 
+      else if (base.rarity === 'special') ratePerLevel = 0.6; 
+      else if (base.rarity === 'mythic') ratePerLevel = 0.8; // [신화 등급 배율 추가]
 
-  let ratePerLevel = base.rarity === 'common' ? 0.3 : base.rarity === 'uncommon' ? 0.4 : base.rarity === 'rare' ? 0.6 : 0.7;
-  const multiplier = 1 + (ratePerLevel * upgradeLevel); 
-  const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
+      const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
+      
+      const getFlatInc = (val) => Math.max(1, Math.round(val * ratePerLevel));
 
-  const props = ['damage', 'block', 'heal', 'percentBlockMaxHp', 'manaMultiplier', 'increasingDamage', 'winDamage', 'loseDamage', 'winHeal', 'winDamageBoss'];
-  props.forEach(p => { if(upgraded[p]) upgraded[p] = Math.ceil(base[p] * multiplier); });
-  if (upgraded.missingHpDamage) upgraded.missingHpDamage = Number((base.missingHpDamage * multiplier).toFixed(2));
+      if (upgraded.damage) upgraded.damage = base.damage + getFlatInc(base.damage) * upgradeLevel;
+      if (upgraded.block) upgraded.block = base.block + getFlatInc(base.block) * upgradeLevel;
+      if (upgraded.heal) upgraded.heal = base.heal + getFlatInc(base.heal) * upgradeLevel;
+      if (upgraded.percentBlockMaxHp) upgraded.percentBlockMaxHp = base.percentBlockMaxHp + getFlatInc(base.percentBlockMaxHp) * upgradeLevel;
+      
+      if (upgraded.missingHpDamage) {
+        const inc = Math.max(0.05, base.missingHpDamage * ratePerLevel);
+        upgraded.missingHpDamage = Number((base.missingHpDamage + inc * upgradeLevel).toFixed(2));
+      }
+      
+      if (upgraded.manaMultiplier) upgraded.manaMultiplier = base.manaMultiplier + getFlatInc(base.manaMultiplier) * upgradeLevel;
+      if (upgraded.increasingDamage) upgraded.increasingDamage = base.increasingDamage + getFlatInc(base.increasingDamage) * upgradeLevel;
+      if (upgraded.winDamage) upgraded.winDamage = base.winDamage + getFlatInc(base.winDamage) * upgradeLevel;
+      if (upgraded.loseDamage) upgraded.loseDamage = base.loseDamage + getFlatInc(base.loseDamage) * upgradeLevel;
+      if (upgraded.winHeal) upgraded.winHeal = base.winHeal + getFlatInc(base.winHeal) * upgradeLevel;
+      if (upgraded.winDamageBoss) upgraded.winDamageBoss = base.winDamageBoss + getFlatInc(base.winDamageBoss) * upgradeLevel;
 
-  if (upgradeLevel >= 3) { if(base.enemyWeak) upgraded.enemyWeak = (base.enemyWeak || 0) + 1; if(base.enemyVuln) upgraded.enemyVuln = (base.enemyVuln || 0) + 1; }
-  if (upgradeLevel >= 4) { if(base.selfStrength) upgraded.selfStrength = (base.selfStrength || 0) + 1; if(base.selfDex) upgraded.selfDex = (base.selfDex || 0) + 1; }
-  if (upgradeLevel >= 5) { if(base.manaGain) upgraded.manaGain = (base.manaGain || 0) + 1; upgraded.draw = (base.draw || 0) + 1; }
+      // [신규 상태이상 추가] 디버프 강화 (+3강부터)
+      const debuffBonus = Math.max(0, upgradeLevel - 2); 
+      if (debuffBonus > 0) {
+        if (base.enemyWeak) upgraded.enemyWeak = base.enemyWeak + debuffBonus;
+        if (base.enemyVuln) upgraded.enemyVuln = base.enemyVuln + debuffBonus;
+        if (base.enemyPoison) upgraded.enemyPoison = base.enemyPoison + debuffBonus * 2; // 중독은 디버프 보너스의 2배씩 증가
+      }
 
-  let upDesc = base.desc;
-  if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
-  if (base.block) upDesc = upDesc.replace(`${base.block}의 방어`, `${upgraded.block}의 방어`);
-  if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal}`, `체력을 ${upgraded.heal}`);
+      // [신규 상태이상 추가] 버프 강화 (+4강부터)
+      const buffBonus = Math.max(0, upgradeLevel - 3); 
+      if (buffBonus > 0) {
+        if (base.selfStrength) upgraded.selfStrength = base.selfStrength + buffBonus;
+        if (base.selfDex) upgraded.selfDex = base.selfDex + buffBonus;
+        if (base.selfThorns) upgraded.selfThorns = base.selfThorns + buffBonus + 1; // 가시 보너스
+      }
 
-  upgraded.desc = upDesc;
-  return upgraded;
-};
+      if (upgradeLevel >= 5) {
+        if (base.manaGain) upgraded.manaGain = base.manaGain + 1;
+        if (base.winManaGain) upgraded.winManaGain = base.winManaGain + 1;
+        upgraded.draw = (base.draw || 0) + 1; 
+      }
 
-export const generateEnemyIntent = (template, stage) => {
-  const baseCard = template.deck[Math.floor(Math.random() * template.deck.length)];
-  let scaledValue = (baseCard.value || 0) + Math.floor(stage * 0.8 + (stage > 20 ? (stage-20)*0.7 : 0));
-  let scaledHeal = (baseCard.heal || 0) + Math.floor(stage * 2);
-  let scaledDesc = baseCard.desc.replace(baseCard.value?.toString(), scaledValue.toString()).replace(baseCard.heal?.toString(), scaledHeal.toString());
-  return { ...baseCard, value: scaledValue, heal: scaledHeal, desc: scaledDesc };
-};
+      let upDesc = base.desc;
+      if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
+      if (base.block) upDesc = upDesc.replace(`${base.block}의 방어도`, `${upgraded.block}의 방어도`);
+      if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal}`, `체력을 ${upgraded.heal}`);
+      if (base.percentBlockMaxHp) upDesc = upDesc.replace(`${base.percentBlockMaxHp}%`, `${upgraded.percentBlockMaxHp}%`);
+      if (base.missingHpDamage) upDesc = upDesc.replace(`${Math.round(base.missingHpDamage * 100)}%`, `${Math.round(upgraded.missingHpDamage * 100)}%`);
+      if (base.manaMultiplier) upDesc = upDesc.replace(`(소모한 마나 x ${base.manaMultiplier})`, `(소모한 마나 x ${upgraded.manaMultiplier})`);
+      if (base.increasingDamage) upDesc = upDesc.replace(`피해량이 ${base.increasingDamage}씩`, `피해량이 ${upgraded.increasingDamage}씩`);
+      if (base.winDamage) upDesc = upDesc.replace(`${base.winDamage}의 피해`, `${upgraded.winDamage}의 피해`);
+      if (base.winDamageBoss) upDesc = upDesc.replace(`보스 ${base.winDamageBoss}`, `보스 ${upgraded.winDamageBoss}`);
+      if (base.winHeal) upDesc = upDesc.replace(`체력을 ${base.winHeal}`, `체력을 ${upgraded.winHeal}`);
+      
+      if (base.multiHit && base.damage) {
+          const oldTotal = base.damage * base.multiHit;
+          const newTotal = upgraded.damage * base.multiHit;
+          upDesc = upDesc.replace(`(총 ${oldTotal})`, `(총 ${newTotal})`);
+      }
 
-export const generateEnemies = (stage) => {
-  let templates = SPECIAL_BOSSES[stage] ? (stage === 100 ? [SPECIAL_BOSSES[stage], SPECIAL_BOSSES[stage], SPECIAL_BOSSES[stage]] : [SPECIAL_BOSSES[stage]]) :
-                  stage % 5 === 0 ? [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]] :
-                  [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+      if (base.enemyWeak && upgraded.enemyWeak > base.enemyWeak) upDesc = upDesc.replace(`약화 ${base.enemyWeak}`, `약화 ${upgraded.enemyWeak}`);
+      if (base.enemyVuln && upgraded.enemyVuln > base.enemyVuln) upDesc = upDesc.replace(`취약 ${base.enemyVuln}`, `취약 ${upgraded.enemyVuln}`);
+      if (base.enemyPoison && upgraded.enemyPoison > base.enemyPoison) upDesc = upDesc.replace(`중독 ${base.enemyPoison}`, `중독 ${upgraded.enemyPoison}`);
+      
+      if (base.selfStrength && upgraded.selfStrength > base.selfStrength) {
+        if (upDesc.includes(`각각 ${base.selfStrength}`)) upDesc = upDesc.replace(`각각 ${base.selfStrength}`, `각각 ${upgraded.selfStrength}`);
+        else upDesc = upDesc.replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`).replace(`근력 ${base.selfStrength}`, `근력 ${upgraded.selfStrength}`);
+      }
+      if (base.selfDex && upgraded.selfDex > base.selfDex) {
+        if (!upDesc.includes(`각각 ${upgraded.selfDex}`)) upDesc = upDesc.replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`).replace(`민첩 ${base.selfDex}`, `민첩 ${upgraded.selfDex}`);
+      }
+      if (base.selfThorns && upgraded.selfThorns > base.selfThorns) upDesc = upDesc.replace(`가시 ${base.selfThorns}`, `가시 ${upgraded.selfThorns}`);
+      
+      if (base.manaGain && upgraded.manaGain > base.manaGain) upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`).replace(`마나 ${base.manaGain}`, `마나 ${upgraded.manaGain}`);
+      if (base.winManaGain && upgraded.winManaGain > base.winManaGain) upDesc = upDesc.replace(`마나를 ${base.winManaGain}`, `마나를 ${upgraded.winManaGain}`);
 
-  return templates.map((template, i) => {
-    let hp = template.baseHp + (stage * 8) + (stage > 20 ? (stage-20)*10 : 0) + (stage > 50 ? (stage-50)*15 : 0);
-    return {
-      uid: Math.random().toString(),
-      name: templates.length > 1 ? `${template.name} ${String.fromCharCode(65+i)}` : template.name,
-      hp: hp, maxHp: hp, block: 0, isBoss: stage % 5 === 0, template,
-      intentCard: generateEnemyIntent(template, stage),
-      debuffs: { weak: 0, vulnerable: 0 }, buffs: { strength: 0 },
-      passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : []
-    };
-  });
-};
-
+      if (upgradeLevel >= 5) {
+        if (base.draw) upDesc = upDesc.replace(`카드를 ${base.draw}장 뽑`, `카드를 ${upgraded.draw}장 뽑`).replace(`${base.draw}장 뽑`, `${upgraded.draw}장 뽑`);
+        else upDesc += ' 카드를 1장 뽑습니다.';
+      }
+      
+      upgraded.desc = upDesc;
+      return upgraded;
+    }
+    return base;
+  };
 export const validateDeckStatus = (deckCounts) => {
   const total = Object.values(deckCounts || {}).reduce((a, b) => a + b, 0);
   const manaCount = MANA_CARD_IDS.reduce((acc, id) => acc + (deckCounts[id] || 0), 0);
