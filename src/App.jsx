@@ -287,6 +287,8 @@ export default function App() {
   const [shopFilterRarity, setShopFilterRarity] = useState('all');
   const [shopFilterOwnership, setShopFilterOwnership] = useState('all');
   const [shopSearchQuery, setShopSearchQuery] = useState('');
+  const [hideMaxedUpgrades, setHideMaxedUpgrades] = useState(false);
+  const [isUpgradesCollapsed, setIsUpgradesCollapsed] = useState(false);
   
   const [hoveredCard, setHoveredCard] = useState(null);
   const [couponInput, setCouponInput] = useState('');
@@ -1896,6 +1898,12 @@ const handleExitGame = async () => {
         const cardDef = getCardDef(c.id); 
         if (cardDef && !cardDef.name.toLowerCase().includes(query) && !cardDef.desc.toLowerCase().includes(query)) return false;
       }
+      // (신규) 풀업글 숨기기 필터
+      if (hideMaxedUpgrades) {
+        const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(upId => upId === id).length;
+        if (upgradeLevel >= 5) return false;
+      }
+      
       return true;
     });
 
@@ -1966,61 +1974,76 @@ const handleExitGame = async () => {
           </div>
 
           {/* 카드 강화 */}
-          <div className="bg-slate-800 p-4 md:p-6 rounded-xl border-2 border-slate-600 lg:col-span-4 flex flex-col min-h-[500px] shadow-lg">
+          <div className="bg-slate-800 p-4 md:p-6 rounded-xl border-2 border-slate-600 lg:col-span-4 flex flex-col shadow-lg transition-all">
             <div className="flex flex-col mb-4 border-b border-slate-700 pb-4">
-              <h3 className="text-2xl font-bold mb-4 flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400"/> 카드 영구 강화</h3>
-              <p className="text-slate-400 text-sm md:text-base mb-4">해금된 카드를 강화(+)하여 위력을 중첩시킵니다. (최대 +5 강화)</p>
-              {renderFiltersUI(shopFilterType, setShopFilterType, shopFilterEffect, setShopFilterEffect, shopFilterRarity, setShopFilterRarity, shopFilterOwnership, setShopFilterOwnership, shopSearchQuery, setShopSearchQuery)}
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                <div>
+                  <h3 className="text-2xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400"/> 카드 영구 강화</h3>
+                  <p className="text-slate-400 text-sm md:text-base mt-1">해금된 카드를 강화(+)하여 위력을 중첩시킵니다. (최대 +5 강화)</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold bg-slate-900 px-3 py-2 rounded-lg hover:bg-slate-700 transition-colors border border-slate-600 select-none">
+                    <input type="checkbox" checked={hideMaxedUpgrades} onChange={(e) => setHideMaxedUpgrades(e.target.checked)} className="w-4 h-4 accent-yellow-500" />
+                    풀업글 숨기기
+                  </label>
+                  <button onClick={() => setIsUpgradesCollapsed(!isUpgradesCollapsed)} className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-md">
+                    {isUpgradesCollapsed ? '펼치기 ▼' : '접기 ▲'}
+                  </button>
+                </div>
+              </div>
+              
+              {!isUpgradesCollapsed && renderFiltersUI(shopFilterType, setShopFilterType, shopFilterEffect, setShopFilterEffect, shopFilterRarity, setShopFilterRarity, shopFilterOwnership, setShopFilterOwnership, shopSearchQuery, setShopSearchQuery)}
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto hide-scrollbar pr-2 flex-1">
-              {filteredUpgrades.map(id => {
-                const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(c => c === id).length;
-                const isUpgraded = upgradeLevel > 0;
-                const isMaxed = upgradeLevel >= 5;
-                
-                const cardDef = getCardDef(id); 
-                if (!cardDef) return null;
-                const baseCost = cardDef.rarity === 'rare' ? 200 : cardDef.rarity === 'uncommon' ? 150 : 100;
-                const upgradeCost = baseCost + (upgradeLevel * 50); 
-                
-                return (
-                  <div key={id} className={`p-4 rounded-xl border-2 ${isUpgraded ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-600 bg-slate-900'} relative flex flex-col justify-between shadow-md`}>
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className={`font-extrabold text-lg ${isUpgraded ? 'text-yellow-400' : 'text-white'}`}>{cardDef.name}</span>
-                        <span className="text-xs bg-slate-700 px-2 py-1 rounded text-white font-bold border border-slate-600">코스트 {cardDef.cost}</span>
+            {!isUpgradesCollapsed && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto hide-scrollbar pr-2 flex-1 max-h-[60vh] min-h-[400px]">
+                {filteredUpgrades.map(id => {
+                  const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(c => c === id).length;
+                  const isUpgraded = upgradeLevel > 0;
+                  const isMaxed = upgradeLevel >= 5;
+                  
+                  const cardDef = getCardDef(id); 
+                  if (!cardDef) return null;
+                  const baseCost = cardDef.rarity === 'rare' ? 200 : cardDef.rarity === 'uncommon' ? 150 : 100;
+                  const upgradeCost = baseCost + (upgradeLevel * 50); 
+                  
+                  return (
+                    <div key={id} className={`p-4 rounded-xl border-2 ${isUpgraded ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-600 bg-slate-900'} relative flex flex-col justify-between shadow-md`}>
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={`font-extrabold text-lg ${isUpgraded ? 'text-yellow-400' : 'text-white'}`}>{cardDef.name}</span>
+                          <span className="text-xs bg-slate-700 px-2 py-1 rounded text-white font-bold border border-slate-600">코스트 {cardDef.cost}</span>
+                        </div>
+                        <div className="text-[10px] md:text-xs text-slate-300 leading-tight bg-slate-800/80 p-2 rounded relative mt-2 border border-slate-700 min-h-[40px] flex items-center justify-center">
+                          <div>{cardDef.desc} {renderTooltipIcon(cardDef.desc)}</div>
+                        </div>
                       </div>
-                      <div className="text-[10px] md:text-xs text-slate-300 leading-tight bg-slate-800/80 p-2 rounded relative mt-2 border border-slate-700 min-h-[40px] flex items-center justify-center">
-                        <div>{cardDef.desc} {renderTooltipIcon(cardDef.desc)}</div>
-                      </div>
+                      {!isMaxed ? (
+                        <button onClick={() => {
+                            if (credits >= upgradeCost) {
+                              const newCredits = credits - upgradeCost;
+                              const newUpgrades = { ...shopUpgrades, upgradedCards: [...(shopUpgrades?.upgradedCards || []), id] };
+                              setCredits(newCredits);
+                              setShopUpgrades(newUpgrades);
+                              saveGame({ credits: newCredits, shopUpgrades: newUpgrades });
+                              setToastMsg(`${cardDef.name} 강화 완료!`);
+                              setTimeout(() => setToastMsg(''), 2000); // 토스트 메시지 숨기기
+                            }
+                          }}
+                          disabled={credits < upgradeCost}
+                          className={`w-full mt-4 py-2 rounded-lg text-sm font-bold transition-colors ${credits >= upgradeCost ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed border border-slate-600'}`}
+                        >
+                          강화 ({upgradeLevel}/5) - <Coins className="w-4 h-4 inline mb-0.5"/> {upgradeCost}
+                        </button>
+                      ) : (
+                        <div className="w-full mt-4 py-2 text-center text-sm font-bold text-yellow-500 bg-yellow-900/40 rounded-lg border border-yellow-700">최대 강화 (5/5)</div>
+                      )}
                     </div>
-                    {!isMaxed ? (
-                      <button onClick={() => {
-                          if (credits >= upgradeCost) {
-                            const newCredits = credits - upgradeCost;
-                            const newUpgrades = { ...shopUpgrades, upgradedCards: [...(shopUpgrades?.upgradedCards || []), id] };
-                            setCredits(newCredits);
-                            setShopUpgrades(newUpgrades);
-                            saveGame({ credits: newCredits, shopUpgrades: newUpgrades });
-                            setToastMsg(`${cardDef.name} 강화 완료!`);
-                            setTimeout(() => setToastMsg(''), 2000);
-                          }
-                        }}
-                        disabled={credits < upgradeCost}
-                        className={`w-full mt-4 py-2 rounded-lg text-sm font-bold transition-colors ${credits >= upgradeCost ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed border border-slate-600'}`}
-                      >
-                        강화 ({upgradeLevel}/5) - <Coins className="w-4 h-4 inline mb-0.5"/> {upgradeCost}
-                      </button>
-                    ) : (
-                      <div className="w-full mt-4 py-2 text-center text-sm font-bold text-yellow-500 bg-yellow-900/40 rounded-lg border border-yellow-700">최대 강화 (5/5)</div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-
           {/* 전설 카드 확정 구매 */}
           <div className="bg-gray-950 text-white p-6 rounded-xl border-2 border-yellow-600 lg:col-span-4 flex flex-col shadow-[0_0_25px_rgba(202,138,4,0.3)]">
             <h3 className="text-2xl font-bold mb-2 flex items-center gap-2 text-yellow-400"><Store className="w-6 h-6"/> 전설 카드 암시장</h3>
