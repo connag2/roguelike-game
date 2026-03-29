@@ -305,6 +305,17 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [gameState, combatState?.turn, fastMode]);
 
+  {gameState === 'STATISTICS' && (
+  <Statistics
+    maxStageReached={maxStageReached}
+    normalCleared={normalCleared}
+    seenEnemies={seenEnemies}
+    unlockedCards={unlockedCards}
+    credits={credits}
+    setGameState={setGameState}
+  />
+)}
+
   // --- [7. 기타 기능] ---
   const getFilteredCards = (t, e, r, o, q) => {
     return CARD_LIBRARY.filter(c => {

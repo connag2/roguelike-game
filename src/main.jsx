@@ -36,16 +36,6 @@ export default function MainMenu({
         <button onClick={openDeckBuilder} className="py-3 px-6 bg-slate-700 hover:bg-slate-600 rounded-lg text-lg font-bold transition-all">
           덱 구성 ({getTotalCards()}/20)
         </button>
-        {gameState === 'STATISTICS' && (
-  <Statistics
-    maxStageReached={maxStageReached}
-    normalCleared={normalCleared}
-    seenEnemies={seenEnemies}
-    unlockedCards={unlockedCards}
-    credits={credits}
-    setGameState={setGameState}
-  />
-)}
         
         {/* 💡 도감, 적 정보, 통계를 3열 그리드로 변경 */}
         <div className="grid grid-cols-3 gap-2">
