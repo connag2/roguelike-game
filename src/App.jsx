@@ -3,19 +3,13 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-import MonsterDex from './components/screens/MonsterDex';
-import Rewards from './components/screens/Rewards';
-import Settings from './components/screens/Settings';
-import Statistics from './components/screens/Statistics'; // 👈 이거 한 줄 추가
-
-// 💡 HelpCircle 아이콘 유지
 import { HelpCircle } from 'lucide-react'; 
 
 // 데이터 및 로직 Import
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
-// 분리한 컴포넌트들 Import
+// 분리한 컴포넌트들 깔끔하게 Import (중복 제거)
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
 import ShopScreen from './components/screens/ShopScreen';
@@ -24,6 +18,7 @@ import Encyclopedia from './components/screens/Encyclopedia';
 import MonsterDex from './components/screens/MonsterDex';
 import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
+import Statistics from './components/screens/Statistics'; // 💡 통계 컴포넌트 추가
 
 export default function App() {
   // --- [1. 상태 관리 - 영구 데이터] ---
@@ -305,8 +300,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [gameState, combatState?.turn, fastMode]);
 
-  
-
   // --- [7. 기타 기능] ---
   const getFilteredCards = (t, e, r, o, q) => {
     return CARD_LIBRARY.filter(c => {
@@ -539,7 +532,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 화면 컴포넌트들 */}
+      {/* 💡 화면 컴포넌트들 */}
       {gameState === 'MENU' && (
         <MainMenu
           credits={credits} getTotalCards={getTotalCards}
@@ -549,6 +542,18 @@ export default function App() {
           setGameState={setGameState} handleCoupon={handleCoupon} startBattle={startBattle}
           normalCleared={normalCleared} maxStageReached={maxStageReached}
           setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
+        />
+      )}
+
+      {/* 💡 1. 통계 렌더링 블록 (여기 추가됨!) */}
+      {gameState === 'STATISTICS' && (
+        <Statistics
+          maxStageReached={maxStageReached}
+          normalCleared={normalCleared}
+          seenEnemies={seenEnemies}
+          unlockedCards={unlockedCards}
+          credits={credits}
+          setGameState={setGameState}
         />
       )}
 
