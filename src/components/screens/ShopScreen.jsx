@@ -225,6 +225,13 @@ export default function ShopScreen({
           <button onClick={() => setGachaResult(null)} className="mt-12 py-3 px-10 bg-indigo-600 rounded-full text-xl font-bold">확인</button>
         </div>
       )}
+      // ShopScreen.jsx 상단 우측 버튼 그룹
+<div className="flex items-center gap-3">
+  <button onClick={() => setTutorialModalOpen(true)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors">
+    <HelpCircle className="w-5 h-5 text-yellow-500" />
+  </button>
+  <button onClick={() => setGameState('MENU')} className="...">메인으로</button>
+</div>
 
       {/* 프리미엄 가챠 선택창 */}
       {premiumGachaResult && (

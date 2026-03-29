@@ -467,18 +467,70 @@ export default function App() {
     <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen'}>
       {/* 1. 방법(도움말) 모달 추가 */}
       {tutorialModalOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setTutorialModalOpen(false)}>
-          <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <h2 className="text-3xl font-black mb-6 text-indigo-400">게임 방법</h2>
-            <div className="space-y-4 text-slate-200">
-              <p>• <b>전투:</b> 매 턴 마나를 사용하여 카드를 냅니다. 적의 체력을 0으로 만드세요.</p>
-              <p>• <b>방어도:</b> 턴이 끝나면 방어도는 사라집니다. 적의 공격을 미리 막으세요.</p>
-              <p>• <b>상태 이상:</b> 약화(공격 감소), 취약(피해 증가), 중독(매 턴 피해) 등을 활용하세요.</p>
-              <p>• <b>층수 규칙:</b> 5층마다 보스가 등장하며, 25/50/75/100층에는 전설적인 네임드 보스가 기다립니다.</p>
+  <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
+    <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
+      <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+        <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
+          <HelpCircle className="w-8 h-8" /> 
+          {gameState === 'MENU' && "게임 가이드"}
+          {gameState === 'BATTLE' && "전투 가이드"}
+          {gameState === 'SHOP' && "상점 가이드"}
+          {gameState === 'DECK_BUILDING' && "덱 구성 가이드"}
+          {(gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') && "도감 가이드"}
+        </h2>
+        <button onClick={() => setTutorialModalOpen(false)} className="text-slate-400 hover:text-white text-2xl">×</button>
+      </div>
+
+      <div className="space-y-6 text-slate-200 text-sm md:text-base leading-relaxed">
+        {/* 공통/전투 설명 */}
+        {(gameState === 'MENU' || gameState === 'BATTLE') && (
+          <section>
+            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
+            <ul className="list-disc list-inside space-y-1 text-slate-300">
+              <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
+              <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
+              <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
+            </ul>
+          </section>
+        )}
+
+        {/* 상태 이상(디버프/버프) 설명 - 모든 곳에서 노출 가능 */}
+        <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+          <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
+            <div>
+              <p className="mb-1"><span className="text-red-400 font-bold">약화:</span> 가하는 피해량이 25% 감소합니다.</p>
+              <p className="mb-1"><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 50% 증가합니다.</p>
+              <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.</p>
             </div>
-            <button onClick={() => setTutorialModalOpen(false)} className="mt-8 w-full py-3 bg-indigo-600 rounded-xl font-bold">알겠어!</button>
+            <div>
+              <p className="mb-1"><span className="text-yellow-400 font-bold">근력/민첩:</span> 공격력과 방어력을 수치만큼 영구히 올립니다.</p>
+              <p className="mb-1"><span className="text-emerald-400 font-bold">가시:</span> 피격 시 공격자에게 수치만큼 피해를 반사합니다.</p>
+              <p><span className="text-blue-400 font-bold">마나:</span> 카드를 낼 때 필요한 에너지입니다. 매 턴 초기화됩니다.</p>
+            </div>
           </div>
-        </div>
+        </section>
+
+        {/* 화면별 특수 설명 */}
+        {gameState === 'SHOP' && (
+          <section>
+            <h3 className="text-lg font-bold text-yellow-400 mb-2">💰 상점 이용법</h3>
+            <p className="text-slate-300">전투에서 얻은 크레딧으로 <b>카드 강화</b>를 하거나 <b>뽑기</b>를 할 수 있습니다. 강화는 덱의 모든 해당 카드에 영구 적용됩니다.</p>
+          </section>
+        )}
+
+        {gameState === 'DECK_BUILDING' && (
+          <section>
+            <h3 className="text-lg font-bold text-indigo-400 mb-2">🃏 덱 구성 팁</h3>
+            <p className="text-slate-300">덱은 반드시 <b>20장</b>이어야 모험을 시작할 수 있습니다. 공격과 방어, 마나 카드의 비율을 잘 맞추는 것이 핵심입니다.</p>
+          </section>
+        )}
+      </div>
+
+      <button onClick={() => setTutorialModalOpen(false)} className="mt-8 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xl shadow-lg transition-all">확인</button>
+    </div>
+  </div>
+
       )}
       {gameState === 'MENU' && (
         <MainMenu

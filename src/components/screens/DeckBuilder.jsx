@@ -68,6 +68,13 @@ export default function DeckBuilder({
         rarity={filterRarity} setRarity={setRarity}
         search={searchQuery} setSearch={setSearchQuery}
       />
+      // DeckBuilder.jsx 상단 버튼 그룹
+<div className="flex items-center gap-2">
+  <button onClick={() => setTutorialModalOpen(true)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600">
+    <HelpCircle className="w-5 h-5 text-indigo-400" />
+  </button>
+  {/* 나머지 저장/복사 버튼들... */}
+</div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-4">
         {filteredCards.map(baseCard => {

@@ -36,6 +36,18 @@ export default function BattleScreen({
         </div>
       </div>
 
+      // BattleScreen.jsx 상단 정보바 안쪽에 추가
+<div className="flex items-center gap-2 md:gap-4 font-bold">
+  <button 
+    onClick={() => setTutorialModalOpen(true)} // 👈 App.jsx에서 넘겨준 props 사용
+    className="bg-slate-700 hover:bg-slate-600 p-2 rounded-full border border-slate-500 transition-colors"
+    title="전투 방법"
+  >
+    <HelpCircle className="w-5 h-5 text-indigo-300" />
+  </button>
+  {/* 기존 코드 (총 덱 보기 등)... */}
+</div>
+
       {/* 턴 배경 텍스트 */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-[0.03]">
         <h1 className="text-[8rem] md:text-[12rem] font-black italic whitespace-nowrap tracking-tighter">
