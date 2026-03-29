@@ -1,13 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './index.css'; // 👈 🚨 범인 검거! 이 한 줄이 없으면 디자인이 완전히 박살납니다!
-
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
 import { BarChart2, Trophy, Skull, BookOpen, Coins, Star } from 'lucide-react';
 import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
 
@@ -19,7 +10,6 @@ export default function Statistics({
   credits,
   setGameState
 }) {
-  // 💡 데이터가 일시적으로 없더라도 흰화면(크래시)이 뜨지 않도록 안전망(?.)을 추가했습니다.
   const totalCards = CARD_LIBRARY?.length || 0;
   const totalEnemies = (ENEMIES?.length || 0) + (NORMAL_BOSSES?.length || 0) + Object.keys(SPECIAL_BOSSES || {}).length;
 
@@ -97,7 +87,6 @@ export default function Statistics({
             <p className="text-3xl font-black text-amber-400">{credits.toLocaleString()} <span className="text-lg text-slate-500 font-normal">C</span></p>
           </div>
         </div>
-
       </div>
     </div>
   );
