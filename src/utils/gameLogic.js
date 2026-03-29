@@ -35,42 +35,10 @@ export const getCardDef = (id, shopUpgrades) => {
 
     if (upgraded.damage) upgraded.damage = base.damage + getFlatInc(base.damage) * upgradeLevel;
     if (upgraded.block) upgraded.block = base.block + getFlatInc(base.block) * upgradeLevel;
-    if (upgraded.heal) upgraded.heal = base.heal + getFlatInc(base.heal) * upgradeLevel;
-    if (upgraded.percentBlockMaxHp) upgraded.percentBlockMaxHp = base.percentBlockMaxHp + getFlatInc(base.percentBlockMaxHp) * upgradeLevel;
     
-    if (upgraded.missingHpDamage) {
-      const inc = Math.max(0.05, base.missingHpDamage * ratePerLevel);
-      upgraded.missingHpDamage = Number((base.missingHpDamage + inc * upgradeLevel).toFixed(2));
-    }
-    
-    if (upgraded.manaMultiplier) upgraded.manaMultiplier = base.manaMultiplier + getFlatInc(base.manaMultiplier) * upgradeLevel;
-    if (upgraded.increasingDamage) upgraded.increasingDamage = base.increasingDamage + getFlatInc(base.increasingDamage) * upgradeLevel;
-    if (upgraded.winDamage) upgraded.winDamage = base.winDamage + getFlatInc(base.winDamage) * upgradeLevel;
-    if (upgraded.loseDamage) upgraded.loseDamage = base.loseDamage + getFlatInc(base.loseDamage) * upgradeLevel;
-    
-    const debuffBonus = Math.max(0, upgradeLevel - 2); 
-    if (debuffBonus > 0) {
-      if (base.enemyWeak) upgraded.enemyWeak = base.enemyWeak + debuffBonus;
-      if (base.enemyVuln) upgraded.enemyVuln = base.enemyVuln + debuffBonus;
-      if (base.enemyPoison) upgraded.enemyPoison = base.enemyPoison + debuffBonus * 2;
-    }
-
-    const buffBonus = Math.max(0, upgradeLevel - 3); 
-    if (buffBonus > 0) {
-      if (base.selfStrength) upgraded.selfStrength = base.selfStrength + buffBonus;
-      if (base.selfDex) upgraded.selfDex = base.selfDex + buffBonus;
-      if (base.selfThorns) upgraded.selfThorns = base.selfThorns + buffBonus + 1;
-    }
-
-    if (upgradeLevel >= 5) {
-      if (base.manaGain) upgraded.manaGain = base.manaGain + 1;
-      upgraded.draw = (base.draw || 0) + 1;
-    }
-
     let upDesc = base.desc;
     if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
     if (base.block) upDesc = upDesc.replace(`${base.block}의 방어`, `${upgraded.block}의 방어`);
-    if (base.enemyPoison) upDesc = upDesc.replace(`중독 ${base.enemyPoison}`, `중독 ${upgraded.enemyPoison}`);
     
     upgraded.desc = upDesc;
     return upgraded;
@@ -80,7 +48,7 @@ export const getCardDef = (id, shopUpgrades) => {
 
 export const generateEnemyIntent = (template, stage) => {
   const baseCard = template.deck[Math.floor(Math.random() * template.deck.length)];
-  let scaledValue = (baseCard.value || 0) + Math.floor(stage * 0.7);
+  let scaledValue = (baseCard.value || 0) + Math.floor(stage * 0.75);
   let scaledHeal = (baseCard.heal || 0) + Math.floor(stage * 1.5);
   let scaledDesc = baseCard.desc.replace(baseCard.value?.toString(), scaledValue.toString()).replace(baseCard.heal?.toString(), scaledHeal.toString());
   return { ...baseCard, value: scaledValue, heal: scaledHeal, desc: scaledDesc };
@@ -89,23 +57,29 @@ export const generateEnemyIntent = (template, stage) => {
 export const generateEnemies = (stage) => {
   let enemyTemplates = [];
 
-  // 1. 네임드 전설 보스 (25, 50, 75, 100층)
+  // 1. 네임드 전설 보스 (25, 50, 75, 100층 고정)
   if ([25, 50, 75, 100].includes(stage)) {
     enemyTemplates = [SPECIAL_BOSSES[stage]];
   } 
-  // 2. 일반 보스 (5층 단위)
+  // 2. 일반 보스 (그 외 5층 단위: 5, 10, 15, 20, 30...)
   else if (stage % 5 === 0) {
     enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
   } 
-  // 3. 일반 몬스터
+  // 3. 일반 몬스터 (그 외 모든 층)
   else {
     enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
   }
 
-  return enemyTemplates.map((template, i) => {
-    // 체력 밸런스 조정
-    const hpBase = template.baseHp + (stage * 10);
-    const hpFinal = stage > 50 ? Math.floor(hpBase * 1.5) : hpBase;
+  return enemyTemplates.map((template) => {
+    // 층수 및 등급에 따른 체력 스케일링
+    const isNamedBoss = [25, 50, 75, 100].includes(stage);
+    const isNormalBoss = stage % 5 === 0 && !isNamedBoss;
+    
+    let hpBase = template.baseHp + (stage * 12);
+    let hpFinal = hpBase;
+    
+    if (isNamedBoss) hpFinal = Math.floor(hpBase * 2.2); // 네임드는 매우 강력하게
+    else if (isNormalBoss) hpFinal = Math.floor(hpBase * 1.6); // 일반 보스
 
     return {
       uid: Math.random().toString(),
@@ -113,7 +87,7 @@ export const generateEnemies = (stage) => {
       hp: hpFinal,
       maxHp: hpFinal,
       block: 0,
-      isBoss: stage % 5 === 0 || [25, 50, 75, 100].includes(stage),
+      isBoss: isNamedBoss || isNormalBoss,
       template,
       intentCard: generateEnemyIntent(template, stage),
       debuffs: { weak: 0, vulnerable: 0, poison: 0 },
