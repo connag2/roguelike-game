@@ -1,5 +1,13 @@
-// src/components/screens/MainMenu.jsx
 import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css'; // 👈 🚨 범인 검거! 이 한 줄이 없으면 디자인이 완전히 박살납니다!
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
 import { Sword, Coins, Book, Skull, Store, HelpCircle, Settings, Maximize, BarChart2 } from 'lucide-react'; // 💡 BarChart2 추가됨
 
 export default function MainMenu({ 
