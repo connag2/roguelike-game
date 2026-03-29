@@ -6,6 +6,7 @@ export default function BattleScreen({
   combatState,
   isPlayerTurn,
   setViewingPile,
+  viewingPile, // 💡 [추가] 카드 보기 상태 프롭스 받기
   setGameState,
   hoveredCard,
   setHoveredCard,
@@ -21,6 +22,26 @@ export default function BattleScreen({
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden">
+      {/* 💡 [추가] 뽑을 패, 무덤, 총 덱 보기 모달 */}
+      {viewingPile && (
+        <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col p-4 md:p-10 backdrop-blur-md" onClick={() => setViewingPile(null)}>
+          <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
+            <h2 className="text-2xl md:text-4xl font-black text-white">
+              {viewingPile === 'baseDeck' ? '총 덱' : viewingPile === 'drawPile' ? '뽑을 패' : '무덤'} 
+              <span className="text-indigo-400 text-xl md:text-2xl ml-3">({combatState[viewingPile].length}장)</span>
+            </h2>
+            <button onClick={() => setViewingPile(null)} className="text-slate-400 hover:text-white text-4xl font-bold transition-colors">×</button>
+          </div>
+          <div className="flex-1 overflow-y-auto hide-scrollbar flex flex-wrap gap-4 md:gap-6 content-start justify-center" onClick={e => e.stopPropagation()}>
+            {combatState[viewingPile].map((card, idx) => (
+              <div key={idx} className="w-28 h-40 md:w-36 md:h-48 transform transition-transform hover:scale-105 origin-center">
+                <Card card={card} isLocked={false} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* 상단 정보바 */}
       <div className="flex justify-between items-center bg-slate-800/80 p-2 md:p-3 rounded-lg border border-slate-700 shadow-md z-10 shrink-0">
         <div className="font-bold text-sm md:text-lg flex items-center gap-1 md:gap-2 text-indigo-300">
@@ -35,7 +56,7 @@ export default function BattleScreen({
             <HelpCircle className="w-4 h-4 md:w-5 md:h-5 text-indigo-300" />
           </button>
           <span 
-            className="text-slate-400 cursor-pointer hover:text-white transition-colors bg-slate-700/50 px-2 py-1 rounded border border-slate-600"
+            className="text-slate-300 cursor-pointer hover:text-indigo-300 transition-colors bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600 font-black shadow-inner"
             onClick={() => setViewingPile('baseDeck')}
           >
             총 덱: {baseDeck.length}장 (보기)
@@ -127,8 +148,8 @@ export default function BattleScreen({
               <span className="bg-slate-900/80 px-2 md:px-3 py-0.5 rounded-full text-[9px] md:text-xs font-bold text-blue-300 mt-1 border border-slate-700">마나</span>
             </div>
             <div className="flex flex-col items-center cursor-pointer group" onClick={() => setViewingPile('drawPile')}>
-               <div className="w-10 h-14 md:w-16 md:h-24 bg-slate-700 border-2 border-slate-500 rounded-lg flex items-center justify-center font-black text-lg md:text-2xl shadow-xl group-hover:-translate-y-2 transition-transform">{drawPile.length}</div>
-               <span className="text-slate-300 font-bold mt-1 text-[9px] md:text-sm">뽑을 패</span>
+               <div className="w-10 h-14 md:w-16 md:h-24 bg-slate-700 border-2 border-slate-500 rounded-lg flex items-center justify-center font-black text-lg md:text-2xl shadow-xl group-hover:-translate-y-2 transition-transform hover:border-indigo-400">{drawPile.length}</div>
+               <span className="text-slate-300 font-bold mt-1 text-[9px] md:text-sm group-hover:text-indigo-300">뽑을 패</span>
             </div>
           </div>
 
@@ -166,8 +187,8 @@ export default function BattleScreen({
               {isPlayerTurn ? '턴 종료' : '적 턴...'} <ArrowRightCircle className="w-3 h-3 md:w-5 md:h-5"/>
             </button>
             <div className="flex flex-col items-center cursor-pointer group" onClick={() => setViewingPile('discardPile')}>
-               <div className="w-10 h-14 md:w-16 md:h-24 bg-slate-800 border-2 border-slate-600 rounded-lg flex items-center justify-center font-black text-lg md:text-2xl shadow-xl group-hover:-translate-y-2 transition-transform">{discardPile.length}</div>
-               <span className="text-slate-400 font-bold mt-1 text-[9px] md:text-sm">무덤</span>
+               <div className="w-10 h-14 md:w-16 md:h-24 bg-slate-800 border-2 border-slate-600 rounded-lg flex items-center justify-center font-black text-lg md:text-2xl shadow-xl group-hover:-translate-y-2 transition-transform hover:border-red-400">{discardPile.length}</div>
+               <span className="text-slate-400 font-bold mt-1 text-[9px] md:text-sm group-hover:text-red-300">무덤</span>
             </div>
           </div>
         </div>
