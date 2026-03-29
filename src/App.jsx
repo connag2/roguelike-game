@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db, appId } from './config/firebase';
-import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
+// 💡 HelpCircle 아이콘 유지
 import { HelpCircle } from 'lucide-react'; 
 
 // 데이터 및 로직 Import
-import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
+import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
 // 분리한 컴포넌트들 Import
@@ -20,6 +21,7 @@ import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 
 export default function App() {
+  // --- [1. 상태 관리 - 영구 데이터] ---
   const [gameState, setGameState] = useState('MENU');
   const [user, setUser] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
@@ -33,6 +35,7 @@ export default function App() {
   const [seenEnemies, setSeenEnemies] = useState([]);
   const [usedCoupons, setUsedCoupons] = useState([]);
 
+  // --- [2. 상태 관리 - 게임 진행용] ---
   const [combatState, setCombatState] = useState(null);
   const [rewardCards, setRewardCards] = useState([]);
   const [tempDeckCounts, setTempDeckCounts] = useState({});
@@ -50,7 +53,7 @@ export default function App() {
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminCodeInput, setAdminCodeInput] = useState('');
   const [couponInput, setCouponInput] = useState('');
-  
+  const [isActionLocked, setIsActionLocked] = useState(false);
   const [deckImportModalOpen, setDeckImportModalOpen] = useState(false);
   const [deckImportText, setDeckImportText] = useState('');
   const [showEnemyDeck, setShowEnemyDeck] = useState(false);
@@ -58,11 +61,13 @@ export default function App() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
 
+  // --- [3. 필터 상태] ---
   const [filterType, setFilterType] = useState('all');
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // --- [4. 초기화 및 세이브 로직] ---
   useEffect(() => {
     if (!auth) return;
     signInAnonymously(auth).catch(() => {});
@@ -89,7 +94,9 @@ export default function App() {
   const saveGame = async (payload = {}) => {
     const data = { credits, shopUpgrades, unlockedCards, deckCounts, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
-    if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
+    if (user && db) {
+      await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
+    }
   };
 
   useEffect(() => {
@@ -99,6 +106,7 @@ export default function App() {
     }
   }, [toastMsg]);
 
+  // --- [5. 게임 핵심 핸들러] ---
   const startBattle = (mode = 'NORMAL', stage = 1) => {
     let fullDeck = [];
     Object.keys(deckCounts).forEach(id => {
@@ -150,6 +158,7 @@ export default function App() {
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
+  // --- [6. 전투 로직 완벽 복원] ---
   const playCard = (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
     const card = combatState.hand[cardIndex];
@@ -291,6 +300,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [gameState, combatState?.turn, fastMode]);
 
+  // --- [7. 기타 기능] ---
   const getFilteredCards = (t, e, r, o, q) => {
     return CARD_LIBRARY.filter(c => {
       if (r !== 'all' && c.rarity !== r) return false;
@@ -341,14 +351,12 @@ export default function App() {
   const adminGiveMoney = () => { const nextCredits = credits + 99999; setCredits(nextCredits); saveGame({ credits: nextCredits }); setToastMsg('99,999 크레딧 지급됨'); };
   const adminUnlockAllCards = () => { const allIds = CARD_LIBRARY.map(c => c.id); setUnlockedCards(allIds); saveGame({ unlockedCards: allIds }); setToastMsg('모든 카드 해금됨'); };
 
-  // 💡 [수정] 데이터 복사 로직 추가
   const handleExport = () => {
     const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons });
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('세이브 코드가 복사되었습니다!');
   };
 
-  // 💡 [수정] 덱 복사 로직 추가
   const handleDeckExport = () => {
     const data = JSON.stringify(tempDeckCounts);
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
@@ -376,28 +384,70 @@ export default function App() {
     <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
       {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
-      {/* 도움말 모달 */}
+      {/* 💡 화면별 맞춤형 도움말 모달 */}
       {tutorialModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
           <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
               <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
-                <HelpCircle className="w-8 h-8" /> 게임 가이드
+                <HelpCircle className="w-8 h-8" />
+                {gameState === 'MENU' ? "게임 가이드" : 
+                 gameState === 'BATTLE' ? "전투 가이드" : 
+                 gameState === 'SHOP' ? "상점 이용 가이드" : 
+                 gameState === 'DECK_BUILDING' ? "덱 구성 가이드" : 
+                 (gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') ? "도감 가이드" : "도움말"}
               </h2>
               <button onClick={() => setTutorialModalOpen(false)} className="text-slate-400 hover:text-white text-3xl font-bold transition-colors">×</button>
             </div>
 
             <div className="space-y-6 text-slate-200 text-sm md:text-base leading-relaxed">
-              <section>
-                <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
-                <ul className="list-disc list-inside space-y-1 text-slate-300">
-                  <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
-                  <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
-                  <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
-                </ul>
-              </section>
+              
+              {/* 화면별 설명 섹션 */}
+              {(gameState === 'MENU' || gameState === 'BATTLE') && (
+                <section>
+                  <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-300">
+                    <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
+                    <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
+                    <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
+                  </ul>
+                </section>
+              )}
 
-              <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700">
+              {gameState === 'SHOP' && (
+                <section>
+                  <h3 className="text-lg font-bold text-yellow-400 mb-2">💰 상점 이용법</h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-300">
+                    <li>전투에서 얻은 크레딧으로 <b>카드 강화</b>를 하거나 <b>뽑기</b>를 할 수 있습니다.</li>
+                    <li>강화된 카드의 효과는 덱에 있는 동일한 모든 카드에 영구적으로 적용됩니다.</li>
+                    <li>프리미엄 뽑기에서는 전설과 희귀 카드가 나올 확률이 대폭 상승합니다.</li>
+                  </ul>
+                </section>
+              )}
+
+              {gameState === 'DECK_BUILDING' && (
+                <section>
+                  <h3 className="text-lg font-bold text-indigo-400 mb-2">🃏 덱 구성 팁</h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-300">
+                    <li>모험을 시작하려면 덱이 반드시 <b>20장</b>이어야 합니다.</li>
+                    <li>카드를 클릭하여 덱에 추가하거나 제거할 수 있습니다.</li>
+                    <li>마나 카드, 방어 카드, 공격 카드의 비율을 적절히 섞는 것이 생존의 핵심입니다.</li>
+                  </ul>
+                </section>
+              )}
+
+              {(gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') && (
+                <section>
+                  <h3 className="text-lg font-bold text-blue-400 mb-2">📖 도감 이용법</h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-300">
+                    <li>지금까지 만난 적과 해금한 카드들의 상세 정보를 확인할 수 있습니다.</li>
+                    <li>적을 클릭하면 해당 적이 사용하는 스킬(의도) 덱을 미리 엿볼 수 있습니다.</li>
+                  </ul>
+                </section>
+              )}
+
+              {/* 공통 상태이상 설명 섹션 */}
+              <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
                 <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
                   <div className="space-y-2">
@@ -418,7 +468,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 💡 [추가] 덱 불러오기 모달 */}
       {deckImportModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setDeckImportModalOpen(false)}>
           <div className="bg-slate-800 p-6 rounded-xl border-2 border-indigo-500 w-full max-w-md animate-draw" onClick={e => e.stopPropagation()}>
@@ -447,7 +496,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 💡 [추가] 세이브 불러오기 모달 */}
       {importModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setImportModalOpen(false)}>
           <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md animate-draw" onClick={e => e.stopPropagation()}>
@@ -502,8 +550,8 @@ export default function App() {
           toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
           getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts}
           handleClearDeck={() => setTempDeckCounts({})} 
-          handleDeckExport={handleDeckExport} // 💡 [수정] 복사 함수 연결
-          setDeckImportModalOpen={setDeckImportModalOpen} // 💡 [수정] 붙여넣기 모달 연결
+          handleDeckExport={handleDeckExport} 
+          setDeckImportModalOpen={setDeckImportModalOpen} 
           setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState}
           filterType={filterType} setFilterType={setFilterType}
           filterEffect={filterEffect} setEffect={setFilterEffect}
@@ -535,7 +583,7 @@ export default function App() {
       {gameState === 'BATTLE' && (
         <BattleScreen
           combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'}
-          setViewingPile={setViewingPile} viewingPile={viewingPile} // 💡 [수정] 카드 보기 모달 상태 연결
+          setViewingPile={setViewingPile} viewingPile={viewingPile}
           setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
           playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES.MAX_HAND_SIZE}
           setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} 
@@ -568,8 +616,8 @@ export default function App() {
       {gameState === 'SETTINGS' && (
         <Settings
           setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame}
-          handleExport={handleExport} // 💡 [수정] 복사 기능 연결
-          setImportModalOpen={setImportModalOpen} // 💡 [수정] 붙여넣기 기능 연결
+          handleExport={handleExport} 
+          setImportModalOpen={setImportModalOpen} 
           couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon}
           handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput}
           setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={handleAdminUnlock}
@@ -578,7 +626,6 @@ export default function App() {
         />
       )}
 
-      {/* 💡 [수정] 게임 오버 시 도달한 층수 표시 추가 */}
       {gameState === 'GAME_OVER' && (
         <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
           <h1 className="text-6xl md:text-8xl font-black text-red-600 mb-6 drop-shadow-2xl">GAME OVER</h1>
