@@ -968,7 +968,8 @@ export default function App() {
       if (targetSearchQuery) {
         const query = targetSearchQuery.toLowerCase();
         const cardDef = getCardDef(c.id, shopUpgrades); 
-        if (cardDef && !cardDef.name.toLowerCase().includes(query) && !cardDef.desc.toLowerCase().includes(query)) return false;
+        // 안전 장치 추가: || '' 를 넣어서 undefined일 때 앱이 터지는 것을 막습니다.
+        if (cardDef && !(cardDef.name || '').toLowerCase().includes(query) && !(cardDef.desc || '').toLowerCase().includes(query)) return false;
       }
       return true;
     });
@@ -1043,21 +1044,22 @@ export default function App() {
 
   const renderCard = (card, count = null, isLocked = false, onAdd = null, onRemove = null, customClick = null) => {
     if (!card) return null;
-    const isAttack = card.type === 'attack';
+    const isAttack = (card.type || '').includes('attack');
+    const rarity = card.rarity || 'common'; // 안전 장치: rarity가 없으면 common으로 강제 지정
     const borderStyle = isAttack ? 'border-red-500' : 'border-blue-500';
     let rarityShadow = '';
     let nameColor = 'text-white';
     let tagUi = null;
     let bgStyle = 'bg-slate-900';
     
-    if (card.rarity === 'uncommon') { 
+    if (rarity === 'uncommon') { 
       rarityShadow = 'shadow-[0_0_12px_rgba(34,211,238,0.4)]'; nameColor = 'text-cyan-300';
       tagUi = <span className="text-[10px] text-cyan-400 font-bold bg-slate-800/80 px-1 rounded border border-cyan-800">희귀</span>;
-    } else if (card.rarity === 'rare') {
+    } else if (rarity === 'rare') {
       rarityShadow = 'shadow-[0_0_20px_rgba(250,204,21,0.6)]'; nameColor = 'text-yellow-300 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]';
       tagUi = <span className="text-[10px] text-yellow-400 font-bold bg-slate-800/80 px-1 rounded border border-yellow-700">전설</span>;
       bgStyle = 'legendary-bg'; 
-    } else if (card.rarity === 'special') {
+    } else if (rarity === 'special') {
       rarityShadow = 'shadow-[0_0_25px_rgba(217,70,239,0.7)]'; nameColor = 'text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]';
       tagUi = <span className="text-[10px] text-fuchsia-400 font-bold bg-slate-800/80 px-1 rounded border border-fuchsia-800"><Star className="w-2 h-2 inline mb-0.5"/>특수</span>;
       bgStyle = 'special-bg'; 
@@ -1068,14 +1070,14 @@ export default function App() {
     if (card.isUpgraded) {
       rarityShadow = 'shadow-[0_0_15px_rgba(234,179,8,0.4)]';
       nameColor = 'text-yellow-400';
-      bgStyle = card.rarity === 'special' ? 'special-bg' : 'bg-slate-900';
+      bgStyle = rarity === 'special' ? 'special-bg' : 'bg-slate-900';
     }
 
     const lockStyle = isLocked ? 'opacity-60 grayscale border-slate-700 bg-slate-900' : `${borderStyle} ${rarityShadow} ${bgStyle}`;
 
     return (
       <div 
-        key={card.id} 
+        key={card.uid || card.id} 
         onClick={customClick}
         className={`border-2 p-2 md:p-3 rounded-xl flex flex-col justify-between relative transition-all ${customClick ? 'cursor-pointer hover:-translate-y-2' : ''} ${lockStyle} w-full h-[220px] md:h-[280px] shrink-0 overflow-hidden`}
       >
@@ -1091,7 +1093,7 @@ export default function App() {
             <span className="font-bold text-[10px] md:text-sm bg-slate-800 px-2 py-1 rounded text-white shadow-inner border border-slate-700">코스트 {card.cost}</span>
             <div className="flex flex-col items-end gap-1">
               {tagUi}
-              {isAttack ? <Sword className={`w-4 h-4 md:w-5 md:h-5 ${card.isUpgraded?'text-yellow-400': card.rarity==='rare'?'text-yellow-300' : card.rarity==='special'?'text-fuchsia-300' : 'text-red-400'}`}/> : <Shield className={`w-4 h-4 md:w-5 md:h-5 ${card.isUpgraded?'text-yellow-400': card.rarity==='rare'?'text-yellow-300' : card.rarity==='special'?'text-fuchsia-300' : 'text-blue-400'}`}/>}
+              {isAttack ? <Sword className={`w-4 h-4 md:w-5 md:h-5 ${card.isUpgraded?'text-yellow-400': rarity==='rare'?'text-yellow-300' : rarity==='special'?'text-fuchsia-300' : 'text-red-400'}`}/> : <Shield className={`w-4 h-4 md:w-5 md:h-5 ${card.isUpgraded?'text-yellow-400': rarity==='rare'?'text-yellow-300' : rarity==='special'?'text-fuchsia-300' : 'text-blue-400'}`}/>}
             </div>
           </div>
           <div className="text-center mb-auto mt-1">
@@ -1934,7 +1936,489 @@ export default function App() {
       </div>
     );
   };
+// ==========================================
+  // [보상 및 종료 화면 렌더링 함수 모음]
+  // ==========================================
 
+  const renderRewards = () => {
+    if (!combatState) return null;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
+        <h2 className="text-4xl md:text-5xl font-black mb-4 text-yellow-400 tracking-wider text-center drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]">스테이지 클리어!</h2>
+        <p className="text-lg md:text-xl mb-10 text-slate-300">원하는 보상을 하나 선택하세요.</p>
+        
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-4xl justify-center items-center">
+          <button onClick={() => {
+            if (rewardCards.length === 0) {
+              const currentDeckCounts = {};
+              combatState.baseDeck.forEach(c => currentDeckCounts[c.id] = (currentDeckCounts[c.id] || 0) + 1);
+              const manaCards = ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'];
+              const currentManaCount = combatState.baseDeck.filter(c => manaCards.includes(c.id)).length;
+              
+              const pool = CARD_LIBRARY.filter(c => {
+                if ((currentDeckCounts[c.id] || 0) >= 3) return false;
+                if (manaCards.includes(c.id) && currentManaCount >= 2) return false;
+                return true;
+              });
+
+              const legendProb = Math.floor(combatState.stage / 10) * 0.01;
+              
+              const getWeighted = (availablePool) => {
+                const r = Math.random();
+                let t = 'common';
+                if (r < legendProb) t = 'rare'; 
+                else if (r < legendProb + 0.15) t = 'uncommon'; 
+                
+                let p = availablePool.filter(c => c.rarity === t);
+                if (p.length === 0) p = availablePool; 
+                return p[Math.floor(Math.random() * p.length)];
+              };
+
+              let selected = [];
+              let avPool = [...pool];
+              for(let i=0; i<3; i++) {
+                if(avPool.length === 0) break;
+                const picked = getWeighted(avPool);
+                if (picked) selected.push(getCardDef(picked.id, shopUpgrades));
+                avPool = avPool.filter(c => c.id !== picked.id);
+              }
+              setRewardCards(selected);
+            }
+            setGameState('REWARD_CARD');
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-transform hover:-translate-y-2 shadow-lg">
+            <PlusCircle className="w-12 h-12 md:w-16 md:h-16 mb-4 text-indigo-400"/>
+            <span className="text-xl md:text-2xl font-bold">카드 추가</span>
+            <span className="text-xs md:text-sm text-slate-400 mt-2 text-center">진행 중인 덱에<br/>새로운 카드를 1장 추가합니다.</span>
+          </button>
+
+          <button onClick={() => {
+            const p = { ...combatState.player };
+            p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
+            p.debuffs = { weak: 0, vulnerable: 0 }; 
+            startNextStage(p, combatState.baseDeck);
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-transform hover:-translate-y-2 shadow-lg">
+            <Heart className="w-12 h-12 md:w-16 md:h-16 mb-4 text-green-400"/>
+            <span className="text-xl md:text-2xl font-bold">체력 회복 & 정화</span>
+            <span className="text-xs md:text-sm text-slate-400 mt-2 text-center">최대 체력의 30%를 회복하고<br/>모든 디버프를 즉시 제거합니다.</span>
+          </button>
+
+          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-transform hover:-translate-y-2 shadow-lg">
+            <Trash2 className="w-12 h-12 md:w-16 md:h-16 mb-4 text-red-400"/>
+            <span className="text-xl md:text-2xl font-bold">카드 삭제</span>
+            <span className="text-xs md:text-sm text-slate-400 mt-2 text-center">덱에서 원하지 않는 카드를<br/>1장 영구 제거합니다.</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRewardCard = () => {
+    if (!combatState) return null;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative">
+        <div className="flex justify-between items-center mb-8 w-full max-w-4xl px-4 mt-10 md:mt-0">
+          <h2 className="text-2xl md:text-3xl font-bold text-center flex-1">추가할 카드를 선택하세요</h2>
+          <button onClick={() => setGameState('REWARDS')} className="absolute top-6 right-6 md:static py-2 px-4 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-sm md:text-base transition-colors border border-slate-500 shadow-md z-40">돌아가기</button>
+        </div>
+        
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-wrap justify-center w-full max-w-4xl px-4">
+          {rewardCards.filter(Boolean).map((card, idx) => {
+            const isNew = !(unlockedCards || []).includes(card.id);
+            return (
+              <div key={idx} className="relative group">
+                {renderCard(card, null, false, null, null, () => setConfirmSelection({ action: 'add', card, isNew }))}
+                {isNew && <span className="absolute -top-3 -right-3 bg-yellow-500 text-black px-2 py-1 rounded-full font-black text-xs md:text-sm shadow-lg animate-bounce z-30">NEW 해금!</span>}
+                <div className="absolute inset-0 border-4 border-white/30 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none scale-105" />
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 카드 추가 확인 모달 */}
+        {confirmSelection?.action === 'add' && (
+          <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-slate-800 p-8 rounded-xl border-2 border-slate-600 w-full max-w-md text-center shadow-2xl animate-draw flex flex-col items-center">
+              <h3 className="text-xl md:text-2xl font-bold mb-6">이 카드를 덱에 추가하시겠습니까?</h3>
+              <div className="flex justify-center mb-8 pointer-events-none w-48 h-64 scale-110">
+                {renderCard(confirmSelection.card)}
+              </div>
+              <div className="flex gap-4 justify-center mt-4 w-full">
+                <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-lg transition-colors flex-1 border border-slate-500">취소</button>
+                <button onClick={() => {
+                  const newDeck = [...combatState.baseDeck, { ...confirmSelection.card }];
+                  if (confirmSelection.isNew) {
+                    const newUnlocked = [...(unlockedCards || []), confirmSelection.card.id];
+                    setUnlockedCards(newUnlocked);
+                    saveGame({ unlockedCards: newUnlocked });
+                  }
+                  setConfirmSelection(null);
+                  startNextStage(combatState.player, newDeck);
+                }} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold text-lg transition-colors flex-1 shadow-[0_0_15px_rgba(79,70,229,0.5)]">추가하기</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderRewardRemove = () => {
+    if (!combatState) return null;
+    return (
+      <div className="flex flex-col min-h-[100dvh] bg-slate-900 text-white p-4 md:p-10 relative">
+        <div className="flex justify-between items-center mb-6 pt-10 md:pt-0 w-full max-w-6xl mx-auto px-2">
+          <h2 className="text-2xl md:text-3xl font-bold text-red-400">삭제할 카드를 선택하세요</h2>
+          <button onClick={() => setGameState('REWARDS')} className="py-2 px-4 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-sm md:text-base transition-colors border border-slate-500 shadow-md">돌아가기</button>
+        </div>
+        
+        <div className="flex flex-wrap justify-center gap-3 overflow-y-auto hide-scrollbar pb-10 max-w-6xl mx-auto px-2">
+          {combatState.baseDeck.map((card, idx) => {
+            if (!card) return null;
+            return (
+              <div key={idx} className="relative group cursor-pointer w-28 h-40 md:w-36 md:h-48 shrink-0" onClick={() => setConfirmSelection({ action: 'remove', idx, card })}>
+                <div className="pointer-events-none w-full h-full">
+                  {renderCard(card)}
+                </div>
+                <div className="absolute inset-0 bg-red-900/0 group-hover:bg-red-900/70 rounded-xl transition-colors flex items-center justify-center border-2 border-transparent group-hover:border-red-500 z-30">
+                   <Trash2 className="w-10 h-10 md:w-12 md:h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-md" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 카드 삭제 확인 모달 */}
+        {confirmSelection?.action === 'remove' && (
+          <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-slate-800 p-8 rounded-xl border-2 border-red-900 w-full max-w-md text-center shadow-2xl animate-draw flex flex-col items-center">
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-xl md:text-2xl font-bold mb-6">정말로 이 카드를 삭제하시겠습니까?</h3>
+              <div className="flex justify-center mb-6 pointer-events-none w-48 h-64 scale-110">
+                {renderCard(confirmSelection.card)}
+              </div>
+              <p className="text-slate-400 text-sm mb-6">이 작업은 되돌릴 수 없습니다.</p>
+              <div className="flex gap-4 justify-center w-full">
+                <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold text-lg transition-colors flex-1 border border-slate-500">취소</button>
+                <button onClick={() => {
+                  const newDeck = [...combatState.baseDeck];
+                  newDeck.splice(confirmSelection.idx, 1);
+                  setConfirmSelection(null);
+                  startNextStage(combatState.player, newDeck);
+                }} className="px-6 py-3 bg-red-700 hover:bg-red-600 rounded-lg font-bold text-lg transition-colors flex-1 shadow-[0_0_15px_rgba(220,38,38,0.5)]">영구 삭제</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderBossClearReward = () => {
+    if (!combatState || !specialBossRewardCard) return null;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative z-50">
+        <h2 className="text-4xl md:text-5xl font-black mb-4 text-fuchsia-400 tracking-wider text-center drop-shadow-[0_0_20px_rgba(217,70,239,0.8)] animate-bounce">특수 보스 처치 보상!</h2>
+        <p className="text-lg md:text-xl mb-10 text-slate-300 text-center">압도적인 적을 물리친 증표로<br/>새로운 특수 카드를 획득했습니다.</p>
+        
+        <div className="relative group w-48 h-64 md:w-64 md:h-80 mb-10 animate-draw">
+          <div className="pointer-events-none w-full h-full scale-125 md:scale-150 origin-top">
+            {renderCard(specialBossRewardCard)}
+          </div>
+          <div className="absolute inset-0 border-4 border-fuchsia-500/50 rounded-xl pointer-events-none scale-125 md:scale-150 animate-pulse" />
+        </div>
+        
+        <button onClick={handleSpecialBossRewardClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl transition-colors shadow-[0_0_25px_rgba(217,70,239,0.8)] mt-10 md:mt-24">
+          수락하기
+        </button>
+      </div>
+    );
+  };
+
+  const renderGameOver = () => (
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
+      <Skull className="w-24 h-24 md:w-32 md:h-32 text-red-500 mb-6 drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]" />
+      <h1 className="text-5xl md:text-6xl font-black mb-4 text-red-500 tracking-widest text-center drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">GAME OVER</h1>
+      <p className="text-lg md:text-xl mb-12 text-slate-400">도달한 스테이지: <span className="text-white font-bold">{combatState?.stage}</span></p>
+      <button onClick={() => setGameState('MENU')} className="py-3 px-8 md:py-4 md:px-10 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-xl md:text-2xl font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.4)]">
+        메인 메뉴로 돌아가기
+      </button>
+    </div>
+  );
+
+  const renderGameClear = () => (
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
+      <Trophy className="w-32 h-32 text-yellow-400 mb-6 animate-bounce drop-shadow-[0_0_20px_rgba(250,204,21,0.8)]" />
+      <h1 className="text-5xl md:text-6xl font-black mb-4 text-yellow-400 tracking-widest text-center drop-shadow-[0_0_20px_rgba(250,204,21,0.5)]">GAME CLEAR!</h1>
+      <p className="text-xl md:text-2xl mb-12 text-slate-300">모든 100개의 스테이지를 정복했습니다!</p>
+      <button onClick={() => setGameState('MENU')} className="py-4 px-12 bg-indigo-600 hover:bg-indigo-500 rounded-full text-2xl font-bold transition-all shadow-[0_0_20px_rgba(79,70,229,0.8)]">
+        메인 메뉴로 돌아가기
+      </button>
+    </div>
+  );
+  // ==========================================
+  // [여기까지 입니다!]
+  // ==========================================
+  // ==========================================
+  // [상점 화면 렌더링 함수]
+  // ==========================================
+  const renderShop = () => {
+    const hpCost = 50 + ((shopUpgrades?.maxHp || 0) * 40); 
+
+    const filteredUpgrades = (unlockedCards || []).filter(id => {
+      if (shopFilterOwnership === 'unowned') return false;
+      const c = CARD_LIBRARY.find(card => card.id === id);
+      if (!c) return false;
+      if (shopFilterRarity !== 'all' && c.rarity !== shopFilterRarity) return false;
+      if (shopFilterType !== 'all' && c.type !== shopFilterType) return false;
+      if (shopFilterEffect === 'debuff' && !(c.enemyWeak || c.enemyVuln)) return false;
+      if (shopFilterEffect === 'buff' && !(c.selfStrength || c.selfDex)) return false;
+      
+      // 검색어 필터링 시 데이터가 없어도 앱이 터지지 않도록 방어 장치 적용
+      if (shopSearchQuery) {
+        const query = shopSearchQuery.toLowerCase();
+        const cardDef = getCardDef(c.id, shopUpgrades); 
+        if (cardDef && !(cardDef.name || '').toLowerCase().includes(query) && !(cardDef.desc || '').toLowerCase().includes(query)) return false;
+      }
+      
+      if (hideMaxedUpgrades) {
+        const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(upId => upId === id).length;
+        if (upgradeLevel >= 5) return false;
+      }
+      
+      return true;
+    });
+
+    return (
+      <div className="flex flex-col min-h-[100dvh] bg-slate-900 text-white pt-16 md:pt-4 p-4 md:p-10 relative">
+        <button onClick={toggleFullScreen} className="fixed top-4 left-4 md:flex hidden z-50 items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-sm font-bold transition-colors border border-slate-600">
+          <Maximize className="w-4 h-4"/> 전체화면
+        </button>
+
+        {toastMsg && <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-green-600 px-6 py-3 rounded shadow-lg font-bold z-[9999] animate-pulse">{toastMsg}</div>}
+        <div className="flex justify-between items-center mb-8 pl-0 md:pl-32 pt-12 md:pt-0">
+          <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3"><Store className="w-8 h-8 text-yellow-500"/> 크레딧 상점</h2>
+          <div className="flex items-center gap-4 md:gap-6">
+            <span className="text-xl md:text-2xl font-bold text-yellow-400 flex items-center gap-2 bg-slate-800 px-3 py-1 rounded-full border border-yellow-900"><Coins className="w-5 h-5 md:w-6 md:h-6"/> {credits}</span>
+            <button onClick={() => setGameState('MENU')} className="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold text-sm md:text-base shadow-md">메인으로</button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 w-full max-w-6xl mx-auto h-full pb-10 overflow-y-auto hide-scrollbar">
+          
+          <div className="bg-slate-800 p-6 rounded-xl border-2 border-slate-600 flex flex-col items-center text-center lg:col-span-1 shadow-lg">
+            <Heart className="w-16 h-16 text-red-500 mb-4"/>
+            <h3 className="text-2xl font-bold mb-2">최대 체력 증가</h3>
+            <p className="text-slate-400 mb-6 text-sm md:text-base">시작 최대 체력을 영구적으로 15 증가시킵니다.<br/>(현재: {100 + (shopUpgrades?.maxHp || 0) * 15})</p>
+            <button 
+              onClick={() => {
+                if (credits >= hpCost) {
+                  const newCredits = credits - hpCost;
+                  const newUpgrades = { ...shopUpgrades, maxHp: (shopUpgrades?.maxHp || 0) + 1 };
+                  setCredits(newCredits);
+                  setShopUpgrades(newUpgrades);
+                  saveGame({ credits: newCredits, shopUpgrades: newUpgrades });
+                  setToastMsg('최대 체력이 증가했습니다!');
+                  setTimeout(() => setToastMsg(''), 2000);
+                }
+              }}
+              disabled={credits < hpCost}
+              className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full ${credits >= hpCost ? 'bg-yellow-600 hover:bg-yellow-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+            >
+              {hpCost} 크레딧
+            </button>
+          </div>
+
+          <div className="bg-slate-800 p-6 rounded-xl border-2 border-slate-600 flex flex-col items-center text-center lg:col-span-1 shadow-lg">
+            <Gift className="w-16 h-16 text-purple-500 mb-4"/>
+            <h3 className="text-2xl font-bold mb-2">일반 뽑기</h3>
+            <p className="text-slate-400 mb-6 text-sm md:text-base">모든 카드 중 랜덤으로 3장 획득합니다.<br/>(전설 1% / 희귀 10%)</p>
+            <button 
+              onClick={handleGacha}
+              disabled={credits < 50}
+              className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full ${credits >= 50 ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)]' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+            >
+              50 크레딧
+            </button>
+          </div>
+
+          <div className="bg-slate-900/80 p-6 rounded-xl border-2 border-cyan-700 flex flex-col items-center text-center lg:col-span-2 shadow-[0_0_20px_rgba(14,116,144,0.4)]">
+            <Gift className="w-16 h-16 text-cyan-400 mb-4 animate-pulse"/>
+            <h3 className="text-2xl font-bold mb-2 text-cyan-300">프리미엄 뽑기</h3>
+            <p className="text-slate-300 mb-6 text-sm md:text-base">제시되는 3장의 카드 중 1장만 선택하여 획득합니다.<br/><span className="text-yellow-400 font-bold">전설 등장 확률 2% / 희귀 등장 확률 20%</span></p>
+            <button 
+              onClick={handlePremiumGacha}
+              disabled={credits < 100}
+              className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full max-w-sm ${credits >= 100 ? 'bg-cyan-700 hover:bg-cyan-600 text-white shadow-[0_0_15px_rgba(34,211,238,0.4)]' : 'bg-slate-700 text-slate-500 cursor-not-allowed'}`}
+            >
+              100 크레딧
+            </button>
+          </div>
+
+          {/* 카드 영구 강화 스테이션 */}
+          <div className="bg-slate-800 p-4 md:p-6 rounded-xl border-2 border-slate-600 lg:col-span-4 flex flex-col shadow-lg transition-all">
+            <div className="flex flex-col mb-4 border-b border-slate-700 pb-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                <div>
+                  <h3 className="text-2xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400"/> 카드 영구 강화</h3>
+                  <p className="text-slate-400 text-sm md:text-base mt-1">해금된 카드를 강화(+)하여 위력을 중첩시킵니다. (최대 +5 강화)</p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold bg-slate-900 px-3 py-2 rounded-lg hover:bg-slate-700 transition-colors border border-slate-600 select-none">
+                    <input type="checkbox" checked={hideMaxedUpgrades} onChange={(e) => setHideMaxedUpgrades(e.target.checked)} className="w-4 h-4 accent-yellow-500" />
+                    풀업글 숨기기
+                  </label>
+                  <button onClick={() => setIsUpgradesCollapsed(!isUpgradesCollapsed)} className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 shadow-md">
+                    {isUpgradesCollapsed ? '펼치기 ▼' : '접기 ▲'}
+                  </button>
+                </div>
+              </div>
+              
+              {!isUpgradesCollapsed && renderFiltersUI(shopFilterType, setShopFilterType, shopFilterEffect, setShopFilterEffect, shopFilterRarity, setShopFilterRarity, shopFilterOwnership, setShopFilterOwnership, shopSearchQuery, setShopSearchQuery)}
+            </div>
+            
+            {!isUpgradesCollapsed && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto hide-scrollbar pr-2 flex-1 max-h-[60vh] min-h-[400px]">
+                {filteredUpgrades.map(id => {
+                  const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(c => c === id).length;
+                  const isUpgraded = upgradeLevel > 0;
+                  const isMaxed = upgradeLevel >= 5;
+                  
+                  const cardDef = getCardDef(id, shopUpgrades); 
+                  if (!cardDef) return null;
+                  const baseCost = cardDef.rarity === 'rare' ? 200 : cardDef.rarity === 'uncommon' ? 150 : 100;
+                  const upgradeCost = baseCost + (upgradeLevel * 50); 
+                  
+                  return (
+                    <div key={id} className={`p-4 rounded-xl border-2 ${isUpgraded ? 'border-yellow-500 bg-yellow-900/20' : 'border-slate-600 bg-slate-900'} relative flex flex-col justify-between shadow-md`}>
+                      <div>
+                        <div className="flex justify-between items-start mb-2">
+                          <span className={`font-extrabold text-lg ${isUpgraded ? 'text-yellow-400' : 'text-white'}`}>{cardDef.name}</span>
+                          <span className="text-xs bg-slate-700 px-2 py-1 rounded text-white font-bold border border-slate-600">코스트 {cardDef.cost}</span>
+                        </div>
+                        <div className="text-[10px] md:text-xs text-slate-300 leading-tight bg-slate-800/80 p-2 rounded relative mt-2 border border-slate-700 min-h-[40px] flex items-center justify-center">
+                          <div>{cardDef.desc} {renderTooltipIcon(cardDef.desc)}</div>
+                        </div>
+                      </div>
+                      {!isMaxed ? (
+                        <button 
+                          onClick={() => {
+                            if (credits >= upgradeCost) {
+                              const newCredits = credits - upgradeCost;
+                              const newUpgrades = { ...shopUpgrades, upgradedCards: [...(shopUpgrades?.upgradedCards || []), id] };
+                              setCredits(newCredits);
+                              setShopUpgrades(newUpgrades);
+                              saveGame({ credits: newCredits, shopUpgrades: newUpgrades });
+                              setToastMsg(`${cardDef.name} 강화 완료!`);
+                              setTimeout(() => setToastMsg(''), 2000);
+                            }
+                          }}
+                          disabled={credits < upgradeCost}
+                          className={`w-full mt-4 py-2 rounded-lg text-sm font-bold transition-colors ${credits >= upgradeCost ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-700 text-slate-500 cursor-not-allowed border border-slate-600'}`}
+                        >
+                          강화 ({upgradeLevel}/5) - <Coins className="w-4 h-4 inline mb-0.5"/> {upgradeCost}
+                        </button>
+                      ) : (
+                        <div className="w-full mt-4 py-2 text-center text-sm font-bold text-yellow-500 bg-yellow-900/40 rounded-lg border border-yellow-700">최대 강화 (5/5)</div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* 전설 카드 확정 구매 (암시장) */}
+          <div className="bg-gray-950 text-white p-6 rounded-xl border-2 border-yellow-600 lg:col-span-4 flex flex-col shadow-[0_0_25px_rgba(202,138,4,0.3)]">
+            <h3 className="text-2xl font-bold mb-2 flex items-center gap-2 text-yellow-400"><Store className="w-6 h-6"/> 전설 카드 암시장</h3>
+            <p className="text-slate-400 mb-6 text-sm md:text-base border-b border-slate-800 pb-4">엄청난 위력을 가진 특수 전설 카드를 확정으로 구매합니다.</p>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {['super_tiger_slash', 'true_dragon_slayer', 'absolute_zero', 'heavenly_judgment'].map(id => {
+                const cardDef = getCardDef(id, shopUpgrades);
+                if (!cardDef) return null;
+                const isOwned = (unlockedCards || []).includes(id);
+                const cost = 3000;
+
+                return (
+                  <div key={id} className={`p-4 rounded-xl border-2 flex flex-col justify-between text-white ${isOwned ? 'border-slate-700 bg-slate-900 opacity-60' : 'border-yellow-500 bg-slate-900 shadow-[0_0_10px_rgba(234,179,8,0.3)]'} relative`}>
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-black text-yellow-400 text-lg md:text-xl drop-shadow-md leading-tight">{cardDef.name}</span>
+                        <span className="text-xs bg-slate-700 px-2 py-1 rounded text-white shrink-0 font-bold border border-slate-600">코스트 {cardDef.cost}</span>
+                      </div>
+                      <p className="text-xs md:text-sm text-slate-300 leading-tight mb-4 min-h-[40px]">{cardDef.desc}</p>
+                    </div>
+                    
+                    {!isOwned ? (
+                      <button 
+                        onClick={() => {
+                          if (credits >= cost) {
+                            const newCredits = credits - cost;
+                            const newUnlocked = [...(unlockedCards || []), id];
+                            setCredits(newCredits);
+                            setUnlockedCards(newUnlocked);
+                            saveGame({ credits: newCredits, unlockedCards: newUnlocked });
+                            setToastMsg(`${cardDef.name} 획득!`);
+                            setTimeout(() => setToastMsg(''), 2000);
+                          }
+                        }}
+                        disabled={credits < cost}
+                        className={`w-full py-2.5 rounded-lg text-sm font-bold transition-colors ${credits >= cost ? 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-[0_0_10px_rgba(202,138,4,0.5)]' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
+                      >
+                        {cost} 크레딧
+                      </button>
+                    ) : (
+                      <div className="w-full py-2.5 text-center text-sm font-bold text-slate-500 border border-slate-700 bg-slate-800 rounded-lg">보유 중</div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* 가챠 결과 팝업창 */}
+        {gachaResult && (
+          <div className="fixed inset-0 bg-black/85 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-sm" onClick={() => setGachaResult(null)}>
+            <h2 className="text-3xl md:text-5xl font-black mb-8 text-purple-400 animate-bounce drop-shadow-[0_0_15px_rgba(168,85,247,0.8)]">✨ 신규 카드 획득! ✨</h2>
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8 w-full max-w-4xl px-4">
+              {gachaResult.filter(Boolean).map((card, idx) => {
+                return (
+                  <div key={idx} onClick={(e) => e.stopPropagation()} className="relative">
+                    {card.isDuplicate && <span className="absolute -top-4 -right-4 bg-slate-600 border border-slate-400 text-white px-3 py-1 rounded-full font-black text-[10px] md:text-xs shadow-lg z-10 animate-pulse">중복! (+10원)</span>}
+                    {renderCard(card)}
+                  </div>
+                );
+              })}
+            </div>
+            <button onClick={() => setGachaResult(null)} className="mt-12 py-3 px-10 bg-indigo-600 hover:bg-indigo-500 rounded-full text-xl md:text-2xl font-bold shadow-[0_0_20px_rgba(79,70,229,0.5)]">확인</button>
+          </div>
+        )}
+
+        {/* 프리미엄 가챠 결과 팝업창 */}
+        {premiumGachaResult && (
+          <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md">
+            <h2 className="text-3xl md:text-5xl font-black mb-2 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.8)]">프리미엄 뽑기</h2>
+            <p className="text-slate-300 text-lg mb-8">가장 마음에 드는 <span className="text-white font-bold">1장</span>만 선택하세요!</p>
+            
+            <div className="flex flex-wrap justify-center gap-4 md:gap-8 w-full max-w-4xl px-4">
+              {premiumGachaResult.filter(Boolean).map((card, idx) => {
+                const isOwned = (unlockedCards || []).includes(card.id);
+                return (
+                  <div key={idx} className="relative group">
+                    {renderCard(card, null, false, null, null, () => selectPremiumCard(card))}
+                    {isOwned && <span className="absolute -top-3 -left-3 bg-slate-700 text-white px-2 py-1 rounded text-xs font-bold border border-slate-500 z-10">보유 중</span>}
+                    <div className="absolute inset-0 border-4 border-cyan-400 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none scale-105" />
+                  </div>
+                );
+              })}
+            </div>
+            <button onClick={() => setPremiumGachaResult(null)} className="mt-12 py-3 px-10 bg-slate-700 hover:bg-slate-600 rounded-full text-lg font-bold border border-slate-500">포기 (환불 불가)</button>
+          </div>
+        )}
+      </div>
+    );
+  };
   return (
     <>
       <style>{styles}</style>
