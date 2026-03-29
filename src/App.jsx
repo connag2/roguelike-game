@@ -258,6 +258,130 @@ export default function App() {
     }
   };
 
+  // --- 유틸리티 함수 ---
+  const getCardDef = (id) => {
+    if (!id) return null;
+    const base = CARD_LIBRARY.find(c => c.id === id);
+    if (!base) return null;
+    
+    const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(cId => cId === id).length;
+    
+    if (upgradeLevel > 0) {
+      let ratePerLevel = 0.3; // 일반
+      if (base.rarity === 'uncommon') ratePerLevel = 0.4; 
+      else if (base.rarity === 'rare') ratePerLevel = 0.5; 
+      else if (base.rarity === 'special') ratePerLevel = 0.6; 
+
+      const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
+      
+      // 1. 기본 수치 선형 증가 로직 (들쭉날쭉하게 오르는 현상 완벽 해결)
+      // 매 레벨마다 일정하게 증가하도록 베이스 값 기반의 고정 증가량을 계산합니다.
+      const getFlatInc = (val) => Math.max(1, Math.round(val * ratePerLevel));
+
+      if (upgraded.damage) upgraded.damage = base.damage + getFlatInc(base.damage) * upgradeLevel;
+      if (upgraded.block) upgraded.block = base.block + getFlatInc(base.block) * upgradeLevel;
+      if (upgraded.heal) upgraded.heal = base.heal + getFlatInc(base.heal) * upgradeLevel;
+      if (upgraded.percentBlockMaxHp) upgraded.percentBlockMaxHp = base.percentBlockMaxHp + getFlatInc(base.percentBlockMaxHp) * upgradeLevel;
+      
+      if (upgraded.missingHpDamage) {
+        const inc = Math.max(0.05, base.missingHpDamage * ratePerLevel);
+        upgraded.missingHpDamage = Number((base.missingHpDamage + inc * upgradeLevel).toFixed(2));
+      }
+      
+      if (upgraded.manaMultiplier) upgraded.manaMultiplier = base.manaMultiplier + getFlatInc(base.manaMultiplier) * upgradeLevel;
+      if (upgraded.increasingDamage) upgraded.increasingDamage = base.increasingDamage + getFlatInc(base.increasingDamage) * upgradeLevel;
+      if (upgraded.winDamage) upgraded.winDamage = base.winDamage + getFlatInc(base.winDamage) * upgradeLevel;
+      if (upgraded.loseDamage) upgraded.loseDamage = base.loseDamage + getFlatInc(base.loseDamage) * upgradeLevel;
+      if (upgraded.winHeal) upgraded.winHeal = base.winHeal + getFlatInc(base.winHeal) * upgradeLevel;
+      if (upgraded.winDamageBoss) upgraded.winDamageBoss = base.winDamageBoss + getFlatInc(base.winDamageBoss) * upgradeLevel;
+
+      // 2. 디버프(약화/취약) 강화: +3강부터 1씩 증가
+      const debuffBonus = Math.max(0, upgradeLevel - 2); // Lv3=1, Lv4=2, Lv5=3
+      if (debuffBonus > 0) {
+        if (base.enemyWeak) upgraded.enemyWeak = base.enemyWeak + debuffBonus;
+        if (base.enemyVuln) upgraded.enemyVuln = base.enemyVuln + debuffBonus;
+      }
+
+      // 3. 버프(근력/민첩) 강화: +4강부터 1씩 증가
+      const buffBonus = Math.max(0, upgradeLevel - 3); // Lv4=1, Lv5=2
+      if (buffBonus > 0) {
+        if (base.selfStrength) upgraded.selfStrength = base.selfStrength + buffBonus;
+        if (base.selfDex) upgraded.selfDex = base.selfDex + buffBonus;
+      }
+
+      // 4. 마나 및 편의성 강화: +5강 달성 시 획득량 1 증가
+      if (upgradeLevel >= 5) {
+        if (base.manaGain) upgraded.manaGain = base.manaGain + 1;
+        if (base.winManaGain) upgraded.winManaGain = base.winManaGain + 1;
+        upgraded.draw = (base.draw || 0) + 1; // 5강 시 무조건 1장 드로우 추가
+      }
+
+      // 5. 텍스트 치환 로직
+      let upDesc = base.desc;
+      if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
+      if (base.block) upDesc = upDesc.replace(`${base.block}의 방어도`, `${upgraded.block}의 방어도`);
+      if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal}`, `체력을 ${upgraded.heal}`);
+      if (base.percentBlockMaxHp) upDesc = upDesc.replace(`${base.percentBlockMaxHp}%`, `${upgraded.percentBlockMaxHp}%`);
+      if (base.missingHpDamage) upDesc = upDesc.replace(`${Math.round(base.missingHpDamage * 100)}%`, `${Math.round(upgraded.missingHpDamage * 100)}%`);
+      
+      if (base.manaMultiplier) upDesc = upDesc.replace(`(소모한 마나 x ${base.manaMultiplier})`, `(소모한 마나 x ${upgraded.manaMultiplier})`);
+      if (base.increasingDamage) upDesc = upDesc.replace(`피해량이 ${base.increasingDamage}씩`, `피해량이 ${upgraded.increasingDamage}씩`);
+      if (base.winDamage) upDesc = upDesc.replace(`${base.winDamage}의 피해`, `${upgraded.winDamage}의 피해`);
+      if (base.winDamageBoss) upDesc = upDesc.replace(`보스 ${base.winDamageBoss}`, `보스 ${upgraded.winDamageBoss}`);
+      if (base.winHeal) upDesc = upDesc.replace(`체력을 ${base.winHeal}`, `체력을 ${upgraded.winHeal}`);
+      
+      if (base.multiHit && base.damage) {
+          const oldTotal = base.damage * base.multiHit;
+          const newTotal = upgraded.damage * base.multiHit;
+          upDesc = upDesc.replace(`(총 ${oldTotal})`, `(총 ${newTotal})`);
+      }
+
+      // 상태이상 텍스트 치환
+      if (base.enemyWeak && upgraded.enemyWeak > base.enemyWeak) {
+        upDesc = upDesc.replace(`약화 ${base.enemyWeak}`, `약화 ${upgraded.enemyWeak}`);
+      }
+      if (base.enemyVuln && upgraded.enemyVuln > base.enemyVuln) {
+        upDesc = upDesc.replace(`취약 ${base.enemyVuln}`, `취약 ${upgraded.enemyVuln}`);
+      }
+      if (base.selfStrength && upgraded.selfStrength > base.selfStrength) {
+        if (upDesc.includes(`각각 ${base.selfStrength}`)) {
+            upDesc = upDesc.replace(`각각 ${base.selfStrength}`, `각각 ${upgraded.selfStrength}`);
+        } else {
+            upDesc = upDesc.replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`)
+                           .replace(`근력 ${base.selfStrength}`, `근력 ${upgraded.selfStrength}`);
+        }
+      }
+      if (base.selfDex && upgraded.selfDex > base.selfDex) {
+        if (!upDesc.includes(`각각 ${upgraded.selfDex}`)) {
+          upDesc = upDesc.replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`)
+                         .replace(`민첩 ${base.selfDex}`, `민첩 ${upgraded.selfDex}`);
+        }
+      }
+      
+      if (base.manaGain && upgraded.manaGain > base.manaGain) {
+        upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`)
+                       .replace(`마나 ${base.manaGain}`, `마나 ${upgraded.manaGain}`);
+      }
+      if (base.winManaGain && upgraded.winManaGain > base.winManaGain) {
+        upDesc = upDesc.replace(`마나를 ${base.winManaGain}`, `마나를 ${upgraded.winManaGain}`);
+      }
+
+      // 드로우 텍스트 치환
+      if (upgradeLevel >= 5) {
+        if (base.draw) {
+          upDesc = upDesc.replace(`카드를 ${base.draw}장 뽑`, `카드를 ${upgraded.draw}장 뽑`)
+                         .replace(`${base.draw}장 뽑`, `${upgraded.draw}장 뽑`);
+        } else {
+          upDesc += ' 카드를 1장 뽑습니다.';
+        }
+      }
+      
+      upgraded.desc = upDesc;
+      return upgraded;
+    }
+    return base;
+  };
+
   const toggleFullScreen = () => {
     const doc = window.document;
     const docEl = doc.documentElement;
