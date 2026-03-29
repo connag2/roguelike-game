@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db, appId } from './config/firebase';
-import { onAuthStateChanged, signInAnonymously, signInWithCustomToken } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { HelpCircle } from 'lucide-react'; 
 
 // 데이터 및 로직 Import
-import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS } from './constants/gameData';
+import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
-// 💡 분리한 컴포넌트들을 중복 없이 딱 1번씩만 불러오도록 정리했습니다.
+// 컴포넌트들 Import (중복 제거 완료)
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
 import ShopScreen from './components/screens/ShopScreen';
@@ -52,7 +52,6 @@ export default function App() {
   const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
   const [adminCodeInput, setAdminCodeInput] = useState('');
   const [couponInput, setCouponInput] = useState('');
-  const [isActionLocked, setIsActionLocked] = useState(false);
   const [deckImportModalOpen, setDeckImportModalOpen] = useState(false);
   const [deckImportText, setDeckImportText] = useState('');
   const [showEnemyDeck, setShowEnemyDeck] = useState(false);
@@ -157,7 +156,7 @@ export default function App() {
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
-  // --- [6. 전투 로직 완벽 복원] ---
+  // --- [6. 생략 없는 완벽한 전투 로직] ---
   const playCard = (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
     const card = combatState.hand[cardIndex];
@@ -383,6 +382,7 @@ export default function App() {
     <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
       {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
+      {/* 화면별 도움말 모달 */}
       {tutorialModalOpen && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
           <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
@@ -442,6 +442,7 @@ export default function App() {
                 </section>
               )}
 
+              {/* 공통 상태이상 설명 섹션 */}
               <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
                 <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
@@ -527,7 +528,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 💡 화면 컴포넌트들 */}
+      {/* 화면 컴포넌트 렌더링 영역 */}
       {gameState === 'MENU' && (
         <MainMenu
           credits={credits} getTotalCards={getTotalCards}
@@ -542,12 +543,9 @@ export default function App() {
 
       {gameState === 'STATISTICS' && (
         <Statistics
-          maxStageReached={maxStageReached}
-          normalCleared={normalCleared}
-          seenEnemies={seenEnemies}
-          unlockedCards={unlockedCards}
-          credits={credits}
-          setGameState={setGameState}
+          maxStageReached={maxStageReached} normalCleared={normalCleared}
+          seenEnemies={seenEnemies} unlockedCards={unlockedCards}
+          credits={credits} setGameState={setGameState}
         />
       )}
 
@@ -555,10 +553,9 @@ export default function App() {
         <DeckBuilder
           toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
           getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts}
-          handleClearDeck={() => setTempDeckCounts({})} 
-          handleDeckExport={handleDeckExport} 
-          setDeckImportModalOpen={setDeckImportModalOpen} 
-          setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState}
+          handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={handleDeckExport} 
+          setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} 
+          saveGame={saveGame} setGameState={setGameState}
           filterType={filterType} setFilterType={setFilterType}
           filterEffect={filterEffect} setEffect={setFilterEffect}
           filterRarity={filterRarity} setRarity={setFilterRarity}
@@ -622,8 +619,7 @@ export default function App() {
       {gameState === 'SETTINGS' && (
         <Settings
           setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame}
-          handleExport={handleExport} 
-          setImportModalOpen={setImportModalOpen} 
+          handleExport={handleExport} setImportModalOpen={setImportModalOpen} 
           couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon}
           handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput}
           setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={handleAdminUnlock}
