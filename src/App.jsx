@@ -391,10 +391,43 @@ useEffect(() => {
     loadData();
   }, [user]);
 
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem('roguelike_tactics_save');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        if (data.deckCounts) setDeckCounts(data.deckCounts);
+        if (data.unlockedCards) {
+          const safeCards = (data.unlockedCards || []).filter(id => CARD_LIBRARY.some(c => c.id === id));
+          setUnlockedCards(safeCards);
+        }
+        if (data.credits !== undefined) setCredits(data.credits);
+        if (data.shopUpgrades) setShopUpgrades(data.shopUpgrades);
+        if (data.normalCleared !== undefined) setNormalCleared(data.normalCleared);
+        if (data.fastMode !== undefined) setFastMode(data.fastMode);
+        if (data.maxStageReached !== undefined) setMaxStageReached(data.maxStageReached);
+        if (data.usedCoupons) setUsedCoupons(data.usedCoupons);
+        if (data.seenEnemies) setSeenEnemies(data.seenEnemies);
+      }
+    } catch (e) {
+      console.warn('로컬 데이터 불러오기 실패', e);
+    }
+  }, []); // 빈 배열: 게임을 처음 켤 때 1번만 실행됨
+
+  // 2. 게임 진행 시 자동으로 로컬 스토리지에 저장하는 함수 (수정됨)
   const saveGame = async (payload = {}) => {
+    const currentSave = { deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, usedCoupons, seenEnemies, ...payload };
+    
+    // [핵심] 내 컴퓨터(브라우저)에 즉시 자동 저장
+    try {
+      localStorage.setItem('roguelike_tactics_save', JSON.stringify(currentSave));
+    } catch (e) {
+      console.warn('로컬 저장 실패', e);
+    }
+
+    // 온라인 서버(Firebase) 연동 기능은 유지
     if (!user || !db) return;
     try {
-      const currentSave = { deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, usedCoupons, seenEnemies, ...payload };
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data');
       await setDoc(docRef, currentSave);
     } catch (e) {}
