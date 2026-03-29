@@ -464,9 +464,22 @@ export default function App() {
   };
 
   return (
-    <div id="game-root" className={`font-sans antialiased selection:bg-indigo-500 selection:text-white ${isCssFullScreen ? 'fixed inset-0 z-[999999] w-[100vw] h-[100vh] overflow-auto bg-slate-950' : 'bg-slate-900 min-h-screen'}`}>
-      {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-green-600 px-6 py-3 rounded shadow-lg font-bold animate-pulse z-50 whitespace-nowrap">{toastMsg}</div>}
-
+    <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen'}>
+      {/* 1. 방법(도움말) 모달 추가 */}
+      {tutorialModalOpen && (
+        <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setTutorialModalOpen(false)}>
+          <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h2 className="text-3xl font-black mb-6 text-indigo-400">게임 방법</h2>
+            <div className="space-y-4 text-slate-200">
+              <p>• <b>전투:</b> 매 턴 마나를 사용하여 카드를 냅니다. 적의 체력을 0으로 만드세요.</p>
+              <p>• <b>방어도:</b> 턴이 끝나면 방어도는 사라집니다. 적의 공격을 미리 막으세요.</p>
+              <p>• <b>상태 이상:</b> 약화(공격 감소), 취약(피해 증가), 중독(매 턴 피해) 등을 활용하세요.</p>
+              <p>• <b>층수 규칙:</b> 5층마다 보스가 등장하며, 25/50/75/100층에는 전설적인 네임드 보스가 기다립니다.</p>
+            </div>
+            <button onClick={() => setTutorialModalOpen(false)} className="mt-8 w-full py-3 bg-indigo-600 rounded-xl font-bold">알겠어!</button>
+          </div>
+        </div>
+      )}
       {gameState === 'MENU' && (
         <MainMenu
           credits={credits}
