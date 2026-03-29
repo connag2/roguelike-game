@@ -794,13 +794,21 @@ export default function App() {
         let p = { ...prev.player };
         let newEnemies = prev.enemies.map(e => ({ ...e, block: 0 }));
 
+        // 1. 중독 데미지 처리 및 적 패시브 처리
         newEnemies.forEach(e => {
+          if (e.debuffs?.poison > 0) {
+            e.hp -= e.debuffs.poison; // 중독 데미지 적용
+            e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); // 수치 1 감소
+          }
           e.passives?.forEach(pass => {
             if (pass.id === 'scaling_strength') e.buffs.strength = (e.buffs.strength || 0) + 3;
           });
         });
 
+        // 2. 적 공격 및 가시(Thorns) 반사 데미지 처리
         newEnemies.forEach(e => {
+          if (e.hp <= 0) return; // 중독 데미지로 죽었으면 행동 스킵
+
           let card = e.intentCard;
 
           if (card.type.includes('attack')) {
@@ -810,8 +818,15 @@ export default function App() {
 
             let hits = card.multi || 1;
             for(let i=0; i<hits; i++) {
+              if (e.hp <= 0) break; // 가시 데미지로 연타 도중 죽으면 멈춤
+              
               if (p.block >= baseDmg) p.block -= baseDmg;
               else { let leftover = baseDmg - p.block; p.block = 0; p.hp -= leftover; }
+              
+              // [신규] 가시 데미지 반사 로직
+              if (p.buffs?.thorns > 0) {
+                e.hp -= p.buffs.thorns;
+              }
             }
           }
           if (card.type.includes('debuff')) {
@@ -835,9 +850,46 @@ export default function App() {
           e.intentCard = generateEnemyIntent(e.template, prev.stage);
         });
 
+        // 3. 중독/가시 반사로 적이 사망했을 경우(부활 처리 포함)
+        newEnemies.forEach(e => {
+          if (e.hp <= 0) {
+            const reviveIdx = e.passives?.findIndex(pass => pass.id === 'revive');
+            if (reviveIdx > -1) {
+              e.hp = Math.floor(e.maxHp / 2);
+              e.passives.splice(reviveIdx, 1);
+            }
+          }
+        });
+        
+        // 진짜 죽은 몬스터 배열에서 제거
+        newEnemies = newEnemies.filter(e => e.hp > 0);
+
         if (p.hp <= 0) {
           setGameState('GAME_OVER');
           return prev;
+        }
+
+        // 중독/가시로 적이 전멸했을 경우 (적 턴에 승리)
+        if (newEnemies.length === 0) {
+          if (prev.stage >= maxStageReached) {
+            setMaxStageReached(prev.stage + 1);
+            saveGame({ maxStageReached: prev.stage + 1 });
+          }
+          let earned = 5 + Math.floor(prev.stage * 1) + (Math.floor(prev.stage / 5) * 5);
+          if (prev.stage % 5 === 0) earned += 15;
+          if (prev.mode === 'HARD') earned *= 2; 
+          
+          const newCredits = credits + earned;
+          setCredits(newCredits);
+          saveGame({ credits: newCredits }); 
+          
+          // 승리 시 체력/디버프 자동 갱신
+          p.block = 0; p.mana = p.maxMana;
+          p.debuffs = { weak: 0, vulnerable: 0, poison: 0 };
+          p.buffs = { strength: 0, dexterity: 0, thorns: 0 };
+          
+          setTimeout(() => setGameState('REWARDS'), fastMode ? 200 : 600);
+          return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] };
         }
 
         p.block = 0;
@@ -998,17 +1050,23 @@ export default function App() {
         }
       }
 
+      // ... playCard 함수 내부의 버프/디버프 적용 구역 ...
       if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) gainBlock(card.block);
       if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + card.heal);
       if (card.manaGain && !card.gamble) p.mana += card.manaGain;
       if (card.selfDamage && !card.gamble) p.hp -= card.selfDamage;
       if (card.selfStrength) p.buffs.strength += card.selfStrength;
       if (card.selfDex) p.buffs.dexterity += card.selfDex;
+      
+      // [신규] 나에게 가시(Thorns) 부여
+      if (card.selfThorns) p.buffs.thorns = (p.buffs.thorns || 0) + card.selfThorns;
 
       if (newEnemies.length > 0) {
         let target = newEnemies[0];
         if (card.enemyWeak) target.debuffs.weak += card.enemyWeak;
         if (card.enemyVuln) target.debuffs.vulnerable += card.enemyVuln;
+        // [신규] 타겟 적에게 중독(Poison) 부여
+        if (card.enemyPoison) target.debuffs.poison = (target.debuffs.poison || 0) + card.enemyPoison;
       }
 
       let drawCount = card.draw || 0;
@@ -1094,15 +1152,15 @@ export default function App() {
     return CARD_LIBRARY.filter(c => {
       if (targetFilterRarity !== 'all' && c.rarity !== targetFilterRarity) return false;
       if (targetFilterType !== 'all' && c.type !== targetFilterType) return false;
-      if (targetFilterEffect === 'debuff' && !(c.enemyWeak || c.enemyVuln)) return false;
-      if (targetFilterEffect === 'buff' && !(c.selfStrength || c.selfDex)) return false;
+      // 디버프 필터에 중독(enemyPoison) 추가
+      if (targetFilterEffect === 'debuff' && !(c.enemyWeak || c.enemyVuln || c.enemyPoison)) return false;
+      // 버프 필터에 가시(selfThorns) 추가
+      if (targetFilterEffect === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
       if (targetFilterOwnership === 'owned' && !(unlockedCards || []).includes(c.id)) return false;
       if (targetFilterOwnership === 'unowned' && (unlockedCards || []).includes(c.id)) return false;
-      
-      // 검색 시 튕김 방지
       if (targetSearchQuery) {
         const query = targetSearchQuery.toLowerCase();
-        const cardDef = getCardDef(c.id); 
+        const cardDef = getCardDef(c.id, shopUpgrades); 
         if (cardDef && !(cardDef.name || '').toLowerCase().includes(query) && !(cardDef.desc || '').toLowerCase().includes(query)) return false;
       }
       return true;
@@ -1117,6 +1175,9 @@ export default function App() {
     if (desc.includes('근력')) tooltips.push({ title: '근력', desc: '공격 카드의 피해량이 증가합니다. (턴마다 수치 비례 감소)' });
     if (desc.includes('민첩')) tooltips.push({ title: '민첩', desc: '방어 카드의 방어도가 증가합니다. (턴마다 수치 비례 감소)' });
     if (desc.includes('도박')) tooltips.push({ title: '도박', desc: '확률에 따라 추가 효과가 발생하거나 패널티를 받습니다.' });
+    // 신규 도움말 추가
+    if (desc.includes('중독')) tooltips.push({ title: '중독 (디버프)', desc: '턴 시작 시 수치만큼 피해를 입고, 중독 수치가 1 감소합니다.' });
+    if (desc.includes('가시')) tooltips.push({ title: '가시 (버프)', desc: '피격 시 공격자에게 수치만큼의 피해를 반사합니다.' });
 
     if (tooltips.length === 0) return null;
 
@@ -1155,8 +1216,8 @@ export default function App() {
         <div className="flex gap-2 overflow-x-auto hide-scrollbar py-1 items-center">
           <span className="text-slate-400 text-sm font-bold w-10 shrink-0">효과</span>
           <button onClick={()=>setEffect('all')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-colors ${effect === 'all' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>모든 효과</button>
-          <button onClick={()=>setEffect('debuff')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-colors ${effect === 'debuff' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>디버프 (약화/취약)</button>
-          <button onClick={()=>setEffect('buff')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-colors ${effect === 'buff' ? 'bg-green-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>버프 (근력/민첩)</button>
+          <button onClick={()=>setEffect('debuff')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-colors ${effect === 'debuff' ? 'bg-purple-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>디버프 (약화/취약/중독)</button>
+          <button onClick={()=>setEffect('buff')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-colors ${effect === 'buff' ? 'bg-green-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>버프 (근력/민첩/가시)</button>
         </div>
         <div className="flex gap-2 overflow-x-auto hide-scrollbar py-1 items-center">
           <span className="text-slate-400 text-sm font-bold w-10 shrink-0">등급</span>
@@ -1167,7 +1228,6 @@ export default function App() {
           <button onClick={()=>setRarity('special')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-colors ${rarity === 'special' ? 'bg-fuchsia-900 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>특수/보스</button>
         </div>
         
-        {/* 수정된 부분: setOwnership이 전달되었을 때만 렌더링되게 방어 */}
         {setOwnership && (
           <div className="flex gap-2 overflow-x-auto hide-scrollbar py-1 items-center">
             <span className="text-slate-400 text-sm font-bold w-10 shrink-0">보유</span>
@@ -1805,9 +1865,14 @@ export default function App() {
               <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-xs font-bold shadow-black drop-shadow-md">{player.hp} / {player.maxHp}</span>
             </div>
             {/* 플레이어 버프/디버프 렌더링 */}
+            {/* 플레이어 버프/디버프 렌더링 */}
             <div className="flex gap-1 md:gap-2 h-8 mt-1 flex-wrap justify-center">
               {player.buffs?.strength > 0 && <span tabIndex="0" className="bg-red-900 text-red-100 text-[10px] md:text-xs px-2 py-1 md:px-3 md:py-1.5 rounded-full font-bold border border-red-500 shadow-md flex items-center tooltip-trigger relative cursor-help outline-none">근력 +{player.buffs.strength}<div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">공격 피해 증가 (턴마다 비례 감소)</div></span>}
               {player.buffs?.dexterity > 0 && <span tabIndex="0" className="bg-blue-900 text-blue-100 text-[10px] md:text-xs px-2 py-1 md:px-3 md:py-1.5 rounded-full font-bold border border-blue-500 shadow-md flex items-center tooltip-trigger relative cursor-help outline-none">민첩 +{player.buffs.dexterity}<div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">방어도 획득량 증가 (턴마다 비례 감소)</div></span>}
+              
+              {/* [신규] 가시 버프 뱃지 추가 */}
+              {player.buffs?.thorns > 0 && <span tabIndex="0" className="bg-emerald-900 text-emerald-100 text-[10px] md:text-xs px-2 py-1 md:px-3 md:py-1.5 rounded-full font-bold border border-emerald-500 shadow-md flex items-center tooltip-trigger relative cursor-help outline-none">가시 {player.buffs.thorns}<div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">피격 시 공격자에게 피해 반사</div></span>}
+              
               {player.debuffs?.weak > 0 && <span tabIndex="0" className="bg-orange-800 text-white text-[10px] md:text-xs px-2 py-1 md:px-3 md:py-1.5 rounded-full font-black border-2 border-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.8)] animate-pulse tooltip-trigger relative cursor-help flex items-center outline-none">약화 {player.debuffs.weak}<div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 md:w-40 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none font-normal text-xs">가하는 피해 3% 감소 (턴마다 비례 감소)</div></span>}
               {player.debuffs?.vulnerable > 0 && <span tabIndex="0" className="bg-purple-800 text-white text-[10px] md:text-xs px-2 py-1 md:px-3 md:py-1.5 rounded-full font-black border-2 border-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)] animate-pulse tooltip-trigger relative cursor-help flex items-center outline-none">취약 {player.debuffs.vulnerable}<div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 md:w-40 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none font-normal text-xs">받는 피해 30% 증가 (턴마다 비례 감소)</div></span>}
             </div>
@@ -1862,6 +1927,7 @@ export default function App() {
                   </div>
                   
                   {/* 패시브 및 버프/디버프 */}
+                  {/* 적 패시브 및 버프/디버프 렌더링 */}
                   <div className="flex gap-1 h-5 md:h-6 mt-1 flex-wrap justify-center w-full">
                     {enemy.passives?.map(p => <span tabIndex="0" key={p.id} className="bg-yellow-800 text-yellow-200 text-[8px] md:text-[9px] px-1 md:px-2 py-0.5 rounded-full font-bold border border-yellow-500 shadow-md truncate max-w-full tooltip-trigger relative cursor-help outline-none" title={p.desc}>{p.name}
                       <div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">{p.desc}</div>
@@ -1869,6 +1935,12 @@ export default function App() {
                     {enemy.buffs?.strength > 0 && <span tabIndex="0" className="bg-red-900 text-red-100 text-[8px] md:text-[9px] px-1 md:px-2 py-0.5 rounded-full font-bold border border-red-500 shadow-md tooltip-trigger relative cursor-help outline-none">근력 +{enemy.buffs.strength}
                       <div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">공격 피해 증가 (턴마다 비례 감소)</div>
                     </span>}
+                    
+                    {/* [신규] 중독 디버프 뱃지 추가 */}
+                    {enemy.debuffs?.poison > 0 && <span tabIndex="0" className="bg-green-900 text-green-400 text-[8px] md:text-[9px] px-1 md:px-2 py-0.5 rounded-full font-black border border-green-500 tooltip-trigger relative cursor-help outline-none">중독 {enemy.debuffs.poison}
+                      <div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">턴 시작 시 피해 (매 턴 1 감소)</div>
+                    </span>}
+
                     {enemy.debuffs?.weak > 0 && <span tabIndex="0" className="bg-orange-800 text-white text-[8px] md:text-[9px] px-1 md:px-2 py-0.5 rounded-full font-black border border-orange-500 tooltip-trigger relative cursor-help outline-none">약화 {enemy.debuffs.weak}
                       <div className="tooltip-content absolute bottom-[120%] left-1/2 -translate-x-1/2 w-32 bg-slate-800 p-2 rounded text-center z-[9999] pointer-events-none text-white whitespace-normal font-normal text-xs">가하는 피해 3% 감소 (턴마다 비례 감소)</div>
                     </span>}
