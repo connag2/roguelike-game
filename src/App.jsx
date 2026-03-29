@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Sword, Shield, Zap, Heart, RefreshCw, Skull, ArrowRightCircle, Lock, Save, PlusCircle, Trash2, Store, Coins, AlertTriangle, Info, Maximize, Gift, Book, Trophy, Settings, FastForward, Eraser, Download, Upload, Search, HelpCircle, FileQuestion, Star } from 'lucide-react';
+import { Sword, Shield, Zap, Heart, RefreshCw, Skull, ArrowRightCircle, Lock, Save, PlusCircle, Trash2, Store, Coins, AlertTriangle, Info, Maximize, Gift, Book, Trophy, Settings, FastForward, Eraser, Download, Upload, Search, HelpCircle, FileQuestion, Star, Terminal } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 
-// 오직 순수 데이터와 로직만 외부에서 가져옵니다. (UI 컴포넌트는 App.jsx 내부에 둡니다)
+// 오직 순수 데이터와 로직만 외부에서 가져옵니다.
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, MANA_CARD_IDS } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent, validateDeckStatus } from './utils/gameLogic';
 
@@ -18,10 +18,13 @@ try {
 } catch(e) {}
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-// 글로벌 애니메이션 및 스타일
+// 글로벌 애니메이션 및 세밀한 스타일 (이전 버전의 퀄리티 완전 복구)
 const styles = `
   @keyframes drawCard { 0% { transform: translateY(100px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
   .animate-draw { animation: drawCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; opacity: 0; }
+  .custom-scroll::-webkit-scrollbar { width: 6px; }
+  .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 10px; }
+  .custom-scroll::-webkit-scrollbar-thumb { background: rgba(79,70,229,0.5); border-radius: 10px; }
   .hide-scrollbar::-webkit-scrollbar { display: none; }
   .tooltip-trigger { position: relative; z-index: 50; }
   .tooltip-trigger .tooltip-content { visibility: hidden; opacity: 0; transition: opacity 0.2s; position: absolute; z-index: 99999; }
@@ -38,6 +41,8 @@ export default function App() {
   const [gameState, setGameState] = useState('MENU'); 
   const [user, setUser] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+  
+  // 영구 저장 데이터
   const [credits, setCredits] = useState(0);
   const [shopUpgrades, setShopUpgrades] = useState({ maxHp: 0, upgradedCards: [] });
   const [unlockedCards, setUnlockedCards] = useState(BASE_CARDS);
@@ -47,6 +52,8 @@ export default function App() {
   const [maxStageReached, setMaxStageReached] = useState(1);
   const [seenEnemies, setSeenEnemies] = useState([]); 
   const [usedCoupons, setUsedCoupons] = useState([]);
+  
+  // 게임 진행 및 뷰어 데이터
   const [rewardCards, setRewardCards] = useState([]);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
@@ -56,6 +63,8 @@ export default function App() {
   const [gachaResult, setGachaResult] = useState(null); 
   const [premiumGachaResult, setPremiumGachaResult] = useState(null);
   const [specialBossRewardCard, setSpecialBossRewardCard] = useState(null); 
+  
+  // 필터 및 검색
   const [filterType, setFilterType] = useState('all');
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
@@ -66,16 +75,23 @@ export default function App() {
   const [shopSearchQuery, setShopSearchQuery] = useState('');
   const [hideMaxedUpgrades, setHideMaxedUpgrades] = useState(false);
   const [isUpgradesCollapsed, setIsUpgradesCollapsed] = useState(false);
+  
+  // 기타 편의 기능
   const [hoveredCard, setHoveredCard] = useState(null);
   const [confirmSelection, setConfirmSelection] = useState(null);
   const [tutorialModalOpen, setTutorialModalOpen] = useState(false);
   const [dexViewingEnemy, setDexViewingEnemy] = useState(null);
   const [isCssFullScreen, setIsCssFullScreen] = useState(false);
   const [isActionLocked, setIsActionLocked] = useState(false);
+  
+  // 관리자 및 쿠폰
+  const [adminCodeInput, setAdminCodeInput] = useState('');
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
 
-  // --- 2. 헬퍼 및 세이브 엔진 ---
   const getTotalCards = (counts = deckCounts) => Object.values(counts || {}).reduce((a, b) => a + b, 0);
 
+  // --- 2. 세이브 및 초기화 ---
   useEffect(() => {
     if(!auth) return;
     const initAuth = async () => {
@@ -101,11 +117,12 @@ export default function App() {
       if (data.fastMode !== undefined) setFastMode(data.fastMode);
       if (data.maxStageReached !== undefined) setMaxStageReached(data.maxStageReached);
       if (data.seenEnemies) setSeenEnemies(data.seenEnemies);
+      if (data.usedCoupons) setUsedCoupons(data.usedCoupons);
     }
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const currentSave = { deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, seenEnemies, ...payload };
+    const currentSave = { deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, ...payload };
     try { localStorage.setItem('roguelike_tactics_save', JSON.stringify(currentSave)); } catch (e) {}
     if (!user || !db) return;
     try {
@@ -115,7 +132,7 @@ export default function App() {
   };
 
   const handleExport = () => {
-    const data = JSON.stringify({ deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, seenEnemies });
+    const data = JSON.stringify({ deckCounts, unlockedCards, credits, shopUpgrades, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons });
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('전체 세이브 코드가 복사되었습니다!');
     setTimeout(() => setToastMsg(''), 2000);
@@ -125,11 +142,11 @@ export default function App() {
     try {
       const data = JSON.parse(decodeURIComponent(atob(encoded)));
       if (data.deckCounts && data.unlockedCards) {
-        setDeckCounts(data.deckCounts);
-        setUnlockedCards(data.unlockedCards);
+        setDeckCounts(data.deckCounts); setUnlockedCards(data.unlockedCards);
         if(data.credits !== undefined) setCredits(data.credits);
         if(data.shopUpgrades) setShopUpgrades(data.shopUpgrades);
         if(data.fastMode !== undefined) setFastMode(data.fastMode);
+        if(data.usedCoupons) setUsedCoupons(data.usedCoupons);
         saveGame(data);
         setToastMsg('데이터를 성공적으로 불러왔습니다!');
         setImportModalOpen(false);
@@ -138,12 +155,49 @@ export default function App() {
   };
 
   const handleExitGame = async () => {
-    setToastMsg('저장 중...');
-    await saveGame();
+    setToastMsg('저장 중...'); await saveGame();
     if (window.require) window.close(); else setGameState('MENU');
   };
 
-  // --- 3. 전투 및 게임 로직 ---
+  // --- 3. 관리자 및 쿠폰 핸들러 복구 ---
+  const handleAdminUnlock = () => {
+    if (adminCodeInput === '20090324') { setIsAdminUnlocked(true); setToastMsg('DEVELOPER MODE ACTIVE'); }
+    else setToastMsg('INVALID ACCESS CODE');
+    setTimeout(() => setToastMsg(''), 2000);
+  };
+
+  const adminGiveMoney = () => {
+    setCredits(c => c + 99999); saveGame({ credits: credits + 99999 });
+    setToastMsg('99,999 CREDITS GRANTED'); setTimeout(()=>setToastMsg(''), 2000);
+  };
+
+  const adminUnlockAllCards = () => {
+    const all = CARD_LIBRARY.map(c=>c.id); setUnlockedCards(all); saveGame({ unlockedCards: all });
+    setToastMsg('ALL ARTIFACTS UNLOCKED'); setTimeout(()=>setToastMsg(''), 2000);
+  };
+
+  const handleCouponSubmit = () => {
+    const code = couponInput.toUpperCase().trim();
+    if (!code) return;
+    if (usedCoupons.includes(code)) { setToastMsg('이미 사용된 코드입니다.'); return; }
+    
+    if (code === 'SHOWMETHEMONEY') {
+      const nc = credits + 5000;
+      const nu = [...usedCoupons, code];
+      setCredits(nc); setUsedCoupons(nu); saveGame({ credits: nc, usedCoupons: nu });
+      setToastMsg('5,000 크레딧 획득!');
+    } else if (code === 'ALLCARDS') {
+      const allIds = CARD_LIBRARY.map(c => c.id);
+      const nu = [...usedCoupons, code];
+      setUnlockedCards(allIds); setUsedCoupons(nu); saveGame({ unlockedCards: allIds, usedCoupons: nu });
+      setToastMsg('모든 카드가 해금되었습니다!');
+    } else {
+      setToastMsg('유효하지 않은 프로모션 코드입니다.');
+    }
+    setCouponInput('');
+  };
+
+  // --- 4. 전투 및 게임 흐름 로직 ---
   const startBattle = (mode = 'NORMAL', startingStage = 1) => {
     let fullDeck = [];
     Object.keys(deckCounts).forEach(id => {
@@ -156,12 +210,8 @@ export default function App() {
     const hp = GAME_RULES.BASE_HP + (shopUpgrades.maxHp * GAME_RULES.HP_PER_UPGRADE);
     const enemies = generateEnemies(startingStage);
     
-    // 조우한 적 도감에 추가
-    let newSeen = [...seenEnemies];
-    let updated = false;
-    enemies.forEach(e => {
-      if (!newSeen.includes(e.template.name)) { newSeen.push(e.template.name); updated = true; }
-    });
+    let newSeen = [...seenEnemies]; let updated = false;
+    enemies.forEach(e => { if (!newSeen.includes(e.template.name)) { newSeen.push(e.template.name); updated = true; } });
     if (updated) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
 
     setCombatState({
@@ -176,11 +226,8 @@ export default function App() {
     const nextStage = combatState.stage + 1;
     const enemies = generateEnemies(nextStage);
     
-    let newSeen = [...seenEnemies];
-    let updated = false;
-    enemies.forEach(e => {
-      if (!newSeen.includes(e.template.name)) { newSeen.push(e.template.name); updated = true; }
-    });
+    let newSeen = [...seenEnemies]; let updated = false;
+    enemies.forEach(e => { if (!newSeen.includes(e.template.name)) { newSeen.push(e.template.name); updated = true; } });
     if (updated) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
 
     const reshuffled = shuffle([...newBaseDeck]);
@@ -321,7 +368,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [gameState, combatState?.turn, fastMode]);
 
-  // --- 4. 인터페이스 및 핸들러 ---
+  // --- 5. UI 버튼 핸들러 ---
   const handleAddCard = (id) => {
     if (isActionLocked || !unlockedCards.includes(id)) return;
     setIsActionLocked(true);
@@ -374,7 +421,7 @@ export default function App() {
     setPremiumGachaResult(pulled.map(c => getCardDef(c.id, shopUpgrades)));
   };
 
-  // --- 5. UI 렌더링 헬퍼 ---
+  // --- 6. UI 렌더링 헬퍼 ---
   const getFilteredCards = (t, e, r, o, q) => {
     return CARD_LIBRARY.filter(c => {
       if (r !== 'all' && c.rarity !== r) return false;
@@ -445,11 +492,11 @@ export default function App() {
     else if (rarity === 'rare') { shadow = 'shadow-[0_0_20px_yellow]'; nameCol = 'text-yellow-300'; bg = 'legendary-bg'; tag='전설'; }
     else if (rarity === 'special') { shadow = 'shadow-[0_0_25px_fuchsia]'; nameCol = 'text-fuchsia-300'; bg = 'special-bg'; tag='특수'; }
     if (card.isUpgraded) { nameCol = 'text-yellow-400'; shadow = 'shadow-[0_0_15px_gold]'; }
-    const style = isLocked ? 'opacity-60 grayscale border-slate-700 bg-slate-900' : `${border} ${shadow} ${bg}`;
+    const style = isLocked ? 'opacity-40 grayscale border-slate-700 bg-slate-900' : `${border} ${shadow} ${bg}`;
     
     return (
       <div key={card.uid || card.id} onClick={customClick} className={`border-2 p-2 rounded-xl flex flex-col justify-between relative transition-all ${customClick ? 'cursor-pointer hover:-translate-y-2' : ''} ${style} w-full aspect-[3/4.2] max-w-[160px] mx-auto overflow-hidden`}>
-        {isLocked && <div className="absolute inset-0 bg-slate-900/80 z-10 flex flex-col items-center justify-center backdrop-blur-[1px]"><Lock className="w-8 h-8 text-slate-400 mb-2"/><span className="text-[10px] font-bold text-yellow-500">미보유</span></div>}
+        {isLocked && <div className="absolute inset-0 bg-black/50 z-10 flex flex-col items-center justify-center backdrop-blur-[1px]"><Lock className="w-6 h-6 text-slate-400 mb-2"/><span className="text-[10px] font-black text-yellow-500 bg-black/80 px-2 py-1 rounded">미해금</span></div>}
         <div className="z-10 flex justify-between items-start">
           <span className="font-bold text-[10px] bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-white">Cost {card.cost}</span>
           <span className="text-[10px] font-bold opacity-80 text-white">{tag}</span>
@@ -469,7 +516,7 @@ export default function App() {
     );
   };
 
-  // --- 6. 화면 렌더링 섹션 ---
+  // --- 7. 화면 렌더링 섹션 ---
   const renderMenu = () => (
     <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
       <Sword className="w-24 h-24 mb-6 text-indigo-500 animate-pulse" />
@@ -575,6 +622,12 @@ export default function App() {
           </div>
         </div>
 
+        {/* 쿠폰 입력부 추가 (스크린샷 복구) */}
+        <div className="mb-10 bg-slate-800/50 p-6 rounded-2xl border border-slate-700 max-w-6xl mx-auto w-full flex items-center gap-4 shadow-xl">
+          <input type="text" placeholder="ENTER PROMO CODE (쿠폰 코드)" value={couponInput} onChange={e=>setCouponInput(e.target.value.toUpperCase())} className="flex-1 bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-3 font-mono text-white outline-none focus:border-indigo-500 transition-colors" />
+          <button onClick={handleCouponSubmit} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-black transition-all">REDEEM</button>
+        </div>
+
         <div className="bg-slate-800/40 p-6 rounded-3xl border border-slate-700 max-w-6xl mx-auto w-full mb-20 shadow-2xl backdrop-blur-sm px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
             <h3 className="text-2xl font-black flex items-center gap-3"><Zap className="text-yellow-400" fill="currentColor"/> ARTIFACT ENHANCEMENT</h3>
@@ -633,93 +686,135 @@ export default function App() {
 
     return (
       <div className="flex flex-col h-[100dvh] bg-slate-950 text-white p-2 md:p-4 overflow-hidden relative">
-        <div className="flex justify-between items-center bg-slate-900/80 p-3 md:px-6 rounded-2xl border border-white/5 shadow-2xl z-20">
-          <div className="flex items-center gap-4">
-             <div className="text-indigo-400 font-black tracking-tighter bg-indigo-950/50 px-3 py-1 rounded-lg border border-indigo-900/50">STAGE {stage}</div>
-             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden md:block">{mode} MODE</div>
+        {/* 상단 헤더 복구 */}
+        <div className="flex justify-between items-center bg-slate-900/90 backdrop-blur-md p-3 md:px-6 rounded-2xl border border-white/5 shadow-2xl z-30">
+          <div className="flex items-center gap-6">
+             <div className="flex flex-col">
+                <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-0.5">Current Mission</span>
+                <div className="text-xl font-black text-white bg-indigo-600/20 px-3 py-0.5 rounded-lg border border-indigo-500/30">STAGE {stage}</div>
+             </div>
+             <div className="h-8 w-px bg-slate-800 hidden md:block"></div>
+             <div className="hidden md:flex flex-col">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Game Mode</span>
+                <span className={`text-xs font-black text-emerald-500`}>{mode} MODE</span>
+             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-bold text-slate-400 cursor-pointer hover:text-white" onClick={()=>setViewingPile('baseDeck')}>DECK: {baseDeck.length}</span>
-            <button onClick={() => setGameState('GAME_OVER')} className="bg-red-950/30 text-red-500 px-3 py-1 rounded-lg text-xs font-bold border border-red-900/30 hover:bg-red-900 hover:text-white transition-all">SURRENDER</button>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-end cursor-pointer group" onClick={()=>setViewingPile('baseDeck')}>
+               <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-white transition-colors">Total Deck Size</span>
+               <span className="text-sm font-black text-slate-300 group-hover:text-indigo-400">{baseDeck.length} CARDS</span>
+            </div>
+            <button onClick={() => setGameState('GAME_OVER')} className="bg-red-950/40 text-red-500 px-4 py-2 rounded-xl text-xs font-black border border-red-900/30 hover:bg-red-600 hover:text-white transition-all shadow-lg active:scale-95">SURRENDER</button>
           </div>
         </div>
 
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.02] pointer-events-none z-0"><h1 className="text-[15rem] font-black italic whitespace-nowrap">{isPlayerTurn ? 'PLAYER' : 'ENEMY'}</h1></div>
 
-        <div className="flex-1 flex flex-row justify-between items-center max-w-6xl mx-auto w-full px-4 relative z-10">
-          <div className={`flex flex-col items-center transition-all duration-500 ${isPlayerTurn?'scale-110':'opacity-40 scale-90'}`}>
-             <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-800 rounded-full border-4 border-indigo-500 shadow-[0_0_30px_rgba(79,70,229,0.3)] flex items-center justify-center relative mb-4">
-                <Shield size={48} className="text-indigo-400"/>
-                {player.block > 0 && <div className="absolute -top-2 -right-2 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-black border-2 border-blue-300 animate-bounce">{player.block}</div>}
+        <div className="flex-1 flex flex-row justify-between items-center max-w-7xl mx-auto w-full px-6 relative z-10">
+          {/* 플레이어 */}
+          <div className={`flex flex-col items-center transition-all duration-700 ${isPlayerTurn?'scale-110':'opacity-40 scale-90 blur-[1px]'}`}>
+             <div className="w-28 h-28 md:w-40 md:h-40 bg-slate-800 rounded-full border-4 border-indigo-500 shadow-[0_0_50px_rgba(79,70,229,0.4)] flex items-center justify-center relative mb-6">
+                <Shield size={64} className="text-indigo-400 drop-shadow-[0_0_15px_rgba(129,140,248,0.8)]"/>
+                {player.block > 0 && <div className="absolute -top-3 -right-3 w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center font-black border-4 border-blue-300 animate-bounce shadow-2xl text-lg">{player.block}</div>}
              </div>
-             <div className="w-32 md:w-48 bg-slate-900 h-4 rounded-full border border-slate-700 overflow-hidden relative shadow-inner">
-                <div className="bg-green-500 h-full transition-all duration-500" style={{width: `${(player.hp/player.maxHp)*100}%`}}/>
+             <div className="w-40 md:w-56 bg-slate-900 h-6 rounded-full border-2 border-slate-800 overflow-hidden relative shadow-2xl p-0.5">
+                <div className="bg-gradient-to-r from-emerald-600 to-green-400 h-full rounded-full transition-all duration-500" style={{width: `${(player.hp/player.maxHp)*100}%`}}/>
                 <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black drop-shadow-md">{player.hp} / {player.maxHp}</div>
              </div>
-             <div className="mt-3 flex gap-1 h-6">
-                {player.buffs.strength > 0 && <span className="bg-red-900 px-2 py-0.5 rounded-full text-[9px] font-bold border border-red-500">STR +{player.buffs.strength}</span>}
-                {player.buffs.dexterity > 0 && <span className="bg-blue-900 px-2 py-0.5 rounded-full text-[9px] font-bold border border-blue-500">DEX +{player.buffs.dexterity}</span>}
+             <div className="mt-4 flex gap-2 h-8">
+                {player.buffs.strength > 0 && <span className="bg-red-950/80 text-red-400 px-3 py-1 rounded-lg text-[10px] font-black border border-red-500/50 shadow-lg">STR {player.buffs.strength}</span>}
+                {player.buffs.dexterity > 0 && <span className="bg-blue-950/80 text-blue-400 px-3 py-1 rounded-lg text-[10px] font-black border border-blue-500/50 shadow-lg">DEX {player.buffs.dexterity}</span>}
+                {player.debuffs.weak > 0 && <span className="bg-orange-950/80 text-orange-400 px-3 py-1 rounded-lg text-[10px] font-black border border-orange-500/50 shadow-lg">WEAK {player.debuffs.weak}</span>}
              </div>
           </div>
 
-          <div className="text-2xl font-black italic text-slate-800">VS</div>
+          <div className="text-4xl font-black italic text-slate-800 tracking-tighter opacity-50 px-4">VS</div>
 
-          <div className="flex gap-8 items-end">
+          {/* 에너미 */}
+          <div className="flex gap-12 items-end">
             {enemies.map((e, idx) => {
               const intent = e.intentCard;
+              const isTarget = idx === 0;
               return (
-                <div key={e.uid} className={`flex flex-col items-center transition-all duration-500 ${idx===0?'scale-100':'scale-75 opacity-50'}`}>
-                  {idx === 0 && <div className="text-red-500 font-black text-[10px] animate-bounce mb-2 tracking-widest">TARGET</div>}
-                  <div className={`mb-4 p-2 bg-slate-900 border-2 rounded-xl text-center w-24 md:w-28 shadow-xl ${intent.type.includes('attack')?'border-red-600/50':'border-blue-600/50'}`}>
-                     <div className="text-[10px] font-black truncate">{intent.name}</div>
-                     <div className="text-[9px] text-slate-500 mt-1 leading-tight">{intent.desc}</div>
+                <div key={e.uid} className={`flex flex-col items-center transition-all duration-500 ${isTarget?'scale-100':'scale-75 opacity-40 translate-x-10 blur-[1px]'}`}>
+                  {isTarget && <div className="text-red-500 font-black text-[10px] animate-bounce mb-4 tracking-[0.4em] drop-shadow-[0_0_10px_red]">TARGET</div>}
+                  <div className={`mb-6 p-3 bg-slate-900 border-2 rounded-2xl text-center w-28 md:w-36 shadow-2xl relative ${intent.type.includes('attack')?'border-red-600':'border-blue-600'}`}>
+                     <div className="text-[11px] font-black truncate text-white">{intent.name}</div>
+                     <div className="text-[9px] text-slate-400 mt-1 leading-tight font-bold">{intent.desc}</div>
+                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900 rotate-45 border-r-2 border-b-2 border-inherit"></div>
                   </div>
-                  <div className={`w-20 h-20 md:w-28 md:h-28 bg-red-950/20 rounded-full border-4 flex items-center justify-center relative mb-4 transition-all ${idx===0?'border-red-600 shadow-[0_0_20px_rgba(220,38,38,0.3)]':'border-slate-800'}`}>
-                    <Skull size={idx===0?48:32} className="text-red-500/70"/>
-                    {e.block > 0 && <div className="absolute -top-1 -right-1 w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center font-black border border-slate-500 text-xs">{e.block}</div>}
+                  <div className={`w-24 h-24 md:w-36 md:h-36 bg-red-950/20 rounded-full border-4 flex items-center justify-center relative mb-4 transition-all duration-700 ${isTarget?'border-red-600 shadow-[0_0_40px_rgba(220,38,38,0.4)]':'border-slate-800'}`}>
+                    <Skull size={isTarget?56:32} className={`${isTarget?'text-red-500':'text-slate-700'}`}/>
+                    {e.block > 0 && <div className="absolute -top-2 -right-2 w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center font-black border-2 border-slate-500 text-xs shadow-xl">{e.block}</div>}
                   </div>
-                  <div className="w-24 md:w-32 bg-slate-900 h-3 rounded-full border border-slate-800 overflow-hidden relative mb-1">
-                    <div className="bg-red-600 h-full transition-all duration-500" style={{width: `${(e.hp/e.maxHp)*100}%`}}/>
-                    <div className="absolute inset-0 flex items-center justify-center text-[8px] font-black">{e.hp}</div>
+                  <div className="w-28 md:w-40 bg-slate-900 h-4 rounded-full border border-slate-800 overflow-hidden relative mb-2 shadow-inner">
+                    <div className="bg-gradient-to-r from-red-800 to-red-500 h-full transition-all duration-500" style={{width: `${(e.hp/e.maxHp)*100}%`}}/>
+                    <div className="absolute inset-0 flex items-center justify-center text-[9px] font-black">{e.hp} / {e.maxHp}</div>
                   </div>
-                  <div className="text-[10px] font-bold text-slate-500">{e.name}</div>
+                  <div className="text-[11px] font-black text-slate-400">{e.name} {e.isBoss && <span className="text-red-600 ml-1">BOSS</span>}</div>
+                  
+                  {/* 디버프 */}
+                  <div className="flex gap-1 mt-2 h-5">
+                    {e.debuffs.vulnerable > 0 && <span className="bg-purple-900/50 text-purple-400 px-2 py-0.5 rounded text-[8px] font-black border border-purple-500/30">VULN {e.debuffs.vulnerable}</span>}
+                    {e.debuffs.weak > 0 && <span className="bg-orange-900/50 text-orange-400 px-2 py-0.5 rounded text-[8px] font-black border border-orange-500/30">WEAK {e.debuffs.weak}</span>}
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
 
-        <div className="h-56 flex flex-col items-center justify-end pb-4 relative z-20">
-           <div className="flex items-center gap-12 w-full max-w-5xl px-8 relative">
-              <div className="flex flex-col items-center gap-4 shrink-0">
-                 <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-950 border-4 border-blue-400 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.6)]">
-                    <span className="text-3xl md:text-4xl font-black text-white">{player.mana}</span>
+        {/* 핸드 인터페이스 및 부채꼴 애니메이션 복구 */}
+        <div className="h-64 flex flex-col items-center justify-end pb-6 relative z-30 mt-auto">
+           <div className="flex items-center gap-4 md:gap-14 w-full max-w-6xl px-4 md:px-12 relative h-full">
+              
+              <div className="flex flex-col items-center gap-6 shrink-0 h-full justify-center">
+                 <div className="w-16 h-16 md:w-24 md:h-24 bg-blue-950 border-4 border-blue-400 rounded-full flex flex-col items-center justify-center shadow-[0_0_30px_rgba(59,130,246,0.5)] border-t-blue-300 relative group">
+                    <div className="absolute inset-0 rounded-full bg-blue-400 opacity-10 group-hover:opacity-20 transition-opacity"></div>
+                    <span className="text-xs font-black text-blue-300 uppercase tracking-tighter mb-[-4px]">Mana</span>
+                    <span className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{player.mana}</span>
                  </div>
                  <div className="flex flex-col items-center gap-1 cursor-pointer group" onClick={()=>setViewingPile('drawPile')}>
-                    <div className="w-10 h-14 bg-slate-800 border-2 border-slate-700 rounded-lg flex items-center justify-center font-black group-hover:-translate-y-1 transition-transform">{drawPile.length}</div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Draw</span>
+                    <div className="w-12 h-16 bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center font-black text-lg group-hover:-translate-y-2 group-hover:border-indigo-500 transition-all shadow-xl">{drawPile.length}</div>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">Draw</span>
                  </div>
               </div>
 
-              <div className="flex-1 flex justify-center items-end -space-x-10 md:-space-x-14">
+              {/* 부채꼴 카드 배치 복구 */}
+              <div className="flex-1 flex justify-center items-end h-full pb-2 -space-x-8 md:-space-x-12 px-4 md:px-8 overflow-visible">
                 {hand.map((c, i) => {
                   const canPlay = player.mana >= c.cost && isPlayerTurn;
                   const isHov = hoveredCard === i;
+                  
+                  // 데미지 프리뷰 기능 복구
+                  let preDmg = (c.damage || 0) + (player.buffs.strength || 0);
+                  if (enemies[0]?.debuffs.vulnerable > 0) preDmg = Math.floor(preDmg * 1.3);
+                  if (player.debuffs.weak > 0) preDmg = Math.floor(preDmg * 0.97);
+
                   return (
                     <div key={c.uid} onMouseEnter={()=>setHoveredCard(i)} onMouseLeave={()=>setHoveredCard(null)} onClick={()=>canPlay && playCard(i)}
-                         className={`relative transition-all duration-300 ease-out cursor-pointer origin-bottom ${canPlay?'':'opacity-40 grayscale-50'} ${isHov?'-translate-y-12 scale-110 z-50':'translate-y-0 z-10'}`}>
-                       <div className="pointer-events-none">{renderCard(c)}</div>
+                         className={`relative transition-all duration-300 ease-out cursor-pointer origin-bottom ${canPlay ? 'hover:z-50' : 'opacity-40 grayscale-[0.5]'} ${isHov ? '-translate-y-16 scale-125 z-[100]' : 'translate-y-0 z-10'}`}
+                         style={{ transform: isHov ? 'translateY(-60px) scale(1.25)' : `rotate(${(i - (hand.length-1)/2) * 3}deg) translateY(${Math.abs(i - (hand.length-1)/2) * 5}px)` }}>
+                       {/* 툴팁 프리뷰 */}
+                       {isHov && preDmg > 0 && (
+                         <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white font-black text-[10px] px-3 py-1 rounded-full whitespace-nowrap shadow-2xl border-2 border-red-400 animate-bounce z-[200]">
+                           ⚔️ TOTAL: {c.multiHit ? `${preDmg} x ${c.multiHit}` : preDmg}
+                         </div>
+                       )}
+                       <div className="pointer-events-none transition-transform duration-300 shadow-[0_20px_40px_rgba(0,0,0,0.5)] rounded-xl">{renderCard(c)}</div>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="flex flex-col items-center gap-4 shrink-0">
+              <div className="flex flex-col items-center gap-6 shrink-0 h-full justify-center">
                  <button onClick={()=>setCombatState(p=>({...p, turn:'ENEMY'}))} disabled={!isPlayerTurn}
-                         className={`px-6 py-3 rounded-full font-black text-sm md:text-lg shadow-xl transition-all border-b-4 ${isPlayerTurn?'bg-amber-600 hover:bg-amber-500 border-amber-800 active:border-b-0 active:translate-y-1':'bg-slate-800 border-slate-900 text-slate-600 opacity-50'}`}>END TURN</button>
+                         className={`px-8 py-4 rounded-2xl font-black text-sm md:text-xl shadow-2xl transition-all border-b-8 active:border-b-0 active:translate-y-1 group ${isPlayerTurn?'bg-amber-600 hover:bg-amber-500 border-amber-800 text-white':'bg-slate-800 border-slate-900 text-slate-600 opacity-50 cursor-not-allowed'}`}>
+                     <div className="flex items-center gap-3">{isPlayerTurn ? <ArrowRightCircle className="group-hover:translate-x-1 transition-transform"/> : <RefreshCw className="animate-spin" size={20}/>} <span>{isPlayerTurn ? 'END TURN' : 'WAITING'}</span></div>
+                 </button>
                  <div className="flex flex-col items-center gap-1 cursor-pointer group" onClick={()=>setViewingPile('discardPile')}>
-                    <div className="w-10 h-14 bg-slate-900 border-2 border-slate-800 rounded-lg flex items-center justify-center font-black opacity-60 group-hover:opacity-100 group-hover:-translate-y-1 transition-all">{discardPile.length}</div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">Grave</span>
+                    <div className="w-12 h-16 bg-slate-900 border-2 border-slate-800 rounded-xl flex items-center justify-center font-black text-lg opacity-60 group-hover:opacity-100 group-hover:border-red-900/50 group-hover:-translate-y-2 transition-all shadow-xl">{discardPile.length}</div>
+                    <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-red-500 transition-colors">Grave</span>
                  </div>
               </div>
            </div>
@@ -1020,6 +1115,22 @@ export default function App() {
                  <button onClick={handleExport} className="py-4 bg-slate-700 hover:bg-indigo-600 rounded-xl font-bold flex items-center justify-center gap-3 transition-all"><Download size={20}/> EXPORT SAVE</button>
                  <button onClick={() => setImportModalOpen(true)} className="py-4 bg-slate-700 hover:bg-indigo-600 rounded-xl font-bold flex items-center justify-center gap-3 transition-all"><Upload size={20}/> IMPORT SAVE</button>
               </div>
+           </div>
+
+           {/* 관리자(개발자) 콘솔 복구 */}
+           <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl mt-6">
+              <div className="font-black text-lg mb-4 text-fuchsia-400 flex items-center gap-2"><Terminal size={20}/> ADMIN CONSOLE</div>
+              {!isAdminUnlocked ? (
+                 <div className="flex gap-3">
+                   <input type="password" placeholder="ENTER ACCESS CODE" value={adminCodeInput} onChange={e=>setAdminCodeInput(e.target.value)} className="flex-1 bg-slate-900 border-2 border-slate-700 rounded-xl px-4 py-3 text-center tracking-[0.5em] focus:border-fuchsia-500 outline-none transition-colors" />
+                   <button onClick={handleAdminUnlock} className="px-6 py-3 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-xl font-black transition-all">ACCESS</button>
+                 </div>
+              ) : (
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-draw">
+                   <button onClick={adminGiveMoney} className="py-3 bg-yellow-600/20 text-yellow-500 border border-yellow-600/50 hover:bg-yellow-600 hover:text-white rounded-xl font-black transition-all">+99,999 CREDITS</button>
+                   <button onClick={adminUnlockAllCards} className="py-3 bg-fuchsia-600/20 text-fuchsia-400 border border-fuchsia-600/50 hover:bg-fuchsia-600 hover:text-white rounded-xl font-black transition-all">UNLOCK ALL ARTIFACTS</button>
+                 </div>
+              )}
            </div>
 
            <div className="bg-red-950/20 p-6 rounded-2xl border border-red-900/50 shadow-xl mt-12">
