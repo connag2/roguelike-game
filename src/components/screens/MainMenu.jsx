@@ -1,5 +1,4 @@
 import React from 'react';
-// 💡 BarChart2가 누락되어 흰 화면이 떴던 문제를 수정했습니다!
 import { Sword, Coins, Book, Skull, Store, HelpCircle, Settings, Maximize, BarChart2 } from 'lucide-react';
 
 export default function MainMenu({ 
@@ -19,7 +18,6 @@ export default function MainMenu({
 }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative overflow-hidden">
-      {/* 전체화면 버튼 */}
       <button onClick={toggleFullScreen} className="fixed top-4 left-4 flex z-50 items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded text-sm font-bold transition-colors border border-slate-600">
         <Maximize className="w-4 h-4"/> <span className="hidden sm:inline">전체화면</span>
       </button>
@@ -36,7 +34,6 @@ export default function MainMenu({
           덱 구성 ({getTotalCards()}/20)
         </button>
         
-        {/* 💡 도감, 적 정보, 통계를 3열 그리드로 변경 */}
         <div className="grid grid-cols-3 gap-2">
           <button onClick={openEncyclopedia} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-sm font-bold transition-all flex flex-col justify-center items-center gap-1 border border-slate-600">
             <Book className="w-5 h-5 text-blue-400"/> 도감

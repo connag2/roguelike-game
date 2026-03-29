@@ -4,11 +4,10 @@ import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { HelpCircle } from 'lucide-react'; 
 
-// 데이터 및 로직 Import
+// 💡 쓰지도 않으면서 에러를 일으키던 MANA_CARD_IDS 수입을 제거했습니다!
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
-// 컴포넌트들 Import (중복 제거 완료)
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
 import ShopScreen from './components/screens/ShopScreen';
@@ -20,7 +19,6 @@ import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 
 export default function App() {
-  // --- [1. 상태 관리 - 영구 데이터] ---
   const [gameState, setGameState] = useState('MENU');
   const [user, setUser] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
@@ -34,7 +32,6 @@ export default function App() {
   const [seenEnemies, setSeenEnemies] = useState([]);
   const [usedCoupons, setUsedCoupons] = useState([]);
 
-  // --- [2. 상태 관리 - 게임 진행용] ---
   const [combatState, setCombatState] = useState(null);
   const [rewardCards, setRewardCards] = useState([]);
   const [tempDeckCounts, setTempDeckCounts] = useState({});
@@ -59,13 +56,11 @@ export default function App() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
 
-  // --- [3. 필터 상태] ---
   const [filterType, setFilterType] = useState('all');
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // --- [4. 초기화 및 세이브 로직] ---
   useEffect(() => {
     if (!auth) return;
     signInAnonymously(auth).catch(() => {});
@@ -104,7 +99,6 @@ export default function App() {
     }
   }, [toastMsg]);
 
-  // --- [5. 게임 핵심 핸들러] ---
   const startBattle = (mode = 'NORMAL', stage = 1) => {
     let fullDeck = [];
     Object.keys(deckCounts).forEach(id => {
@@ -156,7 +150,6 @@ export default function App() {
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
-  // --- [6. 생략 없는 완벽한 전투 로직] ---
   const playCard = (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
     const card = combatState.hand[cardIndex];
@@ -216,7 +209,7 @@ export default function App() {
       }
 
       for(let i=0; i<(card.draw || 0); i++) {
-        if(newHand.length >= GAME_RULES.MAX_HAND_SIZE - 1) break;
+        if(newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10) - 1) break;
         if(newDraw.length === 0) { if(newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
         if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
       }
@@ -288,7 +281,7 @@ export default function App() {
         ['strength', 'dexterity', 'thorns'].forEach(k => p.buffs[k] = decayStack(p.buffs[k]));
         let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
         for (let i = 0; i < 5; i++) {
-          if (newHand.length >= GAME_RULES.MAX_HAND_SIZE) break;
+          if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
           if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
           if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
         }
@@ -298,7 +291,6 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [gameState, combatState?.turn, fastMode]);
 
-  // --- [7. 기타 기능] ---
   const getFilteredCards = (t, e, r, o, q) => {
     return CARD_LIBRARY.filter(c => {
       if (r !== 'all' && c.rarity !== r) return false;
@@ -442,7 +434,6 @@ export default function App() {
                 </section>
               )}
 
-              {/* 공통 상태이상 설명 섹션 */}
               <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
                 <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
@@ -588,7 +579,7 @@ export default function App() {
           combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'}
           setViewingPile={setViewingPile} viewingPile={viewingPile}
           setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
-          playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES.MAX_HAND_SIZE}
+          playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10}
           setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} 
         />
       )}

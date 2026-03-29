@@ -1,6 +1,6 @@
 // src/components/screens/Statistics.jsx
 import React from 'react';
-import { BarChart2, Trophy, Skull, BookOpen, Coins, Target } from 'lucide-react';
+import { BarChart2, Trophy, Skull, BookOpen, Coins, Star } from 'lucide-react';
 import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
 
 export default function Statistics({
@@ -11,9 +11,9 @@ export default function Statistics({
   credits,
   setGameState
 }) {
-  // 총 카드 수 및 총 몬스터 수 계산
-  const totalCards = CARD_LIBRARY.length;
-  const totalEnemies = ENEMIES.length + NORMAL_BOSSES.length + Object.keys(SPECIAL_BOSSES).length;
+  // 💡 데이터가 일시적으로 없더라도 흰화면(크래시)이 뜨지 않도록 안전망(?.)을 추가했습니다.
+  const totalCards = CARD_LIBRARY?.length || 0;
+  const totalEnemies = (ENEMIES?.length || 0) + (NORMAL_BOSSES?.length || 0) + Object.keys(SPECIAL_BOSSES || {}).length;
 
   return (
     <div className="flex flex-col min-h-[100dvh] bg-slate-900 text-white p-6 md:p-10 relative">
@@ -28,7 +28,7 @@ export default function Statistics({
         {/* 1. 최고 도달 층수 */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-4 transform transition-all hover:scale-105">
           <div className="p-4 bg-blue-900/50 rounded-full border border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-            <Target className="w-8 h-8 text-blue-400"/>
+            <Star className="w-8 h-8 text-blue-400"/>
           </div>
           <div>
             <p className="text-slate-400 text-sm font-bold mb-1">최고 도달 층수</p>
@@ -58,7 +58,7 @@ export default function Statistics({
               <p className="text-2xl font-black text-white">{unlockedCards.length} <span className="text-sm text-slate-500 font-bold">/ {totalCards}</span></p>
             </div>
             <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 relative">
-              <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${(unlockedCards.length / totalCards) * 100}%` }} />
+              <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${totalCards > 0 ? (unlockedCards.length / totalCards) * 100 : 0}%` }} />
             </div>
           </div>
         </div>
@@ -74,7 +74,7 @@ export default function Statistics({
               <p className="text-2xl font-black text-white">{seenEnemies.length} <span className="text-sm text-slate-500 font-bold">/ {totalEnemies}</span></p>
             </div>
             <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 relative">
-              <div className="bg-red-500 h-full transition-all duration-1000" style={{ width: `${(seenEnemies.length / totalEnemies) * 100}%` }} />
+              <div className="bg-red-500 h-full transition-all duration-1000" style={{ width: `${totalEnemies > 0 ? (seenEnemies.length / totalEnemies) * 100 : 0}%` }} />
             </div>
           </div>
         </div>
