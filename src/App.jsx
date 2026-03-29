@@ -316,102 +316,314 @@ export default function App() {
     });
   };
 
+  
+  // --- [추가: 화면 이동 / 유틸리티 / 핸들러 함수] ---
+
+  const openDeckBuilder = () => {
+    setTempDeckCounts({ ...deckCounts });
+    setGameState('DECK_BUILDING');
+  };
+
+  const openEncyclopedia = () => {
+    setGameState('ENCYCLOPEDIA');
+  };
+
+  const openMonsterDex = () => {
+    setGameState('MONSTER_DEX');
+  };
+
+  const openShop = () => {
+    setGameState('SHOP');
+  };
+
+  const getTotalCards = (counts = deckCounts) => {
+    return Object.values(counts || {}).reduce((a, b) => a + b, 0);
+  };
+
+  const handleCoupon = () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) return;
+
+    if (usedCoupons.includes(code)) {
+      setToastMsg('이미 사용한 쿠폰입니다.');
+      return;
+    }
+
+    let valid = false;
+    let msg = '';
+    let creditsToAdd = 0;
+    let unlockedToAdd = null;
+
+    if (code === 'WELCOME') {
+      creditsToAdd = 1000;
+      msg = '웰컴 쿠폰: 1000 크레딧 획득!';
+      valid = true;
+    } else if (code === 'LEGENDARY') {
+      unlockedToAdd = 'true_dragon_slayer';
+      msg = '전설 쿠폰: 진·용살검 해금!';
+      valid = true;
+    } else if (code === 'GEMS') {
+      creditsToAdd = 500;
+      msg = '보석 쿠폰: 500 크레딧 획득!';
+      valid = true;
+    }
+
+    if (!valid) {
+      setToastMsg('유효하지 않은 쿠폰 코드입니다.');
+      return;
+    }
+
+    const updatedCoupons = [...usedCoupons, code];
+    const updatedUnlocked =
+      unlockedToAdd && !unlockedCards.includes(unlockedToAdd)
+        ? [...unlockedCards, unlockedToAdd]
+        : unlockedCards;
+
+    if (creditsToAdd > 0) setCredits(prev => prev + creditsToAdd);
+    if (updatedUnlocked !== unlockedCards) setUnlockedCards(updatedUnlocked);
+    setUsedCoupons(updatedCoupons);
+    setCouponInput('');
+    setToastMsg(msg);
+
+    saveGame({
+      usedCoupons: updatedCoupons,
+      unlockedCards: updatedUnlocked,
+      credits: credits + creditsToAdd
+    });
+  };
+
+  const handleAdminUnlock = () => {
+    if (adminCodeInput === '20090324') {
+      setIsAdminUnlocked(true);
+      setToastMsg('개발자 권한 활성화됨');
+    } else {
+      setToastMsg('잘못된 코드입니다.');
+    }
+  };
+
+  const adminGiveMoney = () => {
+    const nextCredits = credits + 99999;
+    setCredits(nextCredits);
+    saveGame({ credits: nextCredits });
+    setToastMsg('99,999 크레딧 지급됨');
+  };
+
+  const adminUnlockAllCards = () => {
+    const allIds = CARD_LIBRARY.map(c => c.id);
+    setUnlockedCards(allIds);
+    saveGame({ unlockedCards: allIds });
+    setToastMsg('모든 카드 해금됨');
+  };
+
+  const handleExport = () => {
+    const data = JSON.stringify({
+      deckCounts,
+      unlockedCards,
+      credits,
+      shopUpgrades,
+      normalCleared,
+      maxStageReached,
+      seenEnemies,
+      usedCoupons
+    });
+    navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
+    setToastMsg('세이브 코드가 복사되었습니다!');
+  };
+
+  const handleExitGame = async () => {
+    setToastMsg('저장 중...');
+    await saveGame();
+    if (window.require) window.close();
+    else setGameState('MENU');
+  };
+
+  const handleSpecialBossRewardClaim = () => {
+    if (!specialBossRewardCard || !combatState) return;
+
+    const alreadyOwned = unlockedCards.includes(specialBossRewardCard.id);
+    const updatedUnlocked = alreadyOwned
+      ? unlockedCards
+      : [...unlockedCards, specialBossRewardCard.id];
+
+    setCombatState(prev => ({
+      ...prev,
+      baseDeck: [...prev.baseDeck, { ...specialBossRewardCard }]
+    }));
+    setUnlockedCards(updatedUnlocked);
+    setToastMsg(`${specialBossRewardCard.name}을(를) 덱에 추가했습니다!`);
+    setSpecialBossRewardCard(null);
+
+    if (combatState.stage >= 100) {
+      setNormalCleared(true);
+      saveGame({ unlockedCards: updatedUnlocked, normalCleared: true });
+      setGameState('GAME_CLEAR');
+    } else {
+      saveGame({ unlockedCards: updatedUnlocked });
+      setGameState('REWARDS');
+    }
+  };
+
   return (
     <div id="game-root" className={`font-sans antialiased selection:bg-indigo-500 selection:text-white ${isCssFullScreen ? 'fixed inset-0 z-[999999] w-[100vw] h-[100vh] overflow-auto bg-slate-950' : 'bg-slate-900 min-h-screen'}`}>
       {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-green-600 px-6 py-3 rounded shadow-lg font-bold animate-pulse z-50 whitespace-nowrap">{toastMsg}</div>}
-      
+
       {gameState === 'MENU' && (
-        <MainMenu 
-          credits={credits} getTotalCards={getTotalCards} 
-          openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} 
-          openMonsterDex={openMonsterDex} openShop={openShop} 
-          setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} 
-          startBattle={startBattle} normalCleared={normalCleared} 
-          maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} 
-          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} 
+        <MainMenu
+          credits={credits}
+          getTotalCards={getTotalCards}
+          openDeckBuilder={openDeckBuilder}
+          openEncyclopedia={openEncyclopedia}
+          openMonsterDex={openMonsterDex}
+          openShop={openShop}
+          setTutorialModalOpen={setTutorialModalOpen}
+          setGameState={setGameState}
+          handleCoupon={handleCoupon}
+          startBattle={startBattle}
+          normalCleared={normalCleared}
+          maxStageReached={maxStageReached}
+          setSkipModalOpen={setSkipModalOpen}
+          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
         />
       )}
 
       {gameState === 'DECK_BUILDING' && (
-        <DeckBuilder 
-          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards}
-          tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})}
-          handleDeckExport={() => {}} setDeckImportModalOpen={setDeckImportModalOpen}
-          setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState}
-          filterType={filterType} setFilterType={setFilterType}
-          filterEffect={filterEffect} setEffect={setFilterEffect}
-          filterRarity={filterRarity} setRarity={setFilterRarity}
-          searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+        <DeckBuilder
+          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
+          getTotalCards={getTotalCards}
+          tempDeckCounts={tempDeckCounts}
+          handleClearDeck={() => setTempDeckCounts({})}
+          handleDeckExport={() => {}}
+          setDeckImportModalOpen={setDeckImportModalOpen}
+          setDeckCounts={setDeckCounts}
+          saveGame={saveGame}
+          setGameState={setGameState}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterEffect={filterEffect}
+          setEffect={setFilterEffect}
+          filterRarity={filterRarity}
+          setRarity={setFilterRarity}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
           filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)}
-          getCardDef={getCardDef} shopUpgrades={shopUpgrades}
+          getCardDef={getCardDef}
+          shopUpgrades={shopUpgrades}
           handleAddCard={(id) => {
             const currentTotal = Object.values(tempDeckCounts).reduce((a, b) => a + b, 0);
             if (currentTotal >= 20 || (tempDeckCounts[id] || 0) >= 3) return;
             setTempDeckCounts({ ...tempDeckCounts, [id]: (tempDeckCounts[id] || 0) + 1 });
           }}
-          handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })}
+          handleRemoveCard={(id) =>
+            setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })
+          }
         />
       )}
 
       {gameState === 'SHOP' && (
-        <ShopScreen 
-          credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades}
-          unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame}
-          setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
-          setToastMsg={setToastMsg} getCardDef={getCardDef}
-          handleGacha={() => {}} handlePremiumGacha={() => {}}
-          gachaResult={gachaResult} setGachaResult={setGachaResult}
-          premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult}
-          selectPremiumCard={(c) => {}}
+        <ShopScreen
+          credits={credits}
+          setCredits={setCredits}
+          shopUpgrades={shopUpgrades}
+          setShopUpgrades={setShopUpgrades}
+          unlockedCards={unlockedCards}
+          setUnlockedCards={setUnlockedCards}
+          saveGame={saveGame}
+          setGameState={setGameState}
+          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
+          setToastMsg={setToastMsg}
+          getCardDef={getCardDef}
+          handleGacha={() => {}}
+          handlePremiumGacha={() => {}}
+          gachaResult={gachaResult}
+          setGachaResult={setGachaResult}
+          premiumGachaResult={premiumGachaResult}
+          setPremiumGachaResult={setPremiumGachaResult}
+          selectPremiumCard={() => {}}
         />
       )}
 
       {gameState === 'ENCYCLOPEDIA' && (
-        <Encyclopedia 
-          unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades}
-          getFilteredCards={getFilteredCards} setGameState={setGameState}
+        <Encyclopedia
+          unlockedCards={unlockedCards}
+          getCardDef={getCardDef}
+          shopUpgrades={shopUpgrades}
+          getFilteredCards={getFilteredCards}
+          setGameState={setGameState}
           toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
         />
       )}
 
       {gameState === 'MONSTER_DEX' && (
-        <MonsterDex 
-          seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy}
-          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState}
+        <MonsterDex
+          seenEnemies={seenEnemies}
+          dexViewingEnemy={dexViewingEnemy}
+          setDexViewingEnemy={setDexViewingEnemy}
+          toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)}
+          setGameState={setGameState}
         />
       )}
 
       {gameState === 'BATTLE' && (
-        <BattleScreen 
-          combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'}
-          setViewingPile={setViewingPile} setGameState={setGameState}
-          hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
-          playCard={playCard} setCombatState={setCombatState}
+        <BattleScreen
+          combatState={combatState}
+          isPlayerTurn={combatState?.turn === 'PLAYER'}
+          setViewingPile={setViewingPile}
+          setGameState={setGameState}
+          hoveredCard={hoveredCard}
+          setHoveredCard={setHoveredCard}
+          playCard={playCard}
+          setCombatState={setCombatState}
           MAX_HAND_SIZE={GAME_RULES.MAX_HAND_SIZE}
-          setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy}
+          setShowEnemyDeck={setShowEnemyDeck}
+          setViewingEnemy={setViewingEnemy}
         />
       )}
 
-      {(gameState === 'REWARDS' || gameState === 'REWARD_CARD' || gameState === 'REWARD_REMOVE' || gameState === 'BOSS_CLEAR_REWARD') && (
-        <Rewards 
-          gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards}
-          combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards}
-          saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection}
-          setConfirmSelection={setConfirmSelection} startNextStage={startNextStage}
-          getCardDef={getCardDef} shopUpgrades={shopUpgrades}
-          specialBossRewardCard={specialBossRewardCard} handleSpecialBossRewardClaim={() => {}}
+      {(gameState === 'REWARDS' ||
+        gameState === 'REWARD_CARD' ||
+        gameState === 'REWARD_REMOVE' ||
+        gameState === 'BOSS_CLEAR_REWARD') && (
+        <Rewards
+          gameState={gameState}
+          rewardCards={rewardCards}
+          setRewardCards={setRewardCards}
+          combatState={combatState}
+          unlockedCards={unlockedCards}
+          setUnlockedCards={setUnlockedCards}
+          saveGame={saveGame}
+          setGameState={setGameState}
+          confirmSelection={confirmSelection}
+          setConfirmSelection={setConfirmSelection}
+          startNextStage={startNextStage}
+          getCardDef={getCardDef}
+          shopUpgrades={shopUpgrades}
+          specialBossRewardCard={specialBossRewardCard}
+          handleSpecialBossRewardClaim={handleSpecialBossRewardClaim}
         />
       )}
 
       {gameState === 'SETTINGS' && (
-        <Settings 
-          setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode}
-          saveGame={saveGame} handleExport={() => {}} setImportModalOpen={setImportModalOpen}
-          couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={() => {}}
-          handleExitGame={() => {}} isAdminUnlocked={isAdminUnlocked}
-          adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput}
-          handleAdminUnlock={() => {}} adminUnlockAllCards={() => {}} adminGiveMoney={() => {}}
-          warpStage={warpStage} setWarpStage={setWarpStage} startBattle={startBattle} getTotalCards={getTotalCards}
+        <Settings
+          setGameState={setGameState}
+          fastMode={fastMode}
+          setFastMode={setFastMode}
+          saveGame={saveGame}
+          handleExport={handleExport}
+          setImportModalOpen={setImportModalOpen}
+          couponInput={couponInput}
+          setCouponInput={setCouponInput}
+          handleCoupon={handleCoupon}
+          handleExitGame={handleExitGame}
+          isAdminUnlocked={isAdminUnlocked}
+          adminCodeInput={adminCodeInput}
+          setAdminCodeInput={setAdminCodeInput}
+          handleAdminUnlock={handleAdminUnlock}
+          adminUnlockAllCards={adminUnlockAllCards}
+          adminGiveMoney={adminGiveMoney}
+          warpStage={warpStage}
+          setWarpStage={setWarpStage}
+          startBattle={startBattle}
+          getTotalCards={getTotalCards}
         />
       )}
 
