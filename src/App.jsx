@@ -25,9 +25,20 @@ const styles = `
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  .tooltip-trigger .tooltip-content {
-    visibility: hidden; opacity: 0; transition: opacity 0.2s;
+  
+  /* --- 툴팁(i 아이콘) 무조건 최상단 노출 패치 --- */
+  .tooltip-trigger {
+    position: relative;
+    z-index: 50; /* i 아이콘 자체가 위로 올라오게 */
   }
+  .tooltip-trigger .tooltip-content {
+    visibility: hidden; 
+    opacity: 0; 
+    transition: opacity 0.2s;
+    position: absolute;
+    z-index: 99999; /* 말풍선이 우주 끝까지 뚫고 나오게 설정! */
+  }
+  
   .tooltip-trigger:hover .tooltip-content,
   .tooltip-trigger:focus .tooltip-content,
   .tooltip-trigger:focus-within .tooltip-content,
@@ -40,15 +51,38 @@ const styles = `
   .special-bg {
     background: linear-gradient(135deg, rgba(30,0,50,1) 0%, rgba(100,0,100,0.8) 100%);
   }
+  html {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+  #game-root {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+
+  /* --- 여기서부터 추가된 코드 (깨짐 및 회전 방지) --- */
+  html {
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+  }
+
+  #game-root {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
 `;
 
+// --- 플레이어 카드 라이브러리 ---
 // --- 플레이어 카드 라이브러리 ---
 const CARD_LIBRARY = [
   // --- Common (일반) ---
   { id: 'strike', name: '타격', type: 'attack', cost: 1, rarity: 'common', damage: 8, desc: '적에게 8의 피해를 줍니다.' },
   { id: 'defend', name: '방어', type: 'skill', cost: 1, rarity: 'common', block: 6, desc: '6의 방어도를 얻습니다.' },
   { id: 'heavy_strike', name: '강타', type: 'attack', cost: 2, rarity: 'common', damage: 18, desc: '적에게 18의 피해를 줍니다.' },
-  { id: 'shield_bash', name: '방패 밀치기', type: 'attack', cost: 1, rarity: 'common', damage: 6, block: 5, desc: '6의 피해를 주고 5의 방어도를 얻습니다.' },
+  { id: 'shield_bash', name: '방패 밀치기', type: 'attack', cost: 1, rarity: 'common', damage: 7, block: 7, desc: '7의 피해를 주고 7의 방어도를 얻습니다.' },
   { id: 'focus', name: '집중', type: 'skill', cost: 1, rarity: 'common', draw: 2, desc: '카드를 2장 뽑습니다.' },
   { id: 'stab', name: '찌르기', type: 'attack', cost: 1, rarity: 'common', damage: 6, draw: 1, desc: '6의 피해를 주고 카드를 1장 뽑습니다.' },
   { id: 'uppercut', name: '올려치기', type: 'attack', cost: 2, rarity: 'common', damage: 15, desc: '적에게 15의 피해를 줍니다.' },
@@ -61,7 +95,7 @@ const CARD_LIBRARY = [
   { id: 'dodge', name: '회피', type: 'skill', cost: 0, rarity: 'common', block: 4, desc: '4의 방어도를 얻습니다.' },
   { id: 'taunt', name: '도발', type: 'skill', cost: 1, rarity: 'common', enemyVuln: 1, enemyWeak: 1, desc: '적에게 1턴간 약화와 취약을 부여합니다.' },
   { id: 'combat_prep', name: '전투 준비', type: 'skill', cost: 1, rarity: 'common', block: 4, selfStrength: 1, desc: '4의 방어도를 얻고 근력을 1 얻습니다.' },
-  { id: 'first_aid', name: '응급 처치', type: 'skill', cost: 1, rarity: 'common', heal: 5, desc: '체력을 5 회복합니다.' },
+  { id: 'first_aid', name: '응급 처치', type: 'skill', cost: 1, rarity: 'common', heal: 8, desc: '체력을 8 회복합니다.' },
   { id: 'maintenance', name: '정비', type: 'skill', cost: 1, rarity: 'common', block: 5, draw: 1, desc: '5의 방어도를 얻고 카드를 1장 뽑습니다.' },
   { id: 'poison_dart', name: '독침', type: 'attack', cost: 1, rarity: 'common', damage: 5, draw: 1, desc: '5의 피해를 주고 카드를 1장 뽑습니다.' },
   { id: 'meditate', name: '명상', type: 'skill', cost: 1, rarity: 'common', manaGain: 2, block: 5, desc: '마나를 2 회복하고 5의 방어도를 얻습니다.' },
@@ -77,7 +111,7 @@ const CARD_LIBRARY = [
   { id: 'firm_stand', name: '굳건한 버티기', type: 'skill', cost: 1, rarity: 'common', block: 12, selfDamage: 1, desc: '12의 방어도를 얻지만 체력을 1 잃습니다.' },
   { id: 'kihap', name: '기합', type: 'skill', cost: 1, rarity: 'common', manaGain: 1, selfStrength: 1, desc: '마나를 1 얻고 근력을 1 얻습니다.' },
   { id: 'short_rest', name: '짧은 휴식', type: 'skill', cost: 1, rarity: 'common', manaGain: 1, heal: 8, desc: '마나를 1 얻고 체력을 8 회복합니다.' },
-  { id: 'gamblers_strike', name: '도박의 일격', type: 'attack', cost: 1, rarity: 'common', gamble: true, gambleWinChance: 0.5, winDamage: 20, loseDamage: 1, desc: '50% 확률로 20의 피해를 주거나, 실패 시 1의 피해를 줍니다.' },
+  { id: 'gamblers_strike', name: '도박의 일격', type: 'attack', cost: 1, rarity: 'common', gamble: true, gambleWinChance: 0.5, winDamage: 25, loseDamage: 1, desc: '50% 확률로 25의 피해를 주거나, 실패 시 1의 피해를 줍니다.' },
 
   // --- Uncommon (희귀) ---
   { id: 'heal', name: '치유', type: 'skill', cost: 2, rarity: 'uncommon', heal: 12, desc: '체력을 12 회복합니다.' },
@@ -125,21 +159,21 @@ const CARD_LIBRARY = [
   { id: 'onslaught', name: '맹공', type: 'attack', cost: 3, rarity: 'rare', damage: 12, multiHit: 5, enemyVuln: 1, desc: '12의 피해를 5번 연속 주고 1턴간 취약을 부여합니다. (총 60)' },
   { id: 'berserker_axe', name: '광전사의 도끼', type: 'attack', cost: 2, rarity: 'rare', damage: 40, selfDamage: 3, enemyVuln: 2, desc: '40의 피해를 주지만 체력을 3 잃고 적에게 2턴간 취약을 부여합니다.' },
   { id: 'destruction_ray', name: '파괴 광선', type: 'attack', cost: 3, rarity: 'rare', damage: 80, selfDamage: 10, enemyWeak: 2, desc: '적에게 80의 피해를 주지만 체력을 10 잃고 2턴간 약화를 부여합니다.' },
-  { id: 'lightning_strike', name: '번개 일격', type: 'attack', cost: 2, rarity: 'rare', damage: 40, draw: 2, enemyWeak: 1, desc: '40의 피해를 주고 카드를 2장 뽑으며 1턴간 약화를 부여합니다.' },
+  { id: 'lightning_strike', name: '번개 일격', type: 'attack', cost: 3, rarity: 'rare', damage: 40, draw: 2, enemyWeak: 1, desc: '40의 피해를 주고 카드를 2장 뽑으며 1턴간 약화를 부여합니다.' },
   { id: 'soul_slash', name: '영혼 베기', type: 'attack', cost: 2, rarity: 'rare', damage: 30, heal: 20, enemyWeak: 1, desc: '30의 피해를 주고 체력을 20 회복하며 1턴간 약화를 부여합니다.' },
   { id: 'meteor_fall', name: '운석 낙하', type: 'attack', cost: 3, rarity: 'rare', damage: 60, enemyWeak: 3, desc: '60의 피해를 주고 3턴간 약화를 부여합니다.' },
-  { id: 'holy_light', name: '신성한 빛', type: 'skill', cost: 2, rarity: 'rare', heal: 40, enemyWeak: 2, desc: '체력을 40 회복하고 적에게 2턴간 약화를 부여합니다.' },
+  { id: 'holy_light', name: '신성한 빛', type: 'skill', cost: 3, rarity: 'rare', heal: 40, enemyWeak: 2, desc: '체력을 40 회복하고 적에게 2턴간 약화를 부여합니다.' },
   { id: 'demonic_dance', name: '악마의 춤', type: 'skill', cost: 2, rarity: 'rare', selfStrength: 5, selfDamage: 5, enemyVuln: 3, desc: '근력을 5 얻지만 체력을 5 잃고 적에게 3턴간 취약을 부여합니다.' },
   { id: 'angels_blessing', name: '천사의 축복', type: 'skill', cost: 3, rarity: 'rare', selfStrength: 4, selfDex: 4, enemyWeak: 2, desc: '근력을 4, 민첩을 4 얻고 적에게 2턴간 약화를 부여합니다.' },
   { id: 'will_of_steel', name: '강철의 의지', type: 'skill', cost: 2, rarity: 'rare', selfDex: 5, enemyWeak: 2, desc: '민첩을 5 얻고 적에게 2턴간 약화를 부여합니다.' },
   { id: 'soul_shield', name: '영혼의 방패', type: 'skill', cost: 3, rarity: 'rare', block: 50, heal: 10, enemyWeak: 2, desc: '50의 방어도를 얻고 체력을 10 회복하며 2턴간 약화를 부여합니다.' },
-  { id: 'regeneration', name: '재생', type: 'skill', cost: 1, rarity: 'rare', heal: 20, manaGain: 2, enemyWeak: 1, desc: '체력을 20 회복하고 마나를 2 얻으며 1턴간 약화를 부여합니다.' },
+  { id: 'regeneration', name: '재생', type: 'skill', cost: 2, rarity: 'rare', heal: 20, manaGain: 1, enemyWeak: 1, desc: '체력을 20 회복하고 마나를 1 얻으며 1턴간 약화를 부여합니다.' },
   { id: 'barricade', name: '절대 장벽', type: 'skill', cost: 3, rarity: 'rare', doubleBlock: true, desc: '내가 현재 가진 방어도를 정확히 2배로 증폭시킵니다.' },
-  { id: 'mana_burst', name: '마나 폭발', type: 'attack', cost: 0, rarity: 'rare', manaMultiplier: 7, consumeAllMana: true, desc: '모든 마나를 소모하여, (소모한 마나 x 7)의 피해를 줍니다.' },
-  { id: 'sword_of_ruin', name: '파멸의 검', type: 'attack', cost: 3, rarity: 'rare', damage: 50, selfDamage: 5, enemyWeak: 2, desc: '50의 피해를 주고 2턴간 약화를 부여하지만 체력을 5 잃습니다.' },
+  { id: 'mana_burst', name: '마나 폭발', type: 'attack', cost: 0, rarity: 'rare', manaMultiplier: 12, consumeAllMana: true, desc: '모든 마나를 소모하여, (소모한 마나 x 12)의 피해를 줍니다.' },
+  { id: 'sword_of_ruin', name: '파멸의 검', type: 'attack', cost: 3, rarity: 'rare', damage: 70, selfDamage: 5, enemyWeak: 2, desc: '70의 피해를 주고 2턴간 약화를 부여하지만 체력을 5 잃습니다.' },
   { id: 'chain_explosion', name: '연속 폭발', type: 'attack', cost: 3, rarity: 'rare', damage: 25, multiHit: 3, selfDamage: 10, desc: '25의 피해를 3번 연속 주지만 체력을 10 잃습니다.' },
   { id: 'time_reverse', name: '시간 역행', type: 'skill', cost: 3, rarity: 'rare', draw: 7, desc: '카드를 7장 뽑습니다.' },
-  { id: 'paladin_shield', name: '성기사의 방패', type: 'skill', cost: 3, rarity: 'rare', block: 30, heal: 15, desc: '30의 방어도를 얻고 체력을 15 회복합니다.' },
+  { id: 'paladin_shield', name: '성기사의 방패', type: 'skill', cost: 3, rarity: 'rare', block: 40, heal: 15, desc: '40의 방어도를 얻고 체력을 15 회복합니다.' },
   { id: 'panacea', name: '만능 비약', type: 'skill', cost: 2, rarity: 'rare', heal: 20, selfStrength: 2, selfDex: 2, desc: '체력을 20 회복하고 근력과 민첩을 각각 2 얻습니다.' },
   { id: 'mana_spring', name: '마나의 샘', type: 'skill', cost: 0, rarity: 'rare', manaGain: 5, enemyWeak: 2, desc: '마나를 5 얻고 적에게 2턴간 약화를 부여합니다.' },
   { id: 'absolute_domain', name: '절대 영역', type: 'skill', cost: 3, rarity: 'rare', block: 50, selfDex: 3, enemyWeak: 1, desc: '50의 방어도를 얻고 민첩을 3 얻으며 1턴간 약화를 부여합니다.' },
@@ -147,7 +181,7 @@ const CARD_LIBRARY = [
   { id: 'devils_dice', name: '악마의 주사위', type: 'skill', cost: 2, rarity: 'rare', gamble: true, gambleWinChance: 0.5, winHeal: 50, losePercentMaxHpDamage: 0.2, desc: '50% 확률로 체력을 50 회복합니다. 실패 시 최대 체력의 20%를 잃습니다.' },
 
   // --- Special Rare (암시장 전용 및 보스 보상) ---
-  { id: 'super_tiger_slash', name: '초절맹호살격난참', type: 'attack', cost: 3, rarity: 'special', damage: 10, multiHit: 5, enemyVuln: 2, desc: '10의 피해를 5번 연속 주고 2턴간 취약을 부여합니다. (총 50)' },
+  { id: 'super_tiger_slash', name: '초절맹호살격난참', type: 'attack', cost: 3, rarity: 'special', damage: 15, multiHit: 6, enemyVuln: 2, desc: '15의 피해를 6번 연속 주고 2턴간 취약을 부여합니다. (총 90)' },
   { id: 'true_dragon_slayer', name: '진·용살검', type: 'attack', cost: 3, rarity: 'special', damage: 80, selfStrength: 3, enemyVuln: 2, desc: '80의 피해를 주고 근력을 3 얻으며 2턴간 취약을 부여합니다.' },
   { id: 'absolute_zero', name: '절대영도', type: 'skill', cost: 3, rarity: 'special', block: 40, enemyWeak: 4, enemyVuln: 4, desc: '40의 방어도를 얻고 적에게 4턴간 약화와 취약을 부여합니다.' },
   { id: 'heavenly_judgment', name: '신천벌', type: 'attack', cost: 3, rarity: 'special', damage: 50, heal: 30, draw: 3, enemyWeak: 3, desc: '50의 피해를 주고 체력을 30 회복하며 카드를 3장 뽑습니다. 3턴간 약화를 부여합니다.' },
@@ -155,8 +189,8 @@ const CARD_LIBRARY = [
   { id: 'blood_of_phoenix', name: '불사조의 피', type: 'skill', cost: 3, rarity: 'special', heal: 100, selfDamage: 10, enemyWeak: 3, desc: '체력을 100 회복하지만 즉시 체력을 10 잃습니다. 3턴간 약화를 부여합니다.' },
   { id: 'descent_of_demon_lord', name: '진·마왕의 강림', type: 'skill', cost: 3, rarity: 'special', selfStrength: 5, selfDex: 5, selfDamage: 15, enemyVuln: 2, desc: '근력 5, 민첩 5를 얻고 2턴간 취약을 부여하지만 체력을 15 잃습니다.' },
   { id: 'spider_queen_poison', name: '거미 여왕의 맹독', type: 'attack', cost: 2, rarity: 'special', damage: 20, enemyWeak: 3, enemyVuln: 3, desc: '20의 피해를 주고 적에게 3턴간 약화와 취약을 부여합니다.' },
-  { id: 'twerking', name: '트월킹', type: 'attack', cost: 2, rarity: 'special', damage: 30, enemyVuln: 2, desc: '격렬한 움직임으로 적에게 30의 피해를 주고 2턴간 취약을 부여합니다.' },
-  { id: 'power_of_asura', name: '수라의 힘', type: 'skill', cost: 3, rarity: 'special', selfStrength: 5, block: 5, desc: '분노를 일깨워 근력을 5 얻고 5의 방어도를 얻습니다.' },
+  { id: 'twerking', name: '트월킹', type: 'attack', cost: 2, rarity: 'special', damage: 50, enemyVuln: 3, desc: '격렬한 움직임으로 적에게 50의 피해를 주고 3턴간 취약을 부여합니다.' },
+  { id: 'power_of_asura', name: '수라의 힘', type: 'skill', cost: 3, rarity: 'special', selfStrength: 8, block: 30, desc: '분노를 일깨워 근력을 8 얻고 30의 방어도를 얻습니다.' },
   { id: 'slime_snot', name: '슬라임의 콧물', type: 'skill', cost: 0, rarity: 'special', heal: 50, block: 50, draw: 3, manaGain: 3, desc: '매우 더럽지만 신비한 힘! 체력과 방어도를 50 얻고 카드 3장과 마나 3을 얻습니다.' },
   { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'special', damage: 12, multiHit: 9, increasingDamage: 7, desc: '12의 피해를 9번 연속 줍니다. (타격 시마다 피해량이 7씩 증가합니다.)' },
 ];
@@ -370,17 +404,7 @@ useEffect(() => {
   };
 
   // --- 유틸리티 함수 ---
-  const shuffle = (array) => {
-    let newArr = [...array];
-    for (let i = newArr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
-    }
-    return newArr;
-  };
-
-  const getTotalCards = (deck = deckCounts) => Object.values(deck || {}).reduce((a, b) => a + b, 0);
-
+  // --- 유틸리티 함수 ---
   const getCardDef = (id) => {
     if (!id) return null;
     const base = CARD_LIBRARY.find(c => c.id === id);
@@ -389,9 +413,17 @@ useEffect(() => {
     const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(cId => cId === id).length;
     
     if (upgradeLevel > 0) {
-      const multiplier = 1 + (0.5 * upgradeLevel); 
+      // --- (신규) 등급별 강화 배율 설정 ---
+      let ratePerLevel = 0.4; // 기본
+      if (base.rarity === 'common') ratePerLevel = 0.3; // 일반: 1강당 30%
+      else if (base.rarity === 'uncommon') ratePerLevel = 0.4; // 희귀: 1강당 40%
+      else if (base.rarity === 'rare') ratePerLevel = 0.6; // 전설: 1강당 60%
+      else if (base.rarity === 'special') ratePerLevel = 0.7; // 특수: 1강당 70%
+
+      const multiplier = 1 + (ratePerLevel * upgradeLevel); 
       const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
       
+      // 능력치 뻥튀기
       if (upgraded.damage) upgraded.damage = Math.ceil(base.damage * multiplier);
       if (upgraded.block) upgraded.block = Math.ceil(base.block * multiplier);
       if (upgraded.heal) upgraded.heal = Math.ceil(base.heal * multiplier);
@@ -399,12 +431,25 @@ useEffect(() => {
       if (upgraded.missingHpDamage) upgraded.missingHpDamage = Number((base.missingHpDamage * multiplier).toFixed(2));
       if (upgraded.manaMultiplier) upgraded.manaMultiplier = Math.ceil(base.manaMultiplier * multiplier);
       if (upgraded.increasingDamage) upgraded.increasingDamage = Math.ceil(base.increasingDamage * multiplier);
-      
       if (upgraded.winDamage) upgraded.winDamage = Math.ceil(base.winDamage * multiplier);
       if (upgraded.loseDamage) upgraded.loseDamage = Math.ceil(base.loseDamage * multiplier);
       if (upgraded.winHeal) upgraded.winHeal = Math.ceil(base.winHeal * multiplier);
       if (upgraded.winDamageBoss) upgraded.winDamageBoss = Math.ceil(base.winDamageBoss * multiplier);
 
+      // --- 특수 능력치 업그레이드 로직 (+3, +4, +5강) ---
+      if (upgradeLevel >= 3) {
+        if (base.enemyWeak) upgraded.enemyWeak = base.enemyWeak + 1;
+        if (base.enemyVuln) upgraded.enemyVuln = base.enemyVuln + 1;
+      }
+      if (upgradeLevel >= 4) {
+        if (base.selfStrength) upgraded.selfStrength = base.selfStrength + 1;
+        if (base.selfDex) upgraded.selfDex = base.selfDex + 1;
+      }
+      if (upgradeLevel >= 5) {
+        if (base.manaGain) upgraded.manaGain = base.manaGain + 1;
+      }
+
+      // --- 텍스트 치환 로직 ---
       let upDesc = base.desc;
       if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
       if (base.block) upDesc = upDesc.replace(`${base.block}의 방어도`, `${upgraded.block}의 방어도`);
@@ -413,9 +458,42 @@ useEffect(() => {
       if (base.missingHpDamage) upDesc = upDesc.replace(`${base.missingHpDamage * 100}%`, `${Math.round(upgraded.missingHpDamage * 100)}%`);
       if (base.manaMultiplier) upDesc = upDesc.replace(`마나 1당 ${base.manaMultiplier}`, `마나 1당 ${upgraded.manaMultiplier}`);
       if (base.increasingDamage) upDesc = upDesc.replace(`피해량이 ${base.increasingDamage}씩`, `피해량이 ${upgraded.increasingDamage}씩`);
-      
       if (base.winDamage) upDesc = upDesc.replace(`${base.winDamage}의 피해`, `${upgraded.winDamage}의 피해`);
       if (base.winHeal) upDesc = upDesc.replace(`체력을 ${base.winHeal}`, `체력을 ${upgraded.winHeal}`);
+      
+      // --- (신규) 다단히트(multiHit) 총 데미지 텍스트 자동 업데이트 ---
+      if (base.multiHit && base.damage) {
+          const oldTotal = base.damage * base.multiHit;
+          const newTotal = upgraded.damage * base.multiHit;
+          upDesc = upDesc.replace(`(총 ${oldTotal})`, `(총 ${newTotal})`);
+      }
+
+      // --- 특수 능력치 텍스트 교체 ---
+      if (base.enemyWeak && upgraded.enemyWeak > base.enemyWeak) {
+        upDesc = upDesc.replace(`${base.enemyWeak}턴간 약화`, `${upgraded.enemyWeak}턴간 약화`)
+                       .replace(`${base.enemyWeak}턴 약화`, `${upgraded.enemyWeak}턴 약화`)
+                       .replace(`${base.enemyWeak}턴간 약화와 취약`, `${upgraded.enemyWeak}턴간 약화와 취약`);
+      }
+      if (base.enemyVuln && upgraded.enemyVuln > base.enemyVuln) {
+        upDesc = upDesc.replace(`${base.enemyVuln}턴간 취약`, `${upgraded.enemyVuln}턴간 취약`)
+                       .replace(`${base.enemyVuln}턴 취약`, `${upgraded.enemyVuln}턴 취약`)
+                       .replace(`${base.enemyVuln}턴간 약화와 취약`, `${upgraded.enemyVuln}턴간 약화와 취약`);
+      }
+      if (base.selfStrength && upgraded.selfStrength > base.selfStrength) {
+        upDesc = upDesc.replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`)
+                       .replace(`근력 ${base.selfStrength}`, `근력 ${upgraded.selfStrength}`);
+      }
+      if (base.selfDex && upgraded.selfDex > base.selfDex) {
+        upDesc = upDesc.replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`)
+                       .replace(`민첩 ${base.selfDex}`, `민첩 ${upgraded.selfDex}`);
+      }
+      if (base.selfStrength && base.selfDex && upgraded.selfStrength > base.selfStrength) {
+          upDesc = upDesc.replace(`각각 ${base.selfStrength}`, `각각 ${upgraded.selfStrength}`);
+      }
+      if (base.manaGain && upgraded.manaGain > base.manaGain) {
+        upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`)
+                       .replace(`마나 ${base.manaGain}`, `마나 ${upgraded.manaGain}`);
+      }
       
       upgraded.desc = upDesc;
       return upgraded;
