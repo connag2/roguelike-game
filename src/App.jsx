@@ -281,7 +281,6 @@ export default function App() {
       }
       newHand.splice(cardIndex, 1); newDiscard.push(card);
 
-      // 전투 승리 처리
       if (newEnemies.length === 0) {
         try {
           const isSpecialBoss = [25, 50, 75, 100].includes(prev.stage);
@@ -306,7 +305,6 @@ export default function App() {
           setGameStats(newStats);
           setCredits(credits + earned);
 
-          // 🌟 유물 드랍 확률 (일반 5%, 보스 20%, 특수 보스 50%) 🌟
           let relicDropChance = 0.05;
           if (isNormalBoss) relicDropChance = 0.20;
           if (isSpecialBoss) relicDropChance = 0.50;
@@ -319,7 +317,6 @@ export default function App() {
             }
           }
 
-          // 🌟 보상 카드 결정 (100층 FURIOSO 확률 25% 완벽 적용) 🌟
           const determineReward = (st) => {
             const roll = Math.random();
             if ([25, 50, 75].includes(st)) {
@@ -353,7 +350,7 @@ export default function App() {
           }
         } catch (err) {
           console.error("보상 처리 중 에러 발생:", err);
-          setTimeout(() => setGameState('REWARDS'), 600); // 에러 발생 시 멈추지 않고 일반 보상으로 패스
+          setTimeout(() => setGameState('REWARDS'), 600);
         }
         
         return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] };
@@ -540,7 +537,6 @@ export default function App() {
     saveGame({ usedCoupons: updatedCoupons, unlockedCards: updatedUnlocked, credits: credits + creditsToAdd });
   };
 
-  // 관리자 권한 기능
   const handleAdminUnlock = () => { if (adminCodeInput === '20090324') { setIsAdminUnlocked(true); setToastMsg('개발자 권한 활성화됨'); } else setToastMsg('잘못된 코드입니다.'); };
   const adminGiveMoney = () => { const nextCredits = credits + 99999; setCredits(nextCredits); saveGame({ credits: nextCredits }); setToastMsg('99,999 크레딧 지급됨'); };
   const adminUnlockAllCards = () => { const allIds = CARD_LIBRARY.map(c => c.id); setUnlockedCards(allIds); saveGame({ unlockedCards: allIds }); setToastMsg('모든 카드 해금됨'); };
@@ -675,7 +671,7 @@ export default function App() {
         )}
 
         {gameState === 'BATTLE' && (
-          <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard} playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10} setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} />
+          <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard} playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10} setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} />
         )}
 
         {gameState === 'ENCYCLOPEDIA' && (

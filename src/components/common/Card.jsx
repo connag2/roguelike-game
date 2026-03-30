@@ -50,12 +50,10 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   return (
     <div 
       onClick={onClick}
-      // 👇 overflow-hidden 제거 및 내부 요소가 유연하게 배치되도록 flex 구조 최적화
       className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 shadow-2xl box-border`}
     >
-      {/* 잠금 레이어를 카드의 둥근 모서리에 딱 맞게 inset-0으로 조정 */}
       {isLocked && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-900/60 pointer-events-none">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
           <span className="text-yellow-500 font-black text-[10px] md:text-xs bg-slate-900/90 px-2 py-1 rounded border border-slate-700 shadow-xl">미해금</span>
         </div>
@@ -77,13 +75,12 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight drop-shadow-md truncate break-keep ${nameColor}`}>{card.name}</h4>
       </div>
       
-      {/* 👇 설명글이 길어도 하단 버튼을 밀어내지 않고 안에서 스크롤되도록 변경 */}
-      <div className="text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center overflow-y-auto hide-scrollbar z-10 font-medium border border-white/5 w-full shadow-inner mb-1">
+      {/* ✨ 설명 배경을 진하게 (bg-slate-950/95) 변경하여 시인성 극대화 */}
+      <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center overflow-y-auto hide-scrollbar z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1">
         <div className="w-full break-keep px-0.5">{card.desc}</div>
         <div className="mt-1 shrink-0"><Tooltip desc={card.desc} /></div>
       </div>
       
-      {/* 👇 mt-auto를 주어 항상 카드 가장 아래에 안정적으로 고정되게 처리 */}
       {count !== null && onAdd && onRemove && !isLocked && (
         <div className="mt-auto flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1 py-1 md:px-1.5 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm">
           <button 

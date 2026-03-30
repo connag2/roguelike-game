@@ -1,59 +1,41 @@
 import React from 'react';
-import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle } from 'lucide-react';
+import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward } from 'lucide-react';
 import Card from '../common/Card';
 
 export default function BattleScreen({
   combatState, isPlayerTurn, setViewingPile, viewingPile, setGameState, hoveredCard, setHoveredCard,
   playCard, setCombatState, MAX_HAND_SIZE, setShowEnemyDeck, setViewingEnemy, setTutorialModalOpen,
-  viewingEnemy, showEnemyDeck, playerRelics
+  viewingEnemy, showEnemyDeck, playerRelics, fastMode, setFastMode, saveGame // ✨ 추가된 Props
 }) {
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden">
-      {/* 뽑을 패, 무덤, 총 덱 보기 모달 */}
       {viewingPile && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col p-4 md:p-10 backdrop-blur-md" onClick={() => setViewingPile(null)}>
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
-            <h2 className="text-2xl md:text-4xl font-black text-white">
-              {viewingPile === 'baseDeck' ? '총 덱' : viewingPile === 'drawPile' ? '뽑을 패' : '무덤'} 
-              <span className="text-indigo-400 text-xl md:text-2xl ml-3">({combatState[viewingPile].length}장)</span>
-            </h2>
+            <h2 className="text-2xl md:text-4xl font-black text-white">{viewingPile === 'baseDeck' ? '총 덱' : viewingPile === 'drawPile' ? '뽑을 패' : '무덤'} <span className="text-indigo-400 text-xl md:text-2xl ml-3">({combatState[viewingPile].length}장)</span></h2>
             <button onClick={() => setViewingPile(null)} className="text-slate-400 hover:text-white text-4xl font-bold transition-colors">×</button>
           </div>
           <div className="flex-1 overflow-y-auto hide-scrollbar flex flex-wrap gap-4 md:gap-6 content-start justify-center" onClick={e => e.stopPropagation()}>
-            {combatState[viewingPile].map((card, idx) => (
-              <div key={idx} className="w-28 h-40 md:w-36 md:h-48 transform transition-transform hover:scale-105 origin-center">
-                <Card card={card} isLocked={false} />
-              </div>
-            ))}
+            {combatState[viewingPile].map((card, idx) => (<div key={idx} className="w-28 h-40 md:w-36 md:h-48 transform transition-transform hover:scale-105 origin-center"><Card card={card} isLocked={false} /></div>))}
           </div>
         </div>
       )}
 
-      {/* 적 정보 모달 */}
       {showEnemyDeck && viewingEnemy && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col items-center justify-center p-4 backdrop-blur-md" onClick={() => { setViewingEnemy(null); setShowEnemyDeck(false); }}>
           <div className="bg-slate-800 p-6 rounded-xl border-2 border-red-500 w-full max-w-lg" onClick={e => e.stopPropagation()}>
             <h2 className="text-2xl font-bold text-red-400 mb-4">{viewingEnemy.name} 정보</h2>
             <div className="mb-4">
               <h3 className="text-lg font-bold text-slate-300 mb-2">패시브 스킬</h3>
-              {viewingEnemy.passives && viewingEnemy.passives.length > 0 ? viewingEnemy.passives.map(p => (
-                <div key={p.id} className="bg-slate-900 p-2 rounded mb-2 border border-slate-700">
-                  <span className="text-orange-400 font-bold">{p.name}</span>: <span className="text-sm text-slate-400">{p.desc}</span>
-                </div>
-              )) : <div className="text-sm text-slate-500">없음</div>}
+              {viewingEnemy.passives && viewingEnemy.passives.length > 0 ? viewingEnemy.passives.map(p => (<div key={p.id} className="bg-slate-900 p-2 rounded mb-2 border border-slate-700"><span className="text-orange-400 font-bold">{p.name}</span>: <span className="text-sm text-slate-400">{p.desc}</span></div>)) : <div className="text-sm text-slate-500">없음</div>}
             </div>
             <div>
               <h3 className="text-lg font-bold text-slate-300 mb-2">사용 스킬 (덱)</h3>
               <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 hide-scrollbar">
-                {viewingEnemy.template.deck.map((card, idx) => (
-                  <div key={idx} className="bg-slate-900 p-3 rounded border border-slate-700">
-                    <div className="font-bold text-white text-sm mb-1">{card.name}</div>
-                    <div className="text-xs text-slate-400">{card.desc}</div>
-                  </div>
-                ))}
+                {viewingEnemy.template.deck.map((card, idx) => (<div key={idx} className="bg-slate-900 p-3 rounded border border-slate-700"><div className="font-bold text-white text-sm mb-1">{card.name}</div><div className="text-xs text-slate-400">{card.desc}</div></div>))}
               </div>
             </div>
             <button onClick={() => { setViewingEnemy(null); setShowEnemyDeck(false); }} className="mt-6 w-full py-3 bg-red-800 hover:bg-red-700 rounded-lg font-bold transition-all">닫기</button>
@@ -61,7 +43,6 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* 🌟 현재 보유한 유물 리스트를 상단에 표시 */}
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-10 w-full pl-1">
           {playerRelics.map((r, i) => {
@@ -86,13 +67,21 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* 상단바 */}
       <div className="flex justify-between items-center bg-slate-800/80 p-2 md:p-3 rounded-lg border border-slate-700 shadow-md z-10 shrink-0">
         <div className="font-bold text-sm md:text-lg flex items-center gap-1 md:gap-2 text-indigo-300">
           <RefreshCw className="w-4 h-4 md:w-5 md:h-5" /> {mode === 'HARD' ? '하드 모드' : '일반 모드'} - STAGE {stage} 
         </div>
         <div className="flex items-center gap-2 md:gap-4 font-bold text-xs md:text-base">
-          <button onClick={() => setTutorialModalOpen(true)} className="bg-slate-700 hover:bg-slate-600 p-2 rounded-full border border-slate-500 transition-colors"><HelpCircle className="w-4 h-4 md:w-5 md:h-5 text-indigo-300" /></button>
+          {/* ✨ 빠른 전투(배속) 토글 버튼 추가 */}
+          <button 
+            onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} 
+            className={`p-1.5 md:p-2 rounded-full border transition-colors ${fastMode ? 'bg-indigo-600 border-indigo-400' : 'bg-slate-700 border-slate-500 hover:bg-slate-600'}`}
+            title="빠른 전투 토글"
+          >
+            <FastForward className={`w-4 h-4 md:w-5 md:h-5 ${fastMode ? 'text-white' : 'text-slate-400'}`} />
+          </button>
+          
+          <button onClick={() => setTutorialModalOpen(true)} className="bg-slate-700 hover:bg-slate-600 p-1.5 md:p-2 rounded-full border border-slate-500 transition-colors"><HelpCircle className="w-4 h-4 md:w-5 md:h-5 text-indigo-300" /></button>
           <span className="text-slate-300 cursor-pointer hover:text-indigo-300 transition-colors bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600 font-black shadow-inner" onClick={() => setViewingPile('baseDeck')}>총 덱: {baseDeck.length}장</span>
           <button onClick={() => setGameState('GAME_OVER')} className="text-slate-500 hover:text-red-500 opacity-60 hover:opacity-100 transition-all border border-slate-600 rounded px-2 py-1">포기</button>
         </div>
@@ -102,10 +91,8 @@ export default function BattleScreen({
         <h1 className="text-[8rem] md:text-[12rem] font-black italic whitespace-nowrap tracking-tighter">{isPlayerTurn ? 'PLAYER TURN' : 'ENEMY TURN'}</h1>
       </div>
 
-      {/* 중앙 전투 영역 */}
       <div className="flex-1 flex flex-row justify-center items-end pb-8 border-b-2 border-slate-700/50 w-full max-w-5xl mx-auto mt-10 relative z-10">
         
-        {/* 플레이어 영역 */}
         <div className={`flex flex-col items-center w-1/3 min-w-[120px] transition-all duration-500 origin-bottom ${isPlayerTurn ? 'scale-110 z-30' : 'scale-95 opacity-50 z-10'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-slate-700 rounded-full flex justify-center items-center mb-2 md:mb-4 border-4 border-indigo-500 relative shadow-2xl">
             <Shield className="w-10 h-10 md:w-16 md:h-16 text-indigo-300" />
@@ -129,7 +116,6 @@ export default function BattleScreen({
 
         <div className="text-3xl md:text-5xl font-black text-slate-700 italic px-6 pb-16">VS</div>
 
-        {/* 적 영역 */}
         <div className="flex flex-row gap-4 md:gap-8 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
             const isVanguard = idx === 0; const eCard = enemy.intentCard;
