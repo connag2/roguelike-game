@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Download, Upload, Trash2, Key, FastForward, SkipForward, ArrowLeft, Unlock, Coins, Star, Bomb } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Trash2, Key, FastForward, SkipForward, ArrowLeft, Unlock, Coins, Star, Bomb, ShieldAlert } from 'lucide-react';
 
 export default function Settings({
   setGameState, fastMode, setFastMode, saveGame, handleExport, setImportModalOpen,
   couponInput, setCouponInput, handleCoupon, handleExitGame, isAdminUnlocked,
   adminCodeInput, setAdminCodeInput, handleAdminUnlock, adminUnlockAllCards,
-  adminGiveMoney, adminUnlockAllRelics, adminClearSave, warpStage, setWarpStage, startBattle, getTotalCards, normalCleared
+  adminGiveMoney, adminUnlockAllRelics, adminClearSave, adminCheatStats, handleWarp, warpStage, setWarpStage
 }) {
-  // ✨ 데이터 삭제 확인 단계를 관리하는 상태 (0: 기본, 1: 1차 확인, 2: 최종 확인)
   const [deleteStep, setDeleteStep] = useState(0);
 
-  // ✨ 버튼을 누른 후 5초 동안 다음 클릭을 안 하면 안전을 위해 다시 0단계로 초기화
   useEffect(() => {
     if (deleteStep > 0) {
       const timer = setTimeout(() => setDeleteStep(0), 5000);
@@ -31,7 +29,6 @@ export default function Settings({
 
       <div className="w-full max-w-2xl flex flex-col gap-6">
         
-        {/* 일반 설정 */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2">일반 설정</h2>
           <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
@@ -45,7 +42,6 @@ export default function Settings({
           </div>
         </div>
 
-        {/* 쿠폰 입력 */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2">쿠폰 입력</h2>
           <div className="flex gap-2">
@@ -54,7 +50,6 @@ export default function Settings({
           </div>
         </div>
 
-        {/* 데이터 관리 */}
         <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
           <h2 className="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2">데이터 관리</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
@@ -62,7 +57,6 @@ export default function Settings({
             <button onClick={() => setImportModalOpen(true)} className="py-3 bg-emerald-800 hover:bg-emerald-700 rounded-lg font-bold flex items-center justify-center gap-2 border border-emerald-600 transition-colors"><Upload className="w-4 h-4"/> 세이브 불러오기</button>
           </div>
 
-          {/* ✨ 3단계 세이브 데이터 초기화 버튼 ✨ */}
           {deleteStep === 0 && (
             <button onClick={() => setDeleteStep(1)} className="w-full py-3 bg-red-900/40 hover:bg-red-800 rounded-lg font-bold text-red-400 hover:text-white flex items-center justify-center gap-2 border border-red-900/50 transition-colors">
               <Trash2 className="w-4 h-4"/> 모든 세이브 데이터 삭제 (초기화)
@@ -80,7 +74,7 @@ export default function Settings({
           )}
         </div>
 
-        {/* 개발자 도구 (관리자) */}
+        {/* 🌟 완벽해진 개발자 테스트 도구 */}
         <div className={`p-6 rounded-2xl border transition-all ${isAdminUnlocked ? 'bg-indigo-900/20 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.2)]' : 'bg-slate-800 border-slate-700'}`}>
           <h2 className={`text-xl font-bold mb-4 border-b pb-2 flex items-center gap-2 ${isAdminUnlocked ? 'text-indigo-400 border-indigo-700' : 'text-slate-500 border-slate-600'}`}>
             <Key className="w-5 h-5"/> 개발자 테스트 도구
@@ -93,19 +87,33 @@ export default function Settings({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button onClick={adminGiveMoney} className="py-2 bg-amber-600 hover:bg-amber-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5"><Coins className="w-4 h-4"/> 돈 무한</button>
-                <button onClick={adminUnlockAllCards} className="py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5"><Unlock className="w-4 h-4"/> 모든 카드 해금</button>
-                <button onClick={adminUnlockAllRelics} className="py-2 bg-fuchsia-600 hover:bg-fuchsia-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5"><Star className="w-4 h-4"/> 모든 유물 해금</button>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <button onClick={adminGiveMoney} className="py-2 bg-amber-600 hover:bg-amber-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5 text-xs"><Coins className="w-4 h-4"/> 돈 무한</button>
+                <button onClick={adminCheatStats} className="py-2 bg-red-600 hover:bg-red-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5 text-xs"><ShieldAlert className="w-4 h-4"/> 체력 9999</button>
+                <button onClick={adminUnlockAllCards} className="py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5 text-xs"><Unlock className="w-4 h-4"/> 올 카드 해금</button>
+                <button onClick={adminUnlockAllRelics} className="py-2 bg-fuchsia-600 hover:bg-fuchsia-500 rounded-lg font-bold flex items-center justify-center gap-1 shadow-md transition-transform hover:-translate-y-0.5 text-xs"><Star className="w-4 h-4"/> 올 유물 해금</button>
               </div>
               
-              {normalCleared && (
-                <div className="bg-slate-900 p-4 rounded-xl border border-indigo-700 flex gap-2 items-center">
-                   <div className="text-indigo-300 font-bold flex items-center gap-1 shrink-0"><SkipForward className="w-4 h-4"/> 스테이지 점프 :</div>
-                   <input type="number" min="1" max="100" value={warpStage} onChange={(e) => setWarpStage(Number(e.target.value))} className="w-20 bg-slate-800 border border-slate-600 rounded p-1 text-center font-bold text-white outline-none focus:border-indigo-500"/>
-                   <button onClick={() => { if(getTotalCards() !== 20) { alert('덱이 20장이 아닙니다.'); return; } startBattle('NORMAL', warpStage); }} className="flex-1 bg-indigo-600 hover:bg-indigo-500 py-2 rounded-lg font-bold transition-colors shadow-md">해당 층에서 시작</button>
+              <div className="bg-slate-900 p-4 rounded-xl border border-indigo-700 space-y-3">
+                <div className="flex items-center gap-2">
+                   <SkipForward className="w-4 h-4 text-indigo-400"/>
+                   <span className="font-bold text-indigo-300">스테이지 워프 (시작 전 덱 20장 필수)</span>
                 </div>
-              )}
+                
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <button onClick={() => handleWarp(1)} className="py-2 bg-slate-800 hover:bg-slate-700 rounded border border-slate-600 text-xs font-bold transition-colors">1층 (처음부터)</button>
+                  <button onClick={() => handleWarp(25)} className="py-2 bg-slate-800 hover:bg-purple-900 rounded border border-slate-600 text-xs font-bold transition-colors">25층 보스</button>
+                  <button onClick={() => handleWarp(50)} className="py-2 bg-slate-800 hover:bg-purple-900 rounded border border-slate-600 text-xs font-bold transition-colors">50층 보스</button>
+                  <button onClick={() => handleWarp(100)} className="py-2 bg-slate-800 hover:bg-red-900 rounded border border-red-800 text-xs font-bold text-red-200 transition-colors shadow-inner">100층 (최종 보스)</button>
+                </div>
+
+                <div className="flex gap-2 items-center pt-2 border-t border-slate-800">
+                   <span className="text-slate-400 text-xs shrink-0">직접 입력:</span>
+                   <input type="number" min="1" value={warpStage} onChange={(e) => setWarpStage(Number(e.target.value))} className="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1 text-center text-sm font-bold text-white outline-none focus:border-indigo-500"/>
+                   <button onClick={() => handleWarp(warpStage)} className="flex-1 bg-indigo-600 hover:bg-indigo-500 py-1 rounded font-bold text-sm transition-colors shadow-md">이동</button>
+                </div>
+              </div>
+
             </div>
           )}
         </div>

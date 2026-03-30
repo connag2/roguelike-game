@@ -7,7 +7,6 @@ export const GAME_RULES = {
   HP_PER_UPGRADE: 15
 };
 
-// --- 마나 관련 카드 ID 리스트 ---
 export const MANA_CARD_IDS = [
   'mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 
   'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'
@@ -89,6 +88,7 @@ export const CARD_LIBRARY = [
   { id: 'mana_amp', name: '마나 증폭', type: 'skill', cost: 0, rarity: 'uncommon', manaGain: 3, enemyVuln: 1, desc: '마나를 3 얻고 적에게 취약 1을 부여합니다.' },
   { id: 'unstable_bomb', name: '불안정한 폭약', type: 'attack', cost: 2, rarity: 'uncommon', gamble: true, gambleWinChance: 0.7, winDamage: 35, loseSelfDamage: 15, desc: '70% 확률로 35의 피해를 줍니다. 실패 시 내 체력을 15 잃습니다.' },
   { id: 'lucky_coin', name: '행운의 동전', type: 'skill', cost: 1, rarity: 'uncommon', gamble: true, gambleWinChance: 0.5, winManaGain: 3, desc: '50% 확률로 마나를 3 얻습니다. 실패 시 아무 효과도 없습니다.' },
+  
   { id: 'vampire_sword', name: '뱀파이어의 검', type: 'attack', cost: 2, rarity: 'rare', damage: 20, heal: 10, enemyWeak: 1, desc: '20의 피해를 주고 체력을 10 회복하며 약화 1을 부여합니다.' },
   { id: 'absolute_defense', name: '절대 방어', type: 'skill', cost: 2, rarity: 'rare', block: 30, enemyWeak: 2, desc: '30의 방어도를 얻고 적에게 약화 2를 부여합니다.' },
   { id: 'execute', name: '처형', type: 'attack', cost: 2, rarity: 'rare', damage: 30, enemyVuln: 2, desc: '적에게 30의 피해를 주고 취약 2를 부여합니다.' },
@@ -119,6 +119,7 @@ export const CARD_LIBRARY = [
   { id: 'venom_nova', name: '맹독 폭발', type: 'skill', cost: 2, rarity: 'rare', enemyPoison: 12, enemyWeak: 2, desc: '적에게 중독 12와 약화 2를 부여합니다.' },
   { id: 'bramble_armor', name: '덩굴 갑옷', type: 'skill', cost: 2, rarity: 'rare', block: 20, selfThorns: 6, desc: '20의 방어도를 얻고 가시 6을 얻습니다.' },
   { id: 'toxic_strike_legend', name: '역병의 일격', type: 'attack', cost: 2, rarity: 'rare', damage: 15, enemyPoison: 8, desc: '15의 피해를 주고 중독 8을 부여합니다.' },
+  
   { id: 'super_tiger_slash', name: '초절맹호살격난참', type: 'attack', cost: 3, rarity: 'special', damage: 15, multiHit: 6, enemyVuln: 2, desc: '15의 피해를 6번 연속 주고 취약 2를 부여합니다. (총 90)' },
   { id: 'true_dragon_slayer', name: '진·용살검', type: 'attack', cost: 3, rarity: 'special', damage: 80, selfStrength: 3, enemyVuln: 2, desc: '80의 피해를 주고 근력을 3 얻으며 취약 2를 부여합니다.' },
   { id: 'absolute_zero', name: '절대영도', type: 'skill', cost: 3, rarity: 'special', block: 40, enemyWeak: 4, enemyVuln: 4, desc: '40의 방어도를 얻고 적에게 약화 4, 취약 4를 부여합니다.' },
@@ -130,6 +131,7 @@ export const CARD_LIBRARY = [
   { id: 'twerking', name: '트월킹', type: 'attack', cost: 2, rarity: 'special', damage: 50, enemyVuln: 3, desc: '격렬한 움직임으로 적에게 50의 피해를 주고 취약 3을 부여합니다.' },
   { id: 'power_of_asura', name: '수라의 힘', type: 'skill', cost: 3, rarity: 'special', selfStrength: 8, block: 30, desc: '분노를 일깨워 근력을 8 얻고 30의 방어도를 얻습니다.' },
   { id: 'slime_snot', name: '슬라임의 콧물', type: 'skill', cost: 0, rarity: 'special', heal: 50, block: 50, draw: 3, manaGain: 3, desc: '매우 더럽지만 신비한 힘! 체력과 방어도를 50 얻고 카드 3장과 마나 3을 얻습니다.' },
+  
   { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'mythic', damage: 12, multiHit: 9, increasingDamage: 7, desc: '12의 피해를 9번 연속 줍니다. (타격 시마다 피해량이 7씩 증가합니다.)' },
 ];
 
