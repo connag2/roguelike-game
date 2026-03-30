@@ -1,65 +1,97 @@
-import React from 'react';
-import { Bell, ArrowLeft, Star, Zap, Crown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, ArrowLeft, Star, Zap, Crown, ChevronDown, ChevronUp, AlertTriangle, Monitor } from 'lucide-react';
 
 export default function UpdateHistory({ setGameState }) {
+  // 접고 펴기 상태 관리 (최신 버전은 기본으로 열어둠)
+  const [expandedVersions, setExpandedVersions] = useState(['v1.1.2']);
+
+  const toggleVersion = (version) => {
+    if (expandedVersions.includes(version)) {
+      setExpandedVersions(expandedVersions.filter(v => v !== version));
+    } else {
+      setExpandedVersions([...expandedVersions, version]);
+    }
+  };
+
+  const updates = [
+    {
+      version: 'v1.1.2',
+      title: '밸런스 및 UI 최적화 패치',
+      tag: '최신',
+      date: '2026.03.31',
+      changes: [
+        { icon: <AlertTriangle className="w-4 h-4 text-red-400" />, text: "약화 밸런스 조정: 중첩 효율 과부하 방지를 위해 대미지 감소율을 25% → 3%로 하향 조정했습니다.", color: "text-red-400 font-bold" },
+        { icon: <Monitor className="w-4 h-4 text-cyan-400" />, text: "툴팁 UI 개선: 설명창이 카드 틀에 갇히지 않도록 레이아웃을 수정하고 디자인을 간결하게 변경했습니다." },
+        { icon: <Zap className="w-4 h-4 text-yellow-400" />, text: "이펙트 최적화: 일반/희귀 등급 공격 이펙트의 크기를 줄여 전투 시인성을 높였습니다." }
+      ]
+    },
+    {
+      version: 'v1.1.0',
+      title: '유물 및 도감 대규모 업데이트',
+      date: '2026.03.25',
+      changes: [
+        { icon: <Star className="w-4 h-4 text-yellow-400" />, text: "신규 시스템 '유물': 적 처치 시 확률적으로 강력한 효과를 지닌 유물 드랍 기능 추가." },
+        { icon: <Zap className="w-4 h-4 text-indigo-400" />, text: "도감 강화: 유물 도감 및 상세 업적 통계 기능 추가." },
+        { icon: <Crown className="w-4 h-4 text-amber-400" />, text: "100층 클리어 특전: 클리어 유저 대상 '시작 유물 선택권' 부여." }
+      ]
+    },
+    {
+      version: 'v1.0.0',
+      title: '로그라이크 택틱스 정식 출시',
+      date: '2026.03.10',
+      changes: [
+        { icon: <Star className="w-4 h-4 text-emerald-400" />, text: "기본 전투 시스템 및 덱 빌딩 시스템 구축." },
+        { icon: <Star className="w-4 h-4 text-emerald-400" />, text: "100층 돌파 모드 및 카드 상점 시스템 추가." }
+      ]
+    }
+  ];
+
   return (
     <div className="flex flex-col items-center justify-start min-h-[100dvh] bg-slate-900 text-white p-4 md:p-10 pt-10 overflow-y-auto hide-scrollbar">
       <h1 className="text-3xl md:text-5xl font-black mb-10 text-emerald-400 drop-shadow-lg flex items-center gap-3">
         <Bell className="w-8 h-8 md:w-12 md:h-12" /> 업데이트 내역
       </h1>
 
-      <div className="w-full max-w-4xl bg-slate-800 p-6 md:p-8 rounded-3xl border border-slate-700 shadow-2xl mb-10">
-        <div className="space-y-10">
-          
-          {/* 최신 업데이트 */}
-          <div className="border-b border-slate-700 pb-8 last:border-0 last:pb-0">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="bg-emerald-600 text-white text-xs font-bold px-2 py-1 rounded-md">최신</span>
-              <h2 className="text-2xl font-bold text-emerald-400">v1.1.0 - 유물 및 도감 대규모 업데이트</h2>
+      <div className="w-full max-w-4xl space-y-4 mb-10">
+        {updates.map((update) => {
+          const isExpanded = expandedVersions.includes(update.version);
+          return (
+            <div key={update.version} className={`bg-slate-800 rounded-2xl border transition-all duration-300 ${isExpanded ? 'border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'border-slate-700 opacity-80'}`}>
+              {/* 헤더 섹션 (클릭 시 토글) */}
+              <button 
+                onClick={() => toggleVersion(update.version)}
+                className="w-full p-5 md:p-6 flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-3">
+                  {update.tag && <span className="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">{update.tag}</span>}
+                  <span className={`text-lg md:text-xl font-bold ${isExpanded ? 'text-white' : 'text-slate-400'}`}>{update.version}</span>
+                  <h2 className={`text-base md:text-lg font-bold ${isExpanded ? 'text-indigo-300' : 'text-slate-500'}`}>{update.title}</h2>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-slate-500 hidden md:block">{update.date}</span>
+                  {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                </div>
+              </button>
+
+              {/* 상세 내용 섹션 (애니메이션 적용) */}
+              {isExpanded && (
+                <div className="px-5 md:px-8 pb-6 space-y-4 border-t border-slate-700/50 pt-4 animate-in slide-in-from-top-2 duration-300">
+                  <ul className="space-y-3">
+                    {update.changes.map((change, idx) => (
+                      <li key={idx} className="flex items-start gap-3 text-sm md:text-base text-slate-300 leading-relaxed">
+                        <div className="mt-1 shrink-0">{change.icon}</div>
+                        <span className={change.color || ""}>{change.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <ul className="space-y-4 text-slate-300 text-sm md:text-base">
-              <li className="flex items-start gap-2">
-                <Star className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-yellow-400">신규 시스템 '유물':</span> 적 처치 시 확률적으로 강력한 효과를 지닌 유물 드랍! <br/>
-                  <span className="text-xs text-slate-400">(일반 몬스터 5%, 일반 보스 20%, 전설 보스 50%)</span>
-                </div>
-              </li>
-              <li className="flex items-start gap-2">
-                <Zap className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-indigo-400">도감 및 통계 강화:</span> 유물 도감 추가, 업적 갤러리 및 상세 달성률 확인 기능 추가.
-                </div>
-              </li>
-              <li className="flex items-start gap-2">
-                <Crown className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-amber-400">100층 클리어 특전:</span> 게임 클리어 시, 다음 게임부터 <b>원하는 시작 유물 1개</b>를 선택 가능.
-                </div>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-500 font-black shrink-0 mt-0.5 text-lg leading-none">!!!</span>
-                <div>
-                  <span className="font-bold text-red-400">신화 등급 도입:</span> 100층 보스 처치 시 25% 확률로 신화 등급 특수 카드 <span className="text-white">Furioso</span> 획득!
-                </div>
-              </li>
-            </ul>
-          </div>
-
-          {/* 이전 업데이트 */}
-          <div className="border-b border-slate-700 pb-8 last:border-0 last:pb-0 opacity-70">
-            <h2 className="text-xl font-bold text-slate-400 mb-3">v1.0.0 - 정식 출시</h2>
-            <ul className="list-disc list-inside space-y-2 text-slate-500 text-sm md:text-base ml-2">
-              <li>로그라이크 택틱스 기본 전투 시스템 구축</li>
-              <li>덱 빌딩, 카드 상점, 100층 돌파 모드 추가</li>
-              <li>다양한 상태 이상 및 몬스터 패턴 추가</li>
-            </ul>
-          </div>
-
-        </div>
+          );
+        })}
       </div>
 
-      <button onClick={() => setGameState('MENU')} className="py-4 px-10 bg-indigo-600 hover:bg-indigo-500 rounded-full font-bold text-xl shadow-lg transition-all flex items-center gap-2 hover:-translate-y-1">
+      <button onClick={() => setGameState('MENU')} className="py-4 px-10 bg-indigo-600 hover:bg-indigo-500 rounded-full font-bold text-xl shadow-lg transition-all flex items-center gap-2 hover:-translate-y-1 active:scale-95">
         <ArrowLeft className="w-6 h-6" /> 메인으로 돌아가기
       </button>
     </div>
