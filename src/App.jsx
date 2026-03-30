@@ -530,6 +530,15 @@ export default function App() {
     else if (code === 'GEMS') { creditsToAdd = 500; msg = '보석 쿠폰: 500 크레딧 획득!'; valid = true; }
     else if (code === '50STAGEAWARD') { creditsToAdd = 10000; msg = '50 스테이지 보상: 10,000 크레딧 획득!'; valid = true; }
     else if (code === '75STAGEREWARD') { unlockedToAdd = 'furioso'; msg = '75 스테이지 보상: Furioso 카드 해금!'; valid = true; }
+    else if (code === 'WARP50') {
+    if (getTotalCards() !== 20) {
+      setToastMsg('덱이 20장이 아닙니다. 먼저 덱을 20장으로 맞춰주세요.');
+      return;
+    }
+    handleWarp(50); // 50층으로 이동하는 함수 호출
+    msg = '워프 쿠폰: 50층 보스에게 이동합니다!';
+    valid = true;
+  }
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
     const updatedCoupons = [...usedCoupons, code];
     const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
