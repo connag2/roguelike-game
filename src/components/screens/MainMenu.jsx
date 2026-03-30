@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sword, Coins, Book, Skull, Store, HelpCircle, Settings, Maximize, BarChart2 } from 'lucide-react';
+import { Sword, Coins, Book, Skull, Store, HelpCircle, Settings, Maximize, BarChart2, Bell } from 'lucide-react';
 
 export default function MainMenu({ 
   credits, 
@@ -50,11 +50,15 @@ export default function MainMenu({
           <Store className="w-5 h-5"/> 상점
         </button>
 
-        <div className="flex gap-2 mt-1">
-          <button onClick={() => setTutorialModalOpen(true)} className="py-3 bg-blue-800 hover:bg-blue-700 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 border border-blue-600 flex-1">
+        {/* ✨ '방법', '업데이트', '설정' 3개 버튼으로 분리 */}
+        <div className="grid grid-cols-3 gap-2 mt-1">
+          <button onClick={() => setTutorialModalOpen(true)} className="py-3 bg-blue-800 hover:bg-blue-700 rounded-lg text-base font-bold transition-all flex flex-col justify-center items-center gap-1 border border-blue-600">
             <HelpCircle className="w-5 h-5"/> 방법
           </button>
-          <button onClick={() => setGameState('SETTINGS')} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 border border-slate-600 flex-1">
+          <button onClick={() => setGameState('UPDATE_HISTORY')} className="py-3 bg-emerald-800 hover:bg-emerald-700 rounded-lg text-base font-bold transition-all flex flex-col justify-center items-center gap-1 border border-emerald-600">
+            <Bell className="w-5 h-5"/> 업데이트
+          </button>
+          <button onClick={() => setGameState('SETTINGS')} className="py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-base font-bold transition-all flex flex-col justify-center items-center gap-1 border border-slate-600">
             <Settings className="w-5 h-5"/> 설정
           </button>
         </div>

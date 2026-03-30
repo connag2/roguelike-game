@@ -17,6 +17,7 @@ import MonsterDex from './components/screens/MonsterDex';
 import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
+import UpdateHistory from './components/screens/UpdateHistory'; // ✨ 새로 추가됨
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -133,7 +134,6 @@ export default function App() {
     }
   }, [toastMsg]);
 
-  // 유물 - 전투 시작 효과 적용
   const applyStartCombatRelics = (basePlayer, activeRelics) => {
     let p = { ...basePlayer };
     activeRelics.forEach(r => {
@@ -168,7 +168,7 @@ export default function App() {
     let initialPlayer = { hp: playerMaxHp, maxHp: playerMaxHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: { strength: 0, dexterity: 0, thorns: 0 } };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
 
-    const newStats = { ...gameStats, totalRuns: gameStats.totalRuns + 1 };
+    const newStats = { ...gameStats, totalRuns: (gameStats?.totalRuns || 0) + 1 };
     setGameStats(newStats);
     saveGame({ gameStats: newStats });
 
@@ -283,17 +283,15 @@ export default function App() {
       }
       newHand.splice(cardIndex, 1); newDiscard.push(card);
 
-      // 전투 승리 시 로직
       if (newEnemies.length === 0) {
         const isSpecialBoss = [25, 50, 75, 100].includes(prev.stage);
         const isNormalBoss = prev.stage % 5 === 0 && !isSpecialBoss;
         
-        let newStats = { ...gameStats, totalKills: gameStats.totalKills + 1 };
-        if (isNormalBoss || isSpecialBoss) newStats.totalBossKills += 1;
+        let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
+        if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
         
         if (prev.stage >= maxStageReached) setMaxStageReached(prev.stage + 1);
         
-        // 유물 패시브 효과 적용 (크레딧/힐)
         let extraCredits = 0, healAmount = 0;
         playerRelics.forEach(r => {
           if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
@@ -304,11 +302,10 @@ export default function App() {
         if (isNormalBoss || isSpecialBoss) earned += 15;
         p.hp = Math.min(p.maxHp, p.hp + healAmount);
         
-        newStats.totalCreditsEarned += earned;
+        newStats.totalCreditsEarned = (newStats.totalCreditsEarned || 0) + earned;
         setGameStats(newStats);
         setCredits(credits + earned);
 
-        // 🌟 유물 드랍 확률 대폭 상향 (일반 5%, 보스 20%, 특수 보스 50%) 🌟
         let relicDropChance = 0.05;
         if (isNormalBoss) relicDropChance = 0.20;
         if (isSpecialBoss) relicDropChance = 0.50;
@@ -321,7 +318,6 @@ export default function App() {
           }
         }
 
-        // 보상 카드 결정
         const determineReward = (st) => {
           const roll = Math.random();
           if ([25, 50, 75].includes(st)) {
@@ -332,7 +328,6 @@ export default function App() {
               if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
             }
           }
-          // 🌟 마지막 보스 25% 확률로 FURIOSO 지급 🌟
           if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
           if (isNormalBoss && roll < 0.10) {
             const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
@@ -348,7 +343,6 @@ export default function App() {
         
         const nextState = { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] };
 
-        // 유물이 드랍되었다면 무조건 먼저 보여줌
         if (droppedRelic) {
           setPendingRelicReward(droppedRelic);
           setTimeout(() => setGameState('RELIC_REWARD'), 600);
@@ -364,7 +358,6 @@ export default function App() {
     });
   };
 
-  // 유물 획득 클릭 시 처리
   const handleRelicRewardClaim = () => {
     if (!pendingRelicReward) return;
     
@@ -380,7 +373,6 @@ export default function App() {
     setToastMsg(`🌟 ${pendingRelicReward.name} 장착 완료!`);
     setPendingRelicReward(null);
 
-    // 특수 카드가 대기 중이면 거기로 가고, 아니면 클리어/일반 보상으로 이동
     if (specialBossRewardCard) {
       setGameState('BOSS_CLEAR_REWARD');
     } else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
@@ -433,7 +425,6 @@ export default function App() {
         ['weak', 'vulnerable', 'poison'].forEach(k => p.debuffs[k] = decayStack(p.debuffs[k]));
         ['strength', 'dexterity', 'thorns'].forEach(k => p.buffs[k] = decayStack(p.buffs[k]));
 
-        // 플레이어 턴 시작 유물 적용
         let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
         playerRelics.forEach(r => {
           if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
@@ -569,22 +560,43 @@ export default function App() {
       <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
         {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
+        {/* ✨ 방법(튜토리얼) 모달: 최신 업데이트 내용이 제거되고 원래의 도움말만 남았습니다 */}
         {tutorialModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
             <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
                 <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
-                  <HelpCircle className="w-8 h-8" /> 게임 가이드
+                  <HelpCircle className="w-8 h-8" /> 
+                  {gameState === 'MENU' ? "게임 가이드" : gameState === 'BATTLE' ? "전투 가이드" : gameState === 'SHOP' ? "상점 이용 가이드" : gameState === 'DECK_BUILDING' ? "덱 구성 가이드" : (gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') ? "도감 가이드" : "도움말"}
                 </h2>
                 <button onClick={() => setTutorialModalOpen(false)} className="text-slate-400 hover:text-white text-3xl font-bold transition-colors">×</button>
               </div>
               <div className="space-y-6 text-slate-200 text-sm md:text-base leading-relaxed">
-                <section>
-                  <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 규칙</h3>
-                  <ul className="list-disc list-inside space-y-1 text-slate-300">
-                    <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
-                    <li>적 처치 시 확률적으로 '유물'이 등장합니다. (일반 5%, 보스 20%, 전설 보스 50%)</li>
-                  </ul>
+                {(gameState === 'MENU' || gameState === 'BATTLE') && (
+                  <section>
+                    <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
+                    <ul className="list-disc list-inside space-y-1 text-slate-300">
+                      <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
+                      <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
+                      <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
+                    </ul>
+                  </section>
+                )}
+
+                <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
+                  <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
+                    <div className="space-y-2">
+                      <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 3% 감소합니다.</p>
+                      <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 30% 증가합니다.</p>
+                      <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 1 감소합니다.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <p><span className="text-red-400 font-bold">근력:</span> 피해량이 수치만큼 영구적으로 증가합니다.</p>
+                      <p><span className="text-blue-400 font-bold">민첩:</span> 방어도가 수치만큼 영구적으로 증가합니다.</p>
+                      <p><span className="text-emerald-400 font-bold">가시:</span> 피격 시 공격자에게 수치만큼 피해를 반사합니다.</p>
+                    </div>
+                  </div>
                 </section>
               </div>
               <button onClick={() => setTutorialModalOpen(false)} className="mt-8 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xl shadow-lg transition-all">확인</button>
@@ -637,8 +649,14 @@ export default function App() {
           </div>
         )}
 
+        {/* ✨ 메인 화면 */}
         {gameState === 'MENU' && (
           <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />
+        )}
+
+        {/* ✨ 새로 연결된 업데이트 내역 화면 */}
+        {gameState === 'UPDATE_HISTORY' && (
+          <UpdateHistory setGameState={setGameState} />
         )}
 
         {gameState === 'STATISTICS' && (
