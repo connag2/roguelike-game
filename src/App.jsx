@@ -17,7 +17,6 @@ import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 
-// 💡 [에러 추적기] 화면이 하얗게 멈추는 것을 막아주는 특수 안전 장치
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -79,11 +78,10 @@ export default function App() {
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 💡 [핵심 해결책] Vite의 쓸데없는 기본 여백과 흰색 배경을 강제로 박살냅니다!
   useEffect(() => {
     document.body.style.margin = '0';
     document.body.style.padding = '0';
-    document.body.style.backgroundColor = '#0f172a'; // slate-900 (어두운 배경 고정)
+    document.body.style.backgroundColor = '#0f172a';
     
     const rootNode = document.getElementById('root');
     if (rootNode) {
@@ -180,6 +178,20 @@ export default function App() {
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
+  const checkRevive = (target, enemiesArray) => {
+    if (target.hp <= 0) {
+      const rev = target.passives?.findIndex(ps => ps.id === 'revive');
+      if (rev !== undefined && rev > -1) { 
+        target.hp = Math.floor(target.maxHp / 2); 
+        target.passives.splice(rev, 1); 
+        setToastMsg('부활!'); 
+      } else if (enemiesArray) {
+        const idx = enemiesArray.indexOf(target);
+        if (idx > -1) enemiesArray.splice(idx, 1);
+      }
+    }
+  };
+
   const playCard = (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
     const card = combatState.hand[cardIndex];
@@ -202,11 +214,7 @@ export default function App() {
         if (p.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97);
         if (target.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
         if (target.block >= dmg) target.block -= dmg; else { target.hp -= (dmg - target.block); target.block = 0; }
-        if (target.hp <= 0) {
-          const rev = target.passives.findIndex(ps => ps.id === 'revive');
-          if (rev > -1) { target.hp = Math.floor(target.maxHp / 2); target.passives.splice(rev, 1); setToastMsg('부활!'); }
-          else newEnemies.shift();
-        }
+        checkRevive(target, newEnemies);
       };
 
       if (isWin) {
@@ -276,19 +284,30 @@ export default function App() {
         let newEnemies = prev.enemies.map(e => ({ ...e, block: 0 }));
 
         newEnemies.forEach(e => {
-          if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); }
+          if (e.debuffs?.poison > 0) { 
+            e.hp -= e.debuffs.poison; 
+            e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); 
+            checkRevive(e, null); 
+          }
           if (e.hp <= 0) return;
+          
           if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
           let intent = e.intentCard;
+          
           if (intent.type.includes('attack')) {
             let dmg = intent.value + (e.buffs.strength || 0);
             if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
             if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97);
             for(let i=0; i<(intent.multi || 1); i++) {
               if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
-              if (p.buffs?.thorns > 0) e.hp -= p.buffs.thorns;
+              if (p.buffs?.thorns > 0) {
+                 e.hp -= p.buffs.thorns;
+                 checkRevive(e, null);
+              }
             }
           }
+          if (e.hp <= 0) return;
+          
           if (intent.type.includes('debuff')) {
             if (intent.debuff === 'weak') p.debuffs.weak += intent.turns;
             if (intent.debuff === 'vulnerable') p.debuffs.vulnerable += intent.turns;
@@ -342,6 +361,72 @@ export default function App() {
   const openMonsterDex = () => { setGameState('MONSTER_DEX'); };
   const openShop = () => { setGameState('SHOP'); };
   const getTotalCards = (counts = deckCounts) => Object.values(counts || {}).reduce((a, b) => a + b, 0);
+
+  // 상점 가챠 로직 구현
+  const handleGacha = () => {
+    if (credits < 50) return;
+    const result = [];
+    const pool = CARD_LIBRARY.filter(c => ['common', 'uncommon', 'rare'].includes(c.rarity));
+    let duplicateRefund = 0;
+    
+    for (let i = 0; i < 3; i++) {
+      const roll = Math.random();
+      let r = 'common';
+      if (roll < 0.05) r = 'rare';
+      else if (roll < 0.3) r = 'uncommon';
+      
+      const cPool = pool.filter(c => c.rarity === r);
+      const card = cPool[Math.floor(Math.random() * cPool.length)];
+      
+      if (unlockedCards.includes(card.id)) {
+        result.push({ ...card, isDuplicate: true });
+        duplicateRefund += 10;
+      } else {
+        result.push({ ...card, isDuplicate: false });
+        setUnlockedCards(prev => [...prev, card.id]);
+      }
+    }
+    
+    const newCredits = credits - 50 + duplicateRefund;
+    setCredits(newCredits);
+    if (duplicateRefund > 0) setToastMsg(`${duplicateRefund} 크레딧 환급됨!`);
+    setGachaResult(result);
+    saveGame({ credits: newCredits, unlockedCards });
+  };
+
+  const handlePremiumGacha = () => {
+    if (credits < 100) return;
+    const pool = CARD_LIBRARY.filter(c => ['uncommon', 'rare', 'special'].includes(c.rarity));
+    const result = [];
+    
+    for (let i = 0; i < 3; i++) {
+      const roll = Math.random();
+      let r = 'uncommon';
+      if (roll < 0.1) r = 'special';
+      else if (roll < 0.4) r = 'rare';
+      
+      const cPool = pool.filter(c => c.rarity === r);
+      const card = cPool[Math.floor(Math.random() * cPool.length)];
+      result.push(card);
+    }
+    setCredits(prev => prev - 100);
+    setPremiumGachaResult(result);
+    saveGame({ credits: credits - 100 });
+  };
+
+  const selectPremiumCard = (card) => {
+    if (!unlockedCards.includes(card.id)) {
+      const next = [...unlockedCards, card.id];
+      setUnlockedCards(next);
+      saveGame({ unlockedCards: next });
+      setToastMsg(`${card.name} 획득!`);
+    } else {
+      setCredits(prev => prev + 30);
+      setToastMsg(`중복 보상 30 크레딧 획득!`);
+      saveGame({ credits: credits + 30 });
+    }
+    setPremiumGachaResult(null);
+  };
 
   const handleCoupon = () => {
     const code = couponInput.trim().toUpperCase();
@@ -520,8 +605,8 @@ export default function App() {
             credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades}
             unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState}
             toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={getCardDef}
-            handleGacha={() => {}} handlePremiumGacha={() => {}} gachaResult={gachaResult} setGachaResult={setGachaResult}
-            premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} selectPremiumCard={() => {}}
+            handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult}
+            premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} selectPremiumCard={selectPremiumCard}
             setTutorialModalOpen={setTutorialModalOpen} 
           />
         )}
@@ -532,6 +617,7 @@ export default function App() {
             setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
             playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10}
             setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} 
+            viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck}
           />
         )}
 

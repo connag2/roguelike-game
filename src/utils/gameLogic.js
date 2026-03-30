@@ -31,14 +31,42 @@ export const getCardDef = (id, shopUpgrades) => {
     else if (base.rarity === 'mythic') ratePerLevel = 0.8;
 
     const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
-    const getFlatInc = (val) => Math.max(1, Math.round(val * ratePerLevel));
+    
+    // 업그레이드 수치 증가 도우미 (작은 수치도 점진적으로 상승하도록 처리)
+    const incAttr = (attr, forceOneEvery = 2) => {
+       if (upgraded[attr] !== undefined) {
+           let baseVal = base[attr];
+           let inc = Math.floor(baseVal * ratePerLevel * upgradeLevel);
+           if (inc === 0 && upgradeLevel >= forceOneEvery) inc = Math.floor(upgradeLevel / forceOneEvery);
+           upgraded[attr] += inc;
+       }
+    };
 
-    if (upgraded.damage) upgraded.damage = base.damage + getFlatInc(base.damage) * upgradeLevel;
-    if (upgraded.block) upgraded.block = base.block + getFlatInc(base.block) * upgradeLevel;
+    if (upgraded.damage) incAttr('damage', 1);
+    if (upgraded.block) incAttr('block', 1);
+    if (upgraded.heal) incAttr('heal', 1);
+    
+    incAttr('enemyWeak', 2);
+    incAttr('enemyVuln', 2);
+    incAttr('enemyPoison', 1);
+    incAttr('selfStrength', 2);
+    incAttr('selfDex', 2);
+    incAttr('selfThorns', 1);
+    incAttr('manaGain', 3);
+    incAttr('draw', 3);
+    incAttr('multiHit', 4);
     
     let upDesc = base.desc;
     if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
     if (base.block) upDesc = upDesc.replace(`${base.block}의 방어`, `${upgraded.block}의 방어`);
+    if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal} 회복`, `체력을 ${upgraded.heal} 회복`);
+    if (base.enemyWeak) upDesc = upDesc.replace(`약화 ${base.enemyWeak}`, `약화 ${upgraded.enemyWeak}`);
+    if (base.enemyVuln) upDesc = upDesc.replace(`취약 ${base.enemyVuln}`, `취약 ${upgraded.enemyVuln}`);
+    if (base.enemyPoison) upDesc = upDesc.replace(`중독 ${base.enemyPoison}`, `중독 ${upgraded.enemyPoison}`);
+    if (base.selfStrength) upDesc = upDesc.replace(`근력 ${base.selfStrength}`, `근력 ${upgraded.selfStrength}`).replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`);
+    if (base.selfDex) upDesc = upDesc.replace(`민첩 ${base.selfDex}`, `민첩 ${upgraded.selfDex}`).replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`);
+    if (base.manaGain) upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`);
+    if (base.draw) upDesc = upDesc.replace(`카드를 ${base.draw}장 뽑`, `카드를 ${upgraded.draw}장 뽑`);
     
     upgraded.desc = upDesc;
     return upgraded;
@@ -57,33 +85,35 @@ export const generateEnemyIntent = (template, stage) => {
 export const generateEnemies = (stage) => {
   let enemyTemplates = [];
 
-  // 1. 네임드 전설 보스 (25, 50, 75, 100층 고정)
-  if ([25, 50, 75, 100].includes(stage)) {
+  if (stage === 100) {
+    enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
+  }
+  else if ([25, 50, 75].includes(stage)) {
     enemyTemplates = [SPECIAL_BOSSES[stage]];
   } 
-  // 2. 일반 보스 (그 외 5층 단위: 5, 10, 15, 20, 30...)
   else if (stage % 5 === 0) {
     enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
   } 
-  // 3. 일반 몬스터 (그 외 모든 층)
   else {
     enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
   }
 
-  return enemyTemplates.map((template) => {
-    // 층수 및 등급에 따른 체력 스케일링
+  return enemyTemplates.map((template, idx) => {
     const isNamedBoss = [25, 50, 75, 100].includes(stage);
     const isNormalBoss = stage % 5 === 0 && !isNamedBoss;
     
     let hpBase = template.baseHp + (stage * 12);
     let hpFinal = hpBase;
     
-    if (isNamedBoss) hpFinal = Math.floor(hpBase * 2.2); // 네임드는 매우 강력하게
-    else if (isNormalBoss) hpFinal = Math.floor(hpBase * 1.6); // 일반 보스
+    if (isNamedBoss) hpFinal = Math.floor(hpBase * 2.2);
+    else if (isNormalBoss) hpFinal = Math.floor(hpBase * 1.6);
+    
+    let name = template.name;
+    if (stage === 100) name += ` ${['A', 'B', 'C'][idx]}`;
 
     return {
       uid: Math.random().toString(),
-      name: template.name,
+      name: name,
       hp: hpFinal,
       maxHp: hpFinal,
       block: 0,

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle } from 'lucide-react';
 import Card from '../common/Card';
 
@@ -6,7 +6,7 @@ export default function BattleScreen({
   combatState,
   isPlayerTurn,
   setViewingPile,
-  viewingPile, // 💡 [추가] 카드 보기 상태 프롭스 받기
+  viewingPile, 
   setGameState,
   hoveredCard,
   setHoveredCard,
@@ -15,14 +15,16 @@ export default function BattleScreen({
   MAX_HAND_SIZE,
   setShowEnemyDeck,
   setViewingEnemy,
-  setTutorialModalOpen
+  setTutorialModalOpen,
+  viewingEnemy,
+  showEnemyDeck
 }) {
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden">
-      {/* 💡 [추가] 뽑을 패, 무덤, 총 덱 보기 모달 */}
+      {/* 뽑을 패, 무덤, 총 덱 보기 모달 */}
       {viewingPile && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col p-4 md:p-10 backdrop-blur-md" onClick={() => setViewingPile(null)}>
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
@@ -38,6 +40,35 @@ export default function BattleScreen({
                 <Card card={card} isLocked={false} />
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 💡 [적 정보 모달] */}
+      {showEnemyDeck && viewingEnemy && (
+        <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col items-center justify-center p-4 backdrop-blur-md" onClick={() => { setViewingEnemy(null); setShowEnemyDeck(false); }}>
+          <div className="bg-slate-800 p-6 rounded-xl border-2 border-red-500 w-full max-w-lg" onClick={e => e.stopPropagation()}>
+            <h2 className="text-2xl font-bold text-red-400 mb-4">{viewingEnemy.name} 정보</h2>
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-slate-300 mb-2">패시브 스킬</h3>
+              {viewingEnemy.passives && viewingEnemy.passives.length > 0 ? viewingEnemy.passives.map(p => (
+                <div key={p.id} className="bg-slate-900 p-2 rounded mb-2 border border-slate-700">
+                  <span className="text-orange-400 font-bold">{p.name}</span>: <span className="text-sm text-slate-400">{p.desc}</span>
+                </div>
+              )) : <div className="text-sm text-slate-500">없음</div>}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-300 mb-2">사용 스킬 (덱)</h3>
+              <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
+                {viewingEnemy.template.deck.map((card, idx) => (
+                  <div key={idx} className="bg-slate-900 p-3 rounded border border-slate-700">
+                    <div className="font-bold text-white text-sm mb-1">{card.name}</div>
+                    <div className="text-xs text-slate-400">{card.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={() => { setViewingEnemy(null); setShowEnemyDeck(false); }} className="mt-6 w-full py-3 bg-red-800 hover:bg-red-700 rounded-lg font-bold transition-all">닫기</button>
           </div>
         </div>
       )}
@@ -65,7 +96,6 @@ export default function BattleScreen({
         </div>
       </div>
 
-      {/* 턴 배경 텍스트 */}
       <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 opacity-[0.03]">
         <h1 className="text-[8rem] md:text-[12rem] font-black italic whitespace-nowrap tracking-tighter">
           {isPlayerTurn ? 'PLAYER TURN' : 'ENEMY TURN'}
@@ -87,14 +117,13 @@ export default function BattleScreen({
             <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-xs font-bold drop-shadow-md">{player.hp} / {player.maxHp}</span>
           </div>
 
-          {/* 플레이어 버프/디버프 */}
           <div className="flex gap-1 md:gap-2 h-8 mt-1 flex-wrap justify-center">
-            {player.buffs?.strength > 0 && <span className="bg-red-900 text-red-100 text-[10px] px-2 py-0.5 rounded-full border border-red-500 shadow-md">근력 +{player.buffs.strength}</span>}
-            {player.buffs?.dexterity > 0 && <span className="bg-blue-900 text-blue-100 text-[10px] px-2 py-0.5 rounded-full border border-blue-500 shadow-md">민첩 +{player.buffs.dexterity}</span>}
-            {player.buffs?.thorns > 0 && <span className="bg-emerald-900 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500 shadow-md">가시 {player.buffs.thorns}</span>}
-            {player.debuffs?.poison > 0 && <span className="bg-green-900 text-green-100 text-[10px] px-2 py-0.5 rounded-full border border-green-500 shadow-md">중독 {player.debuffs.poison}</span>}
-            {player.debuffs?.weak > 0 && <span className="bg-orange-800 text-white text-[10px] px-2 py-0.5 rounded-full border border-orange-500 animate-pulse">약화 {player.debuffs.weak}</span>}
-            {player.debuffs?.vulnerable > 0 && <span className="bg-purple-800 text-white text-[10px] px-2 py-0.5 rounded-full border border-purple-500 animate-pulse">취약 {player.debuffs.vulnerable}</span>}
+            {player.buffs?.strength > 0 && <span title="근력: 피해량이 영구적으로 증가합니다." className="bg-red-900 text-red-100 text-[10px] px-2 py-0.5 rounded-full border border-red-500 shadow-md cursor-help">근력 +{player.buffs.strength}</span>}
+            {player.buffs?.dexterity > 0 && <span title="민첩: 방어도가 영구적으로 증가합니다." className="bg-blue-900 text-blue-100 text-[10px] px-2 py-0.5 rounded-full border border-blue-500 shadow-md cursor-help">민첩 +{player.buffs.dexterity}</span>}
+            {player.buffs?.thorns > 0 && <span title="가시: 피격 시 적에게 피해를 반사합니다." className="bg-emerald-900 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500 shadow-md cursor-help">가시 {player.buffs.thorns}</span>}
+            {player.debuffs?.poison > 0 && <span title="중독: 턴 시작 시 피해를 입습니다." className="bg-green-900 text-green-100 text-[10px] px-2 py-0.5 rounded-full border border-green-500 shadow-md cursor-help">중독 {player.debuffs.poison}</span>}
+            {player.debuffs?.weak > 0 && <span title="약화: 가하는 피해량이 감소합니다." className="bg-orange-800 text-white text-[10px] px-2 py-0.5 rounded-full border border-orange-500 animate-pulse cursor-help">약화 {player.debuffs.weak}</span>}
+            {player.debuffs?.vulnerable > 0 && <span title="취약: 받는 피해량이 증가합니다." className="bg-purple-800 text-white text-[10px] px-2 py-0.5 rounded-full border border-purple-500 animate-pulse cursor-help">취약 {player.debuffs.vulnerable}</span>}
           </div>
         </div>
 
@@ -123,23 +152,28 @@ export default function BattleScreen({
                   <div className={`${enemy.isBoss ? 'bg-red-600' : 'bg-red-500'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
                   <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-bold drop-shadow-md">{enemy.hp} / {enemy.maxHp}</span>
                 </div>
-                <div className="flex gap-1 h-5 md:h-6 mt-1 flex-wrap justify-center w-full">
-                  {enemy.debuffs?.poison > 0 && <span className="bg-green-900 text-green-400 text-[8px] px-1 rounded-full border border-green-500">중독 {enemy.debuffs.poison}</span>}
-                  {enemy.debuffs?.weak > 0 && <span className="bg-orange-800 text-white text-[8px] px-1 rounded-full border border-orange-500">약화 {enemy.debuffs.weak}</span>}
-                  {enemy.debuffs?.vulnerable > 0 && <span className="bg-purple-800 text-white text-[8px] px-1 rounded-full border border-purple-500">취약 {enemy.debuffs.vulnerable}</span>}
+                
+                <div className="flex gap-1 mt-1 flex-wrap justify-center w-full min-h-[16px]">
+                  {enemy.debuffs?.poison > 0 && <span title="중독: 턴 시작 시 피해를 입습니다." className="bg-green-900 text-green-400 text-[8px] px-1 rounded-full border border-green-500 cursor-help">중독 {enemy.debuffs.poison}</span>}
+                  {enemy.debuffs?.weak > 0 && <span title="약화: 가하는 피해량이 감소합니다." className="bg-orange-800 text-white text-[8px] px-1 rounded-full border border-orange-500 cursor-help">약화 {enemy.debuffs.weak}</span>}
+                  {enemy.debuffs?.vulnerable > 0 && <span title="취약: 받는 피해량이 증가합니다." className="bg-purple-800 text-white text-[8px] px-1 rounded-full border border-purple-500 cursor-help">취약 {enemy.debuffs.vulnerable}</span>}
+                  {enemy.buffs?.strength > 0 && <span title="근력: 피해량이 영구적으로 증가합니다." className="bg-red-900 text-red-100 text-[8px] px-1 rounded-full border border-red-500 cursor-help">근력 +{enemy.buffs.strength}</span>}
                 </div>
+                {enemy.passives?.length > 0 && (
+                  <div className="flex gap-1 mt-1 flex-wrap justify-center w-full">
+                    {enemy.passives.map(p => <span key={p.id} title={p.desc} className="bg-orange-900 text-orange-200 text-[8px] px-1 rounded-full border border-orange-500 truncate max-w-full cursor-help">{p.name}</span>)}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* 하단 패널 */}
       <div className="h-[30vh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-2 md:pb-4 relative w-full pt-4">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 text-center font-bold text-slate-300 text-[10px] md:text-sm mb-1 md:mb-2 z-10 border border-slate-700 bg-slate-800/80 px-3 py-1 rounded-full shadow-lg">손패: {hand.length} / {MAX_HAND_SIZE}장</div>
 
         <div className="flex w-full px-2 md:px-4 relative justify-center items-end h-full">
-          {/* 마나 & 뽑을 패 */}
           <div className="absolute left-0 md:left-4 bottom-4 flex flex-col items-center gap-2 md:gap-6 z-20">
             <div className="flex flex-col items-center">
               <div className="w-12 h-12 md:w-20 md:h-20 bg-blue-900 border-[3px] md:border-4 border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_20px_rgba(59,130,246,0.8)]">
@@ -153,7 +187,6 @@ export default function BattleScreen({
             </div>
           </div>
 
-          {/* 카드 핸드 */}
           <div className="flex justify-center items-end w-full px-16 h-full pb-4 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost;
@@ -181,7 +214,6 @@ export default function BattleScreen({
             })}
           </div>
 
-          {/* 턴 종료 & 무덤 */}
           <div className="absolute right-0 md:right-4 bottom-4 flex flex-col items-center gap-2 md:gap-6 z-20">
             <button onClick={() => setCombatState(prev => ({ ...prev, turn: 'ENEMY' }))} disabled={!isPlayerTurn} className={`py-2 px-3 md:py-3 md:px-6 rounded-full font-bold text-[10px] md:text-lg flex items-center gap-1 transition-all border ${isPlayerTurn ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-400' : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}`}>
               {isPlayerTurn ? '턴 종료' : '적 턴...'} <ArrowRightCircle className="w-3 h-3 md:w-5 md:h-5"/>
