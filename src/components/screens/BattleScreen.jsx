@@ -30,34 +30,39 @@ export default function BattleScreen({
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
 
   const handlePlayCard = (idx) => {
-    const card = hand[idx];
-    const hits = card.multiHit || 1;
-    const effectId = Date.now();
-    let effectName = null;
-    let duration = 800;
+  const card = hand[idx];
+  const hits = card.multiHit || 1; // 카드의 타수 가져오기
+  const effectId = Date.now();
+  const tier = card.rarity || 'common';
+  
+  let effectName = null;
+  // ✨ 타수에 비례하여 지속 시간을 동적으로 계산하여 연출이 잘리지 않게 함
+  let baseDuration = fastMode ? 300 : 600;
+  // 타격형 카드는 타수만큼 지속 시간을 늘려서 연속 피격감을 줌
+  let attackDuration = hits > 1 ? (fastMode ? hits * 100 : hits * 200) : baseDuration;
+  let duration = attackDuration;
 
-    if (card.id === 'furioso') { effectName = 'furioso'; duration = 1200 + (hits * 100); }
-    else if (card.id === 'meteor_fall') { effectName = 'meteor'; duration = 900; }
-    else if (card.id === 'snipe') { effectName = 'snipe'; duration = 800; }
-    else if (card.id === 'vampire_sword' || card.id === 'vampiric_strike' || card.id === 'soul_slash') { effectName = 'vampire'; duration = 800; }
-    else if (card.gamble) { effectName = 'gamble'; duration = 1000; }
-    else if (card.enemyPoison && card.enemyPoison > 0) { effectName = 'poison'; duration = 800; }
-    else if (card.block && card.block > 0 && !card.type.includes('attack')) { effectName = 'block'; duration = 600; }
-    else if (card.heal && card.heal > 0 && !card.type.includes('attack')) { effectName = 'heal'; duration = 700; }
-    else if (card.type.includes('attack')) {
-      if (card.rarity === 'mythic') { effectName = 'mythic'; duration = 800 + (hits * 150); }
-      else if (card.rarity === 'rare') { effectName = 'rare'; duration = 600 + (hits * 150); }
-      else if (card.rarity === 'special') { effectName = 'special'; duration = 700 + (hits * 150); }
-      else if (card.rarity === 'uncommon') { effectName = 'uncommon_attack'; duration = 500 + (hits * 150); }
-      else { effectName = 'common_attack'; duration = 400 + (hits * 150); }
-    }
+  // 1. 고유 연출이 필요한 특수 카드들
+  if (card.id === 'furioso') { effectName = 'furioso'; duration = fastMode ? (hits*80) : (hits*150); }
+  else if (card.id === 'meteor_fall') { effectName = 'meteor'; duration = 900; }
+  else if (card.id === 'snipe') { effectName = 'snipe'; duration = 800; }
+  // 2. 등급별/카드별 개별 연출 처리
+  else {
+     effectName = tier === 'common' ? 'common_hit' : tier + '_attack';
+  }
 
-    if (effectName) {
-      setPlayEffect({ id: effectId, name: effectName, hits });
-      setTimeout(() => setPlayEffect(prev => prev?.id === effectId ? null : prev), duration);
-    }
-    playCard(idx);
-  };
+  setPlayEffect({ 
+    id: effectId, 
+    name: effectName, 
+    tier: tier, 
+    cardId: card.id, // ✨ 고유 ID 전달로 개별 연출 활성화
+    hits // ✨ 타수 전달로 다단히트 연출 활성화
+  });
+  
+  // ✨ duration 동안 이펙트를 유지
+  setTimeout(() => setPlayEffect(prev => prev?.id === effectId ? null : prev), duration);
+  playCard(idx);
+};
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
 
@@ -75,9 +80,10 @@ export default function BattleScreen({
       `}</style>
 
       {/* ✨ 컴포넌트로 분리된 이펙트들 (코드가 엄청 깔끔해졌습니다!) */}
-      <TierEffects playEffect={playEffect} />
-      <StatusEffects playEffect={playEffect} />
-      <UniqueEffects playEffect={playEffect} />
+      <CommonEffects playEffect={playEffect} fastMode={fastMode} />
+    <TierEffects playEffect={playEffect} />
+    <StatusEffects playEffect={playEffect} />
+    <UniqueEffects playEffect={playEffect} />
 
       {/* 🩸 [적 공격 피격] 연출은 구조상 여기에 유지 (BattleScreen의 상태와 밀접함) */}
       {playEffect?.name === 'enemy_attack' && (
