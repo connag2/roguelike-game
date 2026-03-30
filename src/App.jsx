@@ -528,6 +528,8 @@ export default function App() {
     if (code === 'WELCOME') { creditsToAdd = 1000; msg = '웰컴 쿠폰: 1000 크레딧 획득!'; valid = true; } 
     else if (code === 'LEGENDARY') { unlockedToAdd = 'true_dragon_slayer'; msg = '전설 쿠폰: 진·용살검 해금!'; valid = true; } 
     else if (code === 'GEMS') { creditsToAdd = 500; msg = '보석 쿠폰: 500 크레딧 획득!'; valid = true; }
+    else if (code === '50STAGEAWARD') { creditsToAdd = 10000; msg = '50 스테이지 보상: 10,000 크레딧 획득!'; valid = true; }
+    else if (code === '75STAGEREWARD') { unlockedToAdd = 'furioso'; msg = '75 스테이지 보상: Furioso 카드 해금!'; valid = true; }
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
     const updatedCoupons = [...usedCoupons, code];
     const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
