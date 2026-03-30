@@ -1,93 +1,177 @@
 import React from 'react';
-import { BarChart2, Trophy, Skull, BookOpen, Coins, Star } from 'lucide-react';
+import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap } from 'lucide-react';
 import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
+import { RELIC_LIBRARY } from '../../constants/relicData';
 
 export default function Statistics({
-  maxStageReached,
-  normalCleared,
-  seenEnemies,
-  unlockedCards,
-  credits,
-  setGameState
+  maxStageReached, normalCleared, seenEnemies, unlockedCards, credits, unlockedRelics, gameStats, setGameState 
 }) {
-  const totalCards = CARD_LIBRARY?.length || 0;
-  const totalEnemies = (ENEMIES?.length || 0) + (NORMAL_BOSSES?.length || 0) + Object.keys(SPECIAL_BOSSES || {}).length;
+  // 수집률 계산
+  const totalCards = CARD_LIBRARY.length;
+  const cardCompletion = ((unlockedCards.length / totalCards) * 100).toFixed(1);
+
+  const totalEnemyCount = ENEMIES.length + NORMAL_BOSSES.length + Object.keys(SPECIAL_BOSSES).length;
+  const enemyCompletion = ((seenEnemies.length / totalEnemyCount) * 100).toFixed(1);
+
+  const relicCompletion = ((unlockedRelics.length / RELIC_LIBRARY.length) * 100).toFixed(1);
+
+  // 구버전 세이브 호환을 위한 안전한 스탯 객체
+  const safeGameStats = {
+    totalKills: gameStats?.totalKills || 0,
+    totalBossKills: gameStats?.totalBossKills || 0,
+    totalCreditsEarned: gameStats?.totalCreditsEarned || 0,
+    totalRuns: gameStats?.totalRuns || 0
+  };
+
+  // 🌟 업적 리스트 (조건을 만족하면 자동으로 해금됨)
+  const ACHIEVEMENTS = [
+    { id: 'first_blood', title: '첫 피', desc: '첫 번째 적을 처치하세요.', condition: safeGameStats.totalKills >= 1, icon: '🗡️', bg: 'from-red-900 to-red-700', border: 'border-red-500' },
+    { id: 'boss_slayer_1', title: '초보 사냥꾼', desc: '보스를 1회 처치하세요.', condition: safeGameStats.totalBossKills >= 1, icon: '👹', bg: 'from-orange-900 to-orange-700', border: 'border-orange-500' },
+    { id: 'boss_slayer_2', title: '숙련된 사냥꾼', desc: '보스를 10회 처치하세요.', condition: safeGameStats.totalBossKills >= 10, icon: '💀', bg: 'from-purple-900 to-purple-700', border: 'border-purple-500' },
+    { id: 'rich_1', title: '자본주의', desc: '누적 1,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 1000, icon: '💰', bg: 'from-yellow-900 to-yellow-700', border: 'border-yellow-500' },
+    { id: 'rich_2', title: '만수르', desc: '누적 10,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 10000, icon: '💎', bg: 'from-cyan-900 to-cyan-700', border: 'border-cyan-500' },
+    { id: 'stage_50', title: '반환점', desc: '50층에 도달하세요.', condition: maxStageReached >= 50, icon: '🚩', bg: 'from-emerald-900 to-emerald-700', border: 'border-emerald-500' },
+    { id: 'stage_100', title: '정복자', desc: '100층을 클리어하세요.', condition: normalCleared, icon: '👑', bg: 'from-amber-600 to-yellow-500', border: 'border-yellow-300' },
+    { id: 'relic_collector_1', title: '유물 수집가', desc: '유물을 5개 이상 해금하세요.', condition: unlockedRelics.length >= 5, icon: '🏺', bg: 'from-stone-800 to-stone-600', border: 'border-stone-400' },
+    { id: 'relic_collector_2', title: '인디아나 존스', desc: '모든 유물을 해금하세요.', condition: unlockedRelics.length >= RELIC_LIBRARY.length, icon: '🤠', bg: 'from-amber-900 to-orange-700', border: 'border-orange-400' },
+    { id: 'card_collector', title: '카드 마스터', desc: '모든 카드를 해금하세요.', condition: unlockedCards.length >= totalCards, icon: '🃏', bg: 'from-indigo-900 to-blue-700', border: 'border-blue-400' },
+    { id: 'veteran', title: '베테랑', desc: '게임을 10회 이상 시작하세요.', condition: safeGameStats.totalRuns >= 10, icon: '🎖️', bg: 'from-slate-800 to-slate-600', border: 'border-slate-400' },
+    { id: 'die_hard', title: '불굴의 의지', desc: '게임을 50회 이상 시작하세요.', condition: safeGameStats.totalRuns >= 50, icon: '🔥', bg: 'from-red-950 to-orange-800', border: 'border-red-500' },
+  ];
+
+  const unlockedAchievementsCount = ACHIEVEMENTS.filter(a => a.condition).length;
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-900 text-white p-6 md:p-10 relative">
-      <div className="flex justify-between items-center mb-10 w-full max-w-4xl mx-auto pt-10 md:pt-0">
-        <h2 className="text-3xl md:text-4xl font-black flex items-center gap-3 text-indigo-400">
-          <BarChart2 className="w-10 h-10"/> 게임 통계
-        </h2>
-        <button onClick={() => setGameState('MENU')} className="py-2 px-6 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold shadow-lg transition-all">메인으로</button>
+    <div className="flex flex-col items-center justify-start min-h-[100dvh] bg-slate-900 text-white p-4 md:p-8 pt-8 overflow-y-auto hide-scrollbar relative">
+      
+      {/* 상단 헤더 & 뒤로가기 버튼 고정 */}
+      <div className="w-full max-w-6xl flex justify-between items-center mb-8 shrink-0 relative z-10">
+        <h1 className="text-3xl md:text-5xl font-black text-indigo-400 drop-shadow-lg flex items-center gap-3">
+          <Activity className="w-8 h-8 md:w-12 md:h-12" /> 플레이어 기록실
+        </h1>
+        <button onClick={() => setGameState('MENU')} className="py-2 px-6 md:py-3 md:px-8 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-xl font-bold md:text-xl shadow-lg transition-all hover:-translate-y-1 flex items-center gap-2">
+          메인으로
+        </button>
+      </div>
+      
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10 shrink-0">
+        
+        {/* 좌측: 종합 요약 패널 */}
+        <div className="lg:col-span-4 bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-2xl flex flex-col gap-4">
+          <div className="flex items-center gap-3 border-b border-slate-600 pb-3 mb-2">
+            <Trophy className="w-8 h-8 text-yellow-400" />
+            <h2 className="text-2xl font-bold text-white">종합 요약</h2>
+          </div>
+          
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:border-yellow-500 transition-colors">
+            <div className="flex items-center gap-3"><Award className="text-yellow-400 w-6 h-6"/><span className="font-bold text-slate-300">최고 층수</span></div>
+            <span className="text-2xl font-black text-white">{maxStageReached} 층</span>
+          </div>
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:border-emerald-500 transition-colors">
+            <div className="flex items-center gap-3"><Crown className="text-emerald-400 w-6 h-6"/><span className="font-bold text-slate-300">정복(100층) 여부</span></div>
+            <span className={`text-lg font-black ${normalCleared ? 'text-emerald-400 drop-shadow' : 'text-slate-500'}`}>{normalCleared ? '완료' : '미달성'}</span>
+          </div>
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:border-blue-400 transition-colors">
+            <div className="flex items-center gap-3"><Gamepad2 className="text-blue-400 w-6 h-6"/><span className="font-bold text-slate-300">총 플레이 횟수</span></div>
+            <span className="text-2xl font-black text-white">{safeGameStats.totalRuns} 회</span>
+          </div>
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:border-red-500 transition-colors">
+            <div className="flex items-center gap-3"><Skull className="text-red-500 w-6 h-6"/><span className="font-bold text-slate-300">누적 처치 (적/보스)</span></div>
+            <span className="text-xl font-black text-white">{safeGameStats.totalKills} / {safeGameStats.totalBossKills}</span>
+          </div>
+          <div className="bg-slate-900 p-4 rounded-xl border border-slate-700 flex justify-between items-center hover:border-amber-400 transition-colors">
+            <div className="flex items-center gap-3"><Coins className="text-amber-400 w-6 h-6"/><span className="font-bold text-slate-300">누적 획득 크레딧</span></div>
+            <span className="text-2xl font-black text-yellow-300">{safeGameStats.totalCreditsEarned.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* 우측: 수집 달성률 패널 */}
+        <div className="lg:col-span-8 bg-slate-800 p-6 md:p-8 rounded-3xl border border-slate-700 shadow-2xl flex flex-col justify-center">
+          <div className="flex items-center gap-3 border-b border-slate-600 pb-3 mb-6">
+            <Target className="text-red-400 w-8 h-8" />
+            <h2 className="text-2xl font-bold text-white">수집 및 조우 달성률</h2>
+          </div>
+
+          <div className="space-y-8">
+             <div>
+               <div className="flex justify-between text-lg font-bold mb-2">
+                 <span className="flex items-center gap-2"><Zap className="w-5 h-5 text-indigo-400"/> 카드 도감 해금</span>
+                 <span className="text-indigo-300">{unlockedCards.length} / {totalCards} ({cardCompletion}%)</span>
+               </div>
+               <div className="w-full bg-slate-900 h-5 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+                 <div className="bg-gradient-to-r from-indigo-700 to-indigo-400 h-full transition-all duration-1000" style={{ width: `${cardCompletion}%` }}></div>
+               </div>
+             </div>
+             <div>
+               <div className="flex justify-between text-lg font-bold mb-2">
+                 <span className="flex items-center gap-2"><Star className="w-5 h-5 text-amber-400"/> 유물 도감 해금</span>
+                 <span className="text-amber-300">{unlockedRelics.length} / {RELIC_LIBRARY.length} ({relicCompletion}%)</span>
+               </div>
+               <div className="w-full bg-slate-900 h-5 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+                 <div className="bg-gradient-to-r from-amber-700 to-amber-400 h-full transition-all duration-1000" style={{ width: `${relicCompletion}%` }}></div>
+               </div>
+             </div>
+             <div>
+               <div className="flex justify-between text-lg font-bold mb-2">
+                 <span className="flex items-center gap-2"><Swords className="w-5 h-5 text-red-400"/> 조우한 몬스터</span>
+                 <span className="text-red-300">{seenEnemies.length} / {totalEnemyCount} ({enemyCompletion}%)</span>
+               </div>
+               <div className="w-full bg-slate-900 h-5 rounded-full overflow-hidden border border-slate-700 shadow-inner">
+                 <div className="bg-gradient-to-r from-red-700 to-red-400 h-full transition-all duration-1000" style={{ width: `${enemyCompletion}%` }}></div>
+               </div>
+             </div>
+          </div>
+        </div>
+
       </div>
 
-      <div className="w-full max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-6 overflow-y-auto hide-scrollbar pb-10">
-        {/* 1. 최고 도달 층수 */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-4 transform transition-all hover:scale-105">
-          <div className="p-4 bg-blue-900/50 rounded-full border border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]">
-            <Star className="w-8 h-8 text-blue-400"/>
+      {/* 하단: 업적 갤러리 */}
+      <div className="w-full max-w-6xl bg-slate-800 p-6 md:p-8 rounded-3xl border border-slate-700 shadow-2xl mb-10 shrink-0">
+        <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-slate-600 pb-4 mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <Flame className="text-orange-500 w-8 h-8" />
+            <h2 className="text-2xl font-bold text-white">업적 갤러리</h2>
           </div>
-          <div>
-            <p className="text-slate-400 text-sm font-bold mb-1">최고 도달 층수</p>
-            <p className="text-3xl font-black text-white">{maxStageReached} <span className="text-lg text-slate-500 font-normal">층</span></p>
-          </div>
-        </div>
-
-        {/* 2. 일반 모드 클리어 */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-4 transform transition-all hover:scale-105">
-          <div className={`p-4 rounded-full border ${normalCleared ? 'bg-yellow-900/50 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.4)]' : 'bg-slate-900/50 border-slate-600'}`}>
-            <Trophy className={`w-8 h-8 ${normalCleared ? 'text-yellow-400' : 'text-slate-600'}`}/>
-          </div>
-          <div>
-            <p className="text-slate-400 text-sm font-bold mb-1">일반 모드 (100층) 클리어</p>
-            <p className={`text-2xl font-black ${normalCleared ? 'text-yellow-400' : 'text-slate-500'}`}>{normalCleared ? '달성 완료!' : '미달성'}</p>
+          <div className="text-slate-400 font-bold bg-slate-900 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">
+            달성도: <span className="text-orange-400 text-xl">{unlockedAchievementsCount}</span> / {ACHIEVEMENTS.length}
           </div>
         </div>
 
-        {/* 3. 해금한 카드 (진척도) */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-4 sm:col-span-2 transform transition-all hover:scale-[1.02]">
-          <div className="p-4 bg-emerald-900/50 rounded-full border border-emerald-500">
-            <BookOpen className="w-8 h-8 text-emerald-400"/>
-          </div>
-          <div className="w-full pl-2">
-            <div className="flex justify-between items-end mb-2">
-              <p className="text-slate-300 font-bold">해금된 카드</p>
-              <p className="text-2xl font-black text-white">{unlockedCards.length} <span className="text-sm text-slate-500 font-bold">/ {totalCards}</span></p>
-            </div>
-            <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 relative">
-              <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${totalCards > 0 ? (unlockedCards.length / totalCards) * 100 : 0}%` }} />
-            </div>
-          </div>
-        </div>
-
-        {/* 4. 조우한 적 (진척도) */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-4 sm:col-span-2 transform transition-all hover:scale-[1.02]">
-          <div className="p-4 bg-red-900/50 rounded-full border border-red-500">
-            <Skull className="w-8 h-8 text-red-400"/>
-          </div>
-          <div className="w-full pl-2">
-            <div className="flex justify-between items-end mb-2">
-              <p className="text-slate-300 font-bold">도감 발견율 (적)</p>
-              <p className="text-2xl font-black text-white">{seenEnemies.length} <span className="text-sm text-slate-500 font-bold">/ {totalEnemies}</span></p>
-            </div>
-            <div className="w-full bg-slate-900 h-3 rounded-full overflow-hidden border border-slate-700 relative">
-              <div className="bg-red-500 h-full transition-all duration-1000" style={{ width: `${totalEnemies > 0 ? (seenEnemies.length / totalEnemies) * 100 : 0}%` }} />
-            </div>
-          </div>
-        </div>
-
-        {/* 5. 누적 크레딧 */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex items-center gap-4 sm:col-span-2 transform transition-all hover:scale-[1.02]">
-          <div className="p-4 bg-amber-900/50 rounded-full border border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]">
-            <Coins className="w-8 h-8 text-amber-400"/>
-          </div>
-          <div>
-            <p className="text-slate-400 text-sm font-bold mb-1">현재 보유 크레딧</p>
-            <p className="text-3xl font-black text-amber-400">{credits.toLocaleString()} <span className="text-lg text-slate-500 font-normal">C</span></p>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {ACHIEVEMENTS.map(ach => {
+            const isUnlocked = ach.condition;
+            return (
+              <div 
+                key={ach.id} 
+                className={`relative p-4 rounded-2xl border-2 transition-all duration-500 overflow-hidden group 
+                  ${isUnlocked ? `bg-gradient-to-br ${ach.bg} ${ach.border} shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:-translate-y-1 hover:shadow-xl` : 'bg-slate-900 border-slate-800 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'}`}
+              >
+                {/* 배경 장식 */}
+                {isUnlocked && <div className="absolute -right-4 -bottom-4 text-6xl opacity-20 pointer-events-none transform -rotate-12 group-hover:scale-110 transition-transform">{ach.icon}</div>}
+                
+                <div className="flex items-center gap-3 mb-2 relative z-10">
+                  <div className={`w-12 h-12 flex justify-center items-center text-3xl bg-black/30 rounded-xl shadow-inner border border-white/10 shrink-0`}>
+                    {isUnlocked ? ach.icon : '🔒'}
+                  </div>
+                  <div>
+                    <h3 className={`font-black text-base md:text-lg leading-tight ${isUnlocked ? 'text-white drop-shadow-md' : 'text-slate-400'}`}>
+                      {ach.title}
+                    </h3>
+                    <div className={`text-[10px] md:text-xs font-bold mt-0.5 ${isUnlocked ? 'text-amber-200' : 'text-slate-500'}`}>
+                      {isUnlocked ? '달성 완료!' : '미달성'}
+                    </div>
+                  </div>
+                </div>
+                
+                <p className={`text-xs mt-2 relative z-10 break-keep ${isUnlocked ? 'text-slate-100' : 'text-slate-500'}`}>
+                  {ach.desc}
+                </p>
+              </div>
+            );
+          })}
         </div>
       </div>
+
     </div>
   );
 }
