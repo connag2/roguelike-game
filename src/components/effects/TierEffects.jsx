@@ -3,15 +3,18 @@ import React from 'react';
 export default function TierEffects({ playEffect }) {
   if (!playEffect) return null;
 
-  // ✨ 타수(Hits)만큼 찰진 검기를 렌더링하는 함수 (여기서만 관리합니다)
-  const renderSlashes = (hits, colorClass) => {
+  const renderSlashes = (hits, colorClass, size = "thick") => {
+    // size가 thin이면 선을 가늘게 처리하여 화면 가림 방지
+    const heightClass = size === "thin" ? "h-[2px] md:h-[5px]" : "h-[20px] md:h-[40px]";
+    const opacityClass = size === "thin" ? "opacity-60" : "opacity-100";
+
     return Array.from({ length: hits }).map((_, i) => {
       const rot = (i % 2 === 0 ? 25 : -25) + (Math.random() * 20 - 10);
       return (
-        <div key={i} className="absolute inset-0 flex items-center justify-center pointer-events-none z-[10000]" style={{ transform: `rotate(${rot}deg)` }}>
+        <div key={i} className={`absolute inset-0 flex items-center justify-center pointer-events-none z-[10000] ${opacityClass}`} style={{ transform: `rotate(${rot}deg)` }}>
            <div 
-             className={`w-[150vw] h-[20px] md:h-[40px] ${colorClass} slash-line blur-[1px]`} 
-             style={{ animationDelay: `${i * 120}ms` }} 
+             className={`w-[120vw] ${heightClass} ${colorClass} slash-line blur-[0.5px]`} 
+             style={{ animationDelay: `${i * 100}ms` }} 
            />
         </div>
       );
@@ -20,11 +23,13 @@ export default function TierEffects({ playEffect }) {
 
   return (
     <>
-      {/* 💥 [일반/희귀] 타수 비례 다단히트 */}
-      {playEffect.name === 'common_attack' && renderSlashes(playEffect.hits, 'bg-white shadow-[0_0_15px_white]')}
-      {playEffect.name === 'uncommon_attack' && renderSlashes(playEffect.hits, 'bg-cyan-300 shadow-[0_0_15px_cyan]')}
+      {/* 💥 [일반 공격] 선을 아주 가늘게(thin)하고 투명도를 줌 */}
+      {playEffect.name === 'common_attack' && renderSlashes(playEffect.hits, 'bg-white/80 shadow-[0_0_8px_white]', "thin")}
       
-      {/* 💥 [전설] */}
+      {/* 💥 [희귀 공격] 약간 더 밝지만 여전히 가늘게 처리 */}
+      {playEffect.name === 'uncommon_attack' && renderSlashes(playEffect.hits, 'bg-cyan-400/80 shadow-[0_0_10px_cyan]', "thin")}
+      
+      {/* 아래 전설, 특수, 신화는 기존의 웅장함을 유지 */}
       {playEffect.name === 'rare' && (
         <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center mix-blend-screen">
           <div className="absolute inset-0 bg-yellow-600/10 border-[15px] border-yellow-400/60 animate-[ping_0.5s_ease-out_1]"></div>
@@ -33,7 +38,6 @@ export default function TierEffects({ playEffect }) {
         </div>
       )}
       
-      {/* 💥 [특수] */}
       {playEffect.name === 'special' && (
         <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
           <div className="absolute w-[150vw] h-[150vw] md:w-[100vw] md:h-[100vh] bg-[radial-gradient(circle,rgba(217,70,239,0.4)_0%,transparent_60%)] animate-pulse"></div>
@@ -42,7 +46,6 @@ export default function TierEffects({ playEffect }) {
         </div>
       )}
       
-      {/* 💥 [신화] */}
       {playEffect.name === 'mythic' && (
         <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center mix-blend-color-dodge">
           <div className="absolute inset-0 bg-red-950/40"></div>
