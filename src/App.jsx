@@ -3,7 +3,7 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
-import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
+import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 import { useBattle } from './hooks/useBattle'; 
@@ -251,7 +251,7 @@ export default function App() {
           if (intent.type.includes('attack')) {
             let dmg = intent.value + (e.buffs.strength || 0);
             if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-            if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); // ✨ 약화 3% 반영
+            if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
             for(let i=0; i<(intent.multi || 1); i++) {
               if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
               if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
@@ -325,7 +325,7 @@ export default function App() {
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
       let r = 'common';
-      if (roll < 0.05) r = 'rare'; // ✨ 전설 5%
+      if (roll < 0.05) r = 'rare'; 
       else if (roll < 0.3) r = 'uncommon';
       const cPool = pool.filter(c => c.rarity === r);
       const card = cPool[Math.floor(Math.random() * cPool.length)];
@@ -367,12 +367,46 @@ export default function App() {
   const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
   const handleExitGame = async () => { setToastMsg('저장 중...'); await saveGame(); if (window.require) window.close(); else setGameState('MENU'); };
 
+  // ✨ 신규: 프리미엄 뽑기 (전설 3% 확률 반영)
+  const handlePremiumGacha = () => {
+    if (credits < 100) { setToastMsg('크레딧이 부족합니다.'); return; }
+    const result = [];
+    setCredits(prev => prev - 100);
+    for (let i = 0; i < 3; i++) {
+      const roll = Math.random();
+      // 전설/특수 확률 3%로 하향 조정
+      let rarity = roll < 0.03 ? 'rare' : 'uncommon'; 
+      const pool = CARD_LIBRARY.filter(c => c.rarity === rarity || (rarity === 'rare' && c.rarity === 'special'));
+      const card = pool[Math.floor(Math.random() * pool.length)];
+      result.push(card);
+    }
+    setPremiumGachaResult(result);
+    saveGame({ credits: credits - 100 });
+  };
+
+  // ✨ 신규: 카드 추가 핸들러 (마나 카드 최대 2개 제한 적용)
+  const handleAddCard = (id) => {
+    const total = getTotalCards(tempDeckCounts);
+    const isManaCard = MANA_CARD_IDS.includes(id);
+    const currentManaCount = MANA_CARD_IDS.reduce((acc, mid) => acc + (tempDeckCounts[mid] || 0), 0);
+
+    if (total >= 20) { setToastMsg('덱은 최대 20장까지만 가능합니다.'); return; }
+    if ((tempDeckCounts[id] || 0) >= 3) { setToastMsg('동일 카드는 최대 3장까지 가능합니다.'); return; }
+    
+    // 마나 카드 제한 체크 (최대 2장)
+    if (isManaCard && currentManaCount >= 2) {
+      setToastMsg('마나 관련 카드는 덱에 최대 2장까지만 넣을 수 있습니다.');
+      return;
+    }
+
+    setTempDeckCounts({ ...tempDeckCounts, [id]: (tempDeckCounts[id] || 0) + 1 });
+  };
+
   return (
     <ErrorBoundary>
       <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
         {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
-        {/* ✨ '방법' 모달 (GameGuide 컴포넌트로 교체 완료) */}
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
         {deckImportModalOpen && (
@@ -388,15 +422,14 @@ export default function App() {
           </div>
         )}
 
-        {/* 화면 분기 */}
         {gameState === 'MENU' && (
           <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />
         )}
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} />}
         {gameState === 'STATISTICS' && <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />}
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} adminUnlockAllCards={() => {setUnlockedCards(CARD_LIBRARY.map(c=>c.id)); setToastMsg('완료');}} adminGiveMoney={() => {setCredits(credits+99999); setToastMsg('완료');}} adminUnlockAllRelics={() => {setUnlockedRelics(RELIC_LIBRARY.map(r=>r.id)); setToastMsg('완료');}} adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
-        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => {navigator.clipboard.writeText(btoa(encodeURIComponent(JSON.stringify(tempDeckCounts)))); setToastMsg('복사!');}} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} getCardDef={getCardDef} shopUpgrades={shopUpgrades} handleAddCard={(id) => { const total = getTotalCards(tempDeckCounts); if(total < 20 && (tempDeckCounts[id]||0) < 3) setTempDeckCounts({...tempDeckCounts, [id]: (tempDeckCounts[id]||0)+1}); }} handleRemoveCard={(id) => setTempDeckCounts({...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id]||0)-1)})} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
-        {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={getCardDef} handleGacha={handleGacha} handlePremiumGacha={() => {if(credits>=100){setCredits(credits-100); setPremiumGachaResult(shuffle(CARD_LIBRARY.filter(c=>['uncommon','rare','special'].includes(c.rarity))).slice(0,3));}}} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} selectPremiumCard={(card) => { if(!unlockedCards.includes(card.id)) setUnlockedCards([...unlockedCards, card.id]); setPremiumGachaResult(null); setToastMsg('획득!'); saveGame(); }} setTutorialModalOpen={setTutorialModalOpen} />}
+        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => {navigator.clipboard.writeText(btoa(encodeURIComponent(JSON.stringify(tempDeckCounts)))); setToastMsg('복사!');}} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} getCardDef={getCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id]||0)-1)})} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
+        {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={getCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} selectPremiumCard={(card) => { if(!unlockedCards.includes(card.id)) setUnlockedCards([...unlockedCards, card.id]); setPremiumGachaResult(null); setToastMsg('획득!'); saveGame(); }} setTutorialModalOpen={setTutorialModalOpen} />}
         {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard} playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10} setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} />}
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
