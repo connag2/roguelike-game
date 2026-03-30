@@ -50,11 +50,12 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   return (
     <div 
       onClick={onClick}
-      // 👇 수정된 부분: aspect-[3/4.2]를 지우고 aspect-[2/3]으로 더 길게 변경했습니다.
-      className={`border-2 p-2 md:p-2.5 rounded-xl flex flex-col relative transition-all ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] overflow-hidden shrink-0 shadow-2xl`}
+      // 👇 overflow-hidden 제거 및 내부 요소가 유연하게 배치되도록 flex 구조 최적화
+      className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 shadow-2xl box-border`}
     >
+      {/* 잠금 레이어를 카드의 둥근 모서리에 딱 맞게 inset-0으로 조정 */}
       {isLocked && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-900/60 pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
           <span className="text-yellow-500 font-black text-[10px] md:text-xs bg-slate-900/90 px-2 py-1 rounded border border-slate-700 shadow-xl">미해금</span>
         </div>
@@ -72,28 +73,29 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       </div>
       
-      <div className="text-center z-10 shrink-0 mt-1 md:mt-2 mb-1">
+      <div className="text-center z-10 shrink-0 mt-1 mb-1">
         <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight drop-shadow-md truncate break-keep ${nameColor}`}>{card.name}</h4>
       </div>
       
-      {/* 👇 설명칸이 버튼을 밀어내지 않도록 min-h-0 추가 */}
-      <div className="text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1.5 md:p-2 rounded relative flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden z-10 font-medium border border-white/5 w-full shadow-inner">
-        <div className="line-clamp-4 w-full break-keep px-0.5">{card.desc}</div>
+      {/* 👇 설명글이 길어도 하단 버튼을 밀어내지 않고 안에서 스크롤되도록 변경 */}
+      <div className="text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center overflow-y-auto hide-scrollbar z-10 font-medium border border-white/5 w-full shadow-inner mb-1">
+        <div className="w-full break-keep px-0.5">{card.desc}</div>
         <div className="mt-1 shrink-0"><Tooltip desc={card.desc} /></div>
       </div>
       
+      {/* 👇 mt-auto를 주어 항상 카드 가장 아래에 안정적으로 고정되게 처리 */}
       {count !== null && onAdd && onRemove && !isLocked && (
-        <div className="mt-2 flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1.5 py-1 md:px-2 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm">
+        <div className="mt-auto flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1 py-1 md:px-1.5 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm">
           <button 
             onClick={(e) => { e.stopPropagation(); onRemove(card.id); }} 
-            className={`w-5 h-5 md:w-7 md:h-7 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${count > 0 ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}
+            className={`w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${count > 0 ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}
           >
             -
           </button>
           <span className="w-4 text-center font-bold text-xs md:text-sm text-white">{count}</span>
           <button 
             onClick={(e) => { e.stopPropagation(); onAdd(card.id); }} 
-            className={`w-5 h-5 md:w-7 md:h-7 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${canAdd ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}
+            className={`w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${canAdd ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}
           >
             +
           </button>
