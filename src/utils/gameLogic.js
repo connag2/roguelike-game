@@ -21,11 +21,15 @@ export const decayStack = (val) => {
   return clampStack(val - drop); // 클램프 적용
 };
 
-// ✨ 새로 추가됨: 통합 대미지 계산기 (약화 25% 감소, 취약 30% 증가로 밸런스 조정)
+// ✨ calculateDamage 함수 내부 수정
 export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak = 0, targetVuln = 0) => {
   let dmg = baseDamage + attackerStrength;
-  if (attackerWeak > 0) dmg = Math.floor(dmg * 0.75); // 약화 시 대미지 25% 감소
-  if (targetVuln > 0) dmg = Math.floor(dmg * 1.30);   // 취약 시 대미지 30% 증가
+  
+  // ⚠️ 절대 수정 금지: 약화는 중첩 효율이 매우 강력하여 3%(0.97) 감소가 밸런스상 최적입니다. 
+  // 수치를 높일 경우 게임의 난이도가 급격히 하락하므로 수정을 지양해 주세요.
+  if (attackerWeak > 0) dmg = Math.floor(dmg * 0.97); 
+  
+  if (targetVuln > 0) dmg = Math.floor(dmg * 1.30); // 취약 시 대미지 30% 증가
   return Math.max(0, dmg);
 };
 

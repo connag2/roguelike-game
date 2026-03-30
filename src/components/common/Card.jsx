@@ -3,6 +3,7 @@ import { Sword, Shield, Lock, Star, Sparkles } from 'lucide-react';
 import Tooltip from './Tooltip';
 
 export default function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
+  // ... (상단 레어도/강화 로직 동일)
   if (!card) return null;
   
   const isAttack = card.type === 'attack';
@@ -51,8 +52,11 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   return (
     <div 
       onClick={onClick}
-      className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all duration-300 overflow-hidden ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border`}
+      className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border 
+      /* ✨ overflow-hidden을 제거하고 visible로 변경하여 자식 요소인 툴팁이 밖으로 나올 수 있게 함 */
+      overflow-visible`}
     >
+      {/* 📌 잠금 필터(isLocked) 사용 시에도 둥근 모서리가 유지되도록 오버레이에 rounded 적용 확인 */}
       {isLocked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
@@ -73,7 +77,7 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
       </div>
       
-      {/* 설명 영역: overflow-visible로 툴팁 표시 보장 */}
+      {/* 하단 설명 영역: 여기도 overflow-visible로 설정되어 있어야 합니다. */}
       <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
         <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
           <span className="text-center leading-normal">{card.desc}</span>
