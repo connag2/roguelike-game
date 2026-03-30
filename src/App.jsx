@@ -5,6 +5,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { HelpCircle } from 'lucide-react'; 
 
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
+import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 
 import MainMenu from './components/screens/MainMenu';
@@ -43,6 +44,7 @@ export default function App() {
   const [shopUpgrades, setShopUpgrades] = useState({ maxHp: 0, upgradedCards: [] });
   const [unlockedCards, setUnlockedCards] = useState(BASE_CARDS);
   const [deckCounts, setDeckCounts] = useState({ strike: 3, defend: 3, heavy_strike: 3, shield_bash: 3, heal: 2, mana_potion: 3, focus: 3 });
+  const [playerRelics, setPlayerRelics] = useState([]); // 💡 유물 상태 추가
   const [normalCleared, setNormalCleared] = useState(false);
   const [fastMode, setFastMode] = useState(false);
   const [maxStageReached, setMaxStageReached] = useState(1);
@@ -106,6 +108,7 @@ export default function App() {
       if (d.shopUpgrades) setShopUpgrades(d.shopUpgrades);
       if (d.unlockedCards) setUnlockedCards(d.unlockedCards);
       if (d.deckCounts) setDeckCounts(d.deckCounts);
+      if (d.playerRelics) setPlayerRelics(d.playerRelics);
       if (d.normalCleared !== undefined) setNormalCleared(d.normalCleared);
       if (d.fastMode !== undefined) setFastMode(d.fastMode);
       if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
@@ -115,7 +118,7 @@ export default function App() {
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, playerRelics, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -127,6 +130,23 @@ export default function App() {
     }
   }, [toastMsg]);
 
+  // 💡 전투 시작 시 발동하는 유물 효과 계산기
+  const applyStartCombatRelics = (basePlayer) => {
+    let p = { ...basePlayer };
+    playerRelics.forEach(r => {
+      if (['START_COMBAT', 'START_COMBAT_AND_TURN'].includes(r.effect?.type)) {
+        if (r.effect.strength) p.buffs.strength += r.effect.strength;
+        if (r.effect.dexterity) p.buffs.dexterity += r.effect.dexterity;
+        if (r.effect.block) p.block += r.effect.block;
+        if (r.effect.thorns) p.buffs.thorns += r.effect.thorns;
+      }
+      if (r.effect?.type === 'START_COMBAT_HEAL') {
+        p.hp = Math.min(p.maxHp, p.hp + r.effect.heal);
+      }
+    });
+    return p;
+  };
+
   const startBattle = (mode = 'NORMAL', stage = 1) => {
     let fullDeck = [];
     Object.keys(deckCounts).forEach(id => {
@@ -137,10 +157,13 @@ export default function App() {
     const enemies = generateEnemies(stage);
     updateSeenEnemies(enemies);
 
+    let initialPlayer = { hp: playerMaxHp, maxHp: playerMaxHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: { strength: 0, dexterity: 0, thorns: 0 } };
+    initialPlayer = applyStartCombatRelics(initialPlayer); // 전투 시작 유물 적용
+
     setCombatState({
       mode, stage, baseDeck: fullDeck, drawPile: shuffle(fullDeck),
       hand: [], discardPile: [], turn: 'PLAYER',
-      player: { hp: playerMaxHp, maxHp: playerMaxHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: { strength: 0, dexterity: 0, thorns: 0 } },
+      player: initialPlayer,
       enemies: enemies
     });
     
@@ -162,10 +185,13 @@ export default function App() {
     const newHand = [];
     for(let i=0; i<5; i++) if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
 
+    let refreshedPlayer = { ...newPlayer, block: 0, mana: newPlayer.maxMana, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: newPlayer.buffs };
+    refreshedPlayer = applyStartCombatRelics(refreshedPlayer); // 층 넘어갈 때 전투 시작 유물 적용
+
     setCombatState({
       ...combatState, stage: nextStage, enemies, baseDeck: newBaseDeck,
       drawPile: newDraw, hand: newHand, discardPile: [], turn: 'PLAYER',
-      player: { ...newPlayer, block: 0, mana: newPlayer.maxMana, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: newPlayer.buffs }
+      player: refreshedPlayer
     });
     setRewardCards([]);
     setGameState('BATTLE');
@@ -253,20 +279,62 @@ export default function App() {
       }
       newHand.splice(cardIndex, 1); newDiscard.push(card);
 
+      // 전투 승리 시 로직
       if (newEnemies.length === 0) {
         if (prev.stage >= maxStageReached) { setMaxStageReached(prev.stage + 1); saveGame({ maxStageReached: prev.stage + 1 }); }
-        let earned = 5 + prev.stage + (Math.floor(prev.stage / 5) * 5);
-        if (prev.stage % 5 === 0) earned += 15;
-        setCredits(credits + earned); saveGame({ credits: credits + earned });
         
-        const spec = (st) => {
-          if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
-          if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
-          if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
-          if (st === 100) return Math.random() < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+        // 💡 전투 종료 유물 적용
+        let extraCredits = 0;
+        let healAmount = 0;
+        playerRelics.forEach(r => {
+          if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
+          if (r.effect?.type === 'END_COMBAT_HEAL') healAmount += r.effect.heal;
+        });
+
+        let earned = 5 + prev.stage + (Math.floor(prev.stage / 5) * 5) + extraCredits;
+        if (prev.stage % 5 === 0) earned += 15;
+        p.hp = Math.min(p.maxHp, p.hp + healAmount);
+        
+        setCredits(credits + earned);
+
+        // 💡 5층마다 보스 클리어 시 유물 획득 (중복 불가)
+        let updatedRelics = [...playerRelics];
+        if (prev.stage % 5 === 0) {
+          const availableRelics = RELIC_LIBRARY.filter(r => !playerRelics.some(pr => pr.id === r.id));
+          if (availableRelics.length > 0) {
+            const dropped = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+            updatedRelics.push(dropped);
+            setPlayerRelics(updatedRelics);
+            setToastMsg(`🌟 ${dropped.name} 유물 획득!`);
+          }
+        }
+
+        saveGame({ credits: credits + earned, playerRelics: updatedRelics });
+        
+        // 💡 카드 보상 드랍 확률 조정 로직
+        const determineReward = (st) => {
+          const roll = Math.random();
+          // 25, 50, 75층 특수 룰: 1% 퓨리오소, 10% 보스카드
+          if ([25, 50, 75].includes(st)) {
+            if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
+            if (roll < 0.11) { // 1% ~ 11% 사이 = 10%
+              if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
+              if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
+              if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
+            }
+          }
+          // 100층 클리어 시
+          if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+          // 매 5층 보스: 10% 강력한 카드 드랍
+          if (st % 5 === 0 && ![25, 50, 75, 100].includes(st) && roll < 0.10) {
+            const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
+            return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
+          }
           return null;
         };
-        const reward = spec(prev.stage);
+
+        const reward = determineReward(prev.stage);
+
         if (reward) { setSpecialBossRewardCard(reward); setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600); }
         else if (prev.mode === 'NORMAL' && prev.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); }
         else setTimeout(() => setGameState('REWARDS'), 600);
@@ -328,8 +396,43 @@ export default function App() {
         p.block = 0; p.mana = p.maxMana;
         ['weak', 'vulnerable', 'poison'].forEach(k => p.debuffs[k] = decayStack(p.debuffs[k]));
         ['strength', 'dexterity', 'thorns'].forEach(k => p.buffs[k] = decayStack(p.buffs[k]));
+
+        // 💡 플레이어 턴 시작 유물 적용 로직
+        let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
+        playerRelics.forEach(r => {
+          if (r.effect?.type === 'START_TURN') {
+            if (r.effect.block) turnBlock += r.effect.block;
+            if (r.effect.draw) turnDraw += r.effect.draw;
+          }
+          if (r.effect?.type === 'START_TURN_ADVANCED') {
+            if (r.effect.block) turnBlock += r.effect.block;
+            if (r.effect.poison) newEnemies.forEach(e => e.debuffs.poison += r.effect.poison);
+            if (r.effect.selfDamage) selfDamage += r.effect.selfDamage;
+          }
+          if (r.effect?.type === 'START_TURN_CONDITION') {
+            if (r.effect.condition === 'HP_50' && p.hp <= p.maxHp / 2) {
+              if (r.effect.strength) turnStrength += r.effect.strength;
+            }
+          }
+          if (r.effect?.type === 'START_TURN_MYTHIC') {
+            turnMana += r.effect.mana;
+            turnDraw += r.effect.draw;
+            turnStrength += r.effect.strength;
+          }
+          if (r.effect?.type === 'START_COMBAT_AND_TURN') {
+            if (r.effect.selfDamage) selfDamage += r.effect.selfDamage;
+          }
+        });
+
+        p.hp -= selfDamage;
+        if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; } // 유물 데미지로 사망
+        p.block += turnBlock;
+        p.mana = p.maxMana + turnMana;
+        p.buffs.strength += turnStrength;
+
         let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
-        for (let i = 0; i < 5; i++) {
+        let drawAmount = 5 + turnDraw;
+        for (let i = 0; i < drawAmount; i++) {
           if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
           if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
           if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
@@ -457,7 +560,7 @@ export default function App() {
   const adminUnlockAllCards = () => { const allIds = CARD_LIBRARY.map(c => c.id); setUnlockedCards(allIds); saveGame({ unlockedCards: allIds }); setToastMsg('모든 카드 해금됨'); };
 
   const handleExport = () => {
-    const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons });
+    const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, playerRelics, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons });
     navigator.clipboard.writeText(btoa(encodeURIComponent(data)));
     setToastMsg('세이브 코드가 복사되었습니다!');
   };
@@ -507,7 +610,7 @@ export default function App() {
                     <ul className="list-disc list-inside space-y-1 text-slate-300">
                       <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
                       <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
-                      <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
+                      <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다. 보스를 깨면 랜덤 유물을 얻습니다.</li>
                     </ul>
                   </section>
                 )}
@@ -556,6 +659,7 @@ export default function App() {
                     if(data.shopUpgrades) setShopUpgrades(data.shopUpgrades);
                     if(data.unlockedCards) setUnlockedCards(data.unlockedCards);
                     if(data.deckCounts) setDeckCounts(data.deckCounts);
+                    if(data.playerRelics) setPlayerRelics(data.playerRelics);
                     if(data.normalCleared !== undefined) setNormalCleared(data.normalCleared);
                     if(data.maxStageReached !== undefined) setMaxStageReached(data.maxStageReached);
                     if(data.seenEnemies) setSeenEnemies(data.seenEnemies);
@@ -617,7 +721,7 @@ export default function App() {
             setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
             playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10}
             setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} 
-            viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck}
+            viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} // 💡 추가됨
           />
         )}
 
