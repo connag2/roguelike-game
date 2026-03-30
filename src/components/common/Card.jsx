@@ -7,16 +7,13 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   
   const isAttack = card.type === 'attack';
   const rarity = card.rarity || 'common';
-  
-  // 기본 테두리 설정
   let borderStyle = isAttack ? 'border-red-500' : 'border-blue-500';
-  
   let rarityShadow = '';
   let nameColor = 'text-white';
   let tagUi = null;
   let bgStyle = 'bg-slate-900';
   
-  // 레어도별 스타일링
+  // 레어도 스타일 설정
   if (rarity === 'uncommon') { 
     rarityShadow = 'shadow-[0_0_12px_rgba(34,211,238,0.4)]'; 
     nameColor = 'text-cyan-300';
@@ -40,14 +37,11 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
 
-  // 강화 효과 적용
   if (card.isUpgraded) {
     borderStyle = 'border-yellow-400 ring-2 ring-yellow-400/50'; 
     rarityShadow = 'shadow-[0_0_25px_rgba(250,204,21,0.6)] animate-pulse'; 
     nameColor = 'text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]'; 
-    if (rarity !== 'mythic' && rarity !== 'special' && rarity !== 'rare') {
-      bgStyle = 'bg-gradient-to-br from-slate-900 to-yellow-900/30';
-    }
+    if (rarity !== 'mythic' && rarity !== 'special' && rarity !== 'rare') bgStyle = 'bg-gradient-to-br from-slate-900 to-yellow-900/30';
   }
 
   const cardStatusStyle = isLocked 
@@ -66,37 +60,20 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       )}
       
-      {/* 상단 코스트 및 뱃지 */}
       <div className="z-10 relative flex justify-between items-start shrink-0">
-        <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">
-          코스트 {card.cost}
-        </span>
-        
+        <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
         <div className="flex flex-col items-end gap-1">
           {tagUi}
-          {card.isUpgraded && (
-            <span className="text-[9px] md:text-[10px] text-yellow-900 font-black bg-yellow-400 px-1 rounded shadow-[0_0_10px_rgba(250,204,21,0.8)] flex items-center gap-0.5">
-              <Sparkles className="w-2 h-2" />
-              +{card.upgradeLevel}
-            </span>
-          )}
-          
-          {isAttack ? (
-            <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-red-400'}`}/>
-          ) : (
-            <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-blue-400'}`}/>
-          )}
+          {card.isUpgraded && <span className="text-[9px] md:text-[10px] text-yellow-900 font-black bg-yellow-400 px-1 rounded shadow-[0_0_10px_rgba(250,204,21,0.8)] flex items-center gap-0.5"><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
+          {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-blue-400'}`}/>}
         </div>
       </div>
       
-      {/* 카드 이름 */}
       <div className="text-center z-10 shrink-0 mt-1 mb-1">
-        <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>
-          {card.name.split(' +')[0]} 
-        </h4>
+        <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
       </div>
       
-      {/* ✨ 설명 영역: overflow-visible로 설정하여 툴팁이 잘리지 않게 함 */}
+      {/* 설명 영역: overflow-visible로 툴팁 표시 보장 */}
       <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
         <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
           <span className="text-center leading-normal">{card.desc}</span>
@@ -104,22 +81,11 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       </div>
       
-      {/* 덱 빌딩 버튼 */}
       {count !== null && onAdd && onRemove && !isLocked && (
         <div className="mt-auto flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1 py-1 md:px-1.5 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm overflow-visible">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onRemove(card.id); }} 
-            className={`w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${count > 0 ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}
-          >
-            -
-          </button>
+          <button onClick={(e) => { e.stopPropagation(); onRemove(card.id); }} className={`w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${count > 0 ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}>-</button>
           <span className="w-4 text-center font-bold text-xs md:text-sm text-white">{count}</span>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onAdd(card.id); }} 
-            className={`w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${canAdd ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}
-          >
-            +
-          </button>
+          <button onClick={(e) => { e.stopPropagation(); onAdd(card.id); }} className={`w-5 h-5 md:w-6 md:h-6 flex justify-center items-center rounded-full font-bold text-sm md:text-base transition-colors ${canAdd ? 'bg-slate-600 hover:bg-slate-500 text-white' : 'bg-slate-800 text-slate-600'}`}>+</button>
         </div>
       )}
     </div>
