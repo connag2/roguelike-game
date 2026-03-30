@@ -134,7 +134,7 @@ export default function App() {
 
   const applyStartCombatRelics = (basePlayer, activeRelics) => {
     let p = { ...basePlayer };
-    activeRelics.forEach(r => {
+    (activeRelics || []).forEach(r => {
       if (['START_COMBAT', 'START_COMBAT_AND_TURN'].includes(r.effect?.type)) {
         if (r.effect.strength) p.buffs.strength += r.effect.strength;
         if (r.effect.dexterity) p.buffs.dexterity += r.effect.dexterity;
@@ -152,7 +152,7 @@ export default function App() {
       const def = getCardDef(id, shopUpgrades);
       for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
     });
-    const playerMaxHp = 100 + (shopUpgrades.maxHp * 15);
+    const basePlayerHp = 100 + (shopUpgrades.maxHp * 15);
     const enemies = generateEnemies(stage);
     updateSeenEnemies(enemies);
 
@@ -163,7 +163,7 @@ export default function App() {
     }
     setPlayerRelics(initialRelics);
 
-    let initialPlayer = { hp: playerMaxHp, maxHp: playerMaxHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: { strength: 0, dexterity: 0, thorns: 0 } };
+    let initialPlayer = { hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: { strength: 0, dexterity: 0, thorns: 0 } };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
 
     const newStats = { ...gameStats, totalRuns: (gameStats?.totalRuns || 0) + 1 };
@@ -207,7 +207,7 @@ export default function App() {
   const updateSeenEnemies = (list) => {
     const newSeen = [...seenEnemies];
     let changed = false;
-    list.forEach(e => { if (!newSeen.includes(e.template.name)) { newSeen.push(e.template.name); changed = true; } });
+    list.forEach(e => { if (!newSeen.includes(e.template?.name)) { newSeen.push(e.template?.name); changed = true; } });
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
@@ -281,76 +281,82 @@ export default function App() {
       }
       newHand.splice(cardIndex, 1); newDiscard.push(card);
 
+      // 전투 승리 처리
       if (newEnemies.length === 0) {
-        const isSpecialBoss = [25, 50, 75, 100].includes(prev.stage);
-        const isNormalBoss = prev.stage % 5 === 0 && !isSpecialBoss;
-        
-        let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
-        if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
-        
-        if (prev.stage >= maxStageReached) setMaxStageReached(prev.stage + 1);
-        
-        let extraCredits = 0, healAmount = 0;
-        playerRelics.forEach(r => {
-          if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
-          if (r.effect?.type === 'END_COMBAT_HEAL') healAmount += r.effect.heal;
-        });
+        try {
+          const isSpecialBoss = [25, 50, 75, 100].includes(prev.stage);
+          const isNormalBoss = prev.stage % 5 === 0 && !isSpecialBoss;
+          
+          let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
+          if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
+          
+          if (prev.stage >= maxStageReached) setMaxStageReached(prev.stage + 1);
+          
+          let extraCredits = 0, healAmount = 0;
+          (playerRelics || []).forEach(r => {
+            if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
+            if (r.effect?.type === 'END_COMBAT_HEAL') healAmount += r.effect.heal;
+          });
 
-        let earned = 5 + prev.stage + (Math.floor(prev.stage / 5) * 5) + extraCredits;
-        if (isNormalBoss || isSpecialBoss) earned += 15;
-        p.hp = Math.min(p.maxHp, p.hp + healAmount);
-        
-        newStats.totalCreditsEarned = (newStats.totalCreditsEarned || 0) + earned;
-        setGameStats(newStats);
-        setCredits(credits + earned);
+          let earned = 5 + prev.stage + (Math.floor(prev.stage / 5) * 5) + extraCredits;
+          if (isNormalBoss || isSpecialBoss) earned += 15;
+          p.hp = Math.min(p.maxHp, p.hp + healAmount);
+          
+          newStats.totalCreditsEarned = (newStats.totalCreditsEarned || 0) + earned;
+          setGameStats(newStats);
+          setCredits(credits + earned);
 
-        let relicDropChance = 0.05;
-        if (isNormalBoss) relicDropChance = 0.20;
-        if (isSpecialBoss) relicDropChance = 0.50;
+          // 🌟 유물 드랍 확률 (일반 5%, 보스 20%, 특수 보스 50%) 🌟
+          let relicDropChance = 0.05;
+          if (isNormalBoss) relicDropChance = 0.20;
+          if (isSpecialBoss) relicDropChance = 0.50;
 
-        let droppedRelic = null;
-        if (Math.random() < relicDropChance) {
-          const availableRelics = RELIC_LIBRARY.filter(r => !playerRelics.some(pr => pr.id === r.id));
-          if (availableRelics.length > 0) {
-            droppedRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
-          }
-        }
-
-        const determineReward = (st) => {
-          const roll = Math.random();
-          if ([25, 50, 75].includes(st)) {
-            if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
-            if (roll < 0.11) {
-              if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
-              if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
-              if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
+          let droppedRelic = null;
+          if (Math.random() < relicDropChance) {
+            const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
+            if (availableRelics.length > 0) {
+              droppedRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
             }
           }
-          if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
-          if (isNormalBoss && roll < 0.10) {
-            const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
-            return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
+
+          // 🌟 보상 카드 결정 (100층 FURIOSO 확률 25% 완벽 적용) 🌟
+          const determineReward = (st) => {
+            const roll = Math.random();
+            if ([25, 50, 75].includes(st)) {
+              if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
+              if (roll < 0.11) {
+                if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
+                if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
+                if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
+              }
+            }
+            if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+            if (isNormalBoss && roll < 0.10) {
+              const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
+              return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
+            }
+            return null;
+          };
+
+          const spReward = determineReward(prev.stage);
+          if (spReward) setSpecialBossRewardCard(spReward);
+
+          saveGame({ credits: credits + earned, maxStageReached: prev.stage >= maxStageReached ? prev.stage + 1 : maxStageReached, gameStats: newStats });
+          
+          if (droppedRelic) {
+            setPendingRelicReward(droppedRelic);
+            setTimeout(() => setGameState('RELIC_REWARD'), 600);
+          } else {
+            if (spReward) setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
+            else if (prev.mode === 'NORMAL' && prev.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); }
+            else setTimeout(() => setGameState('REWARDS'), 600);
           }
-          return null;
-        };
-
-        const spReward = determineReward(prev.stage);
-        if (spReward) setSpecialBossRewardCard(spReward);
-
-        saveGame({ credits: credits + earned, maxStageReached: prev.stage >= maxStageReached ? prev.stage + 1 : maxStageReached, gameStats: newStats });
-        
-        const nextState = { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] };
-
-        if (droppedRelic) {
-          setPendingRelicReward(droppedRelic);
-          setTimeout(() => setGameState('RELIC_REWARD'), 600);
-        } else {
-          if (spReward) setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-          else if (prev.mode === 'NORMAL' && prev.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); }
-          else setTimeout(() => setGameState('REWARDS'), 600);
+        } catch (err) {
+          console.error("보상 처리 중 에러 발생:", err);
+          setTimeout(() => setGameState('REWARDS'), 600); // 에러 발생 시 멈추지 않고 일반 보상으로 패스
         }
         
-        return nextState;
+        return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] };
       }
       return { ...prev, player: p, enemies: newEnemies, hand: newHand, discardPile: newDiscard, drawPile: newDraw };
     });
@@ -359,10 +365,10 @@ export default function App() {
   const handleRelicRewardClaim = () => {
     if (!pendingRelicReward) return;
     
-    const updatedRelics = [...playerRelics, pendingRelicReward];
+    const updatedRelics = [...(playerRelics || []), pendingRelicReward];
     setPlayerRelics(updatedRelics);
     
-    let newUnlocked = [...unlockedRelics];
+    let newUnlocked = [...(unlockedRelics || [])];
     if (!newUnlocked.includes(pendingRelicReward.id)) newUnlocked.push(pendingRelicReward.id);
     
     setUnlockedRelics(newUnlocked);
@@ -424,7 +430,7 @@ export default function App() {
         ['strength', 'dexterity', 'thorns'].forEach(k => p.buffs[k] = decayStack(p.buffs[k]));
 
         let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
-        playerRelics.forEach(r => {
+        (playerRelics || []).forEach(r => {
           if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
           if (r.effect?.type === 'START_TURN_ADVANCED') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.poison) newEnemies.forEach(e => e.debuffs.poison += r.effect.poison); if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
           if (r.effect?.type === 'START_TURN_CONDITION' && r.effect.condition === 'HP_50' && p.hp <= p.maxHp / 2) { if (r.effect.strength) turnStrength += r.effect.strength; }
@@ -534,12 +540,25 @@ export default function App() {
     saveGame({ usedCoupons: updatedCoupons, unlockedCards: updatedUnlocked, credits: credits + creditsToAdd });
   };
 
-  // ✨ 관리자 권한 기능 확대 ✨
+  // 관리자 권한 기능
   const handleAdminUnlock = () => { if (adminCodeInput === '20090324') { setIsAdminUnlocked(true); setToastMsg('개발자 권한 활성화됨'); } else setToastMsg('잘못된 코드입니다.'); };
   const adminGiveMoney = () => { const nextCredits = credits + 99999; setCredits(nextCredits); saveGame({ credits: nextCredits }); setToastMsg('99,999 크레딧 지급됨'); };
   const adminUnlockAllCards = () => { const allIds = CARD_LIBRARY.map(c => c.id); setUnlockedCards(allIds); saveGame({ unlockedCards: allIds }); setToastMsg('모든 카드 해금됨'); };
   const adminUnlockAllRelics = () => { const allIds = RELIC_LIBRARY.map(r => r.id); setUnlockedRelics(allIds); saveGame({ unlockedRelics: allIds }); setToastMsg('모든 유물 해금됨'); };
   const adminClearSave = () => { localStorage.removeItem('roguelike_tactics_save'); window.location.reload(); };
+  
+  const adminCheatStats = () => { 
+    setShopUpgrades({...shopUpgrades, maxHp: 600}); 
+    setToastMsg('관리자 권한: 최대 체력이 9000 증가했습니다!'); 
+    saveGame({ shopUpgrades: {...shopUpgrades, maxHp: 600} });
+  };
+
+  const handleWarp = (targetStage) => {
+    if (getTotalCards() !== 20) { setToastMsg('덱이 20장이 아닙니다. 먼저 덱을 20장으로 맞춰주세요.'); return; }
+    setWarpStage(targetStage);
+    startBattle('NORMAL', targetStage);
+    setToastMsg(`관리자 권한: ${targetStage}층으로 워프했습니다!`);
+  };
 
   const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
   const handleDeckExport = () => { const data = JSON.stringify(tempDeckCounts); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('현재 덱이 복사되었습니다!'); };
@@ -566,24 +585,18 @@ export default function App() {
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
             <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
               <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-                <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
-                  <HelpCircle className="w-8 h-8" /> 
-                  {gameState === 'MENU' ? "게임 가이드" : gameState === 'BATTLE' ? "전투 가이드" : gameState === 'SHOP' ? "상점 이용 가이드" : gameState === 'DECK_BUILDING' ? "덱 구성 가이드" : (gameState === 'ENCYCLOPEDIA' || gameState === 'MONSTER_DEX') ? "도감 가이드" : "도움말"}
-                </h2>
+                <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2"><HelpCircle className="w-8 h-8" /> 게임 가이드</h2>
                 <button onClick={() => setTutorialModalOpen(false)} className="text-slate-400 hover:text-white text-3xl font-bold transition-colors">×</button>
               </div>
               <div className="space-y-6 text-slate-200 text-sm md:text-base leading-relaxed">
-                {(gameState === 'MENU' || gameState === 'BATTLE') && (
-                  <section>
-                    <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
-                    <ul className="list-disc list-inside space-y-1 text-slate-300">
-                      <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
-                      <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
-                      <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
-                    </ul>
-                  </section>
-                )}
-
+                <section>
+                  <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">⚔️ 기본 전투 규칙</h3>
+                  <ul className="list-disc list-inside space-y-1 text-slate-300">
+                    <li>매 턴 카드를 5장씩 뽑으며 마나는 3으로 충전됩니다.</li>
+                    <li><b>방어도:</b> 적의 공격을 막아주지만, 내 턴이 시작될 때 0으로 초기화됩니다.</li>
+                    <li><b>몬스터:</b> 5층마다 보스가 등장하며, 25/50/75/100층은 전설 보스가 등장합니다.</li>
+                  </ul>
+                </section>
                 <section className="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mt-6">
                   <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
@@ -612,12 +625,7 @@ export default function App() {
               <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm mb-4 outline-none focus:border-indigo-400" placeholder="여기에 복사한 덱 코드를 붙여넣으세요..." value={deckImportText} onChange={e => setDeckImportText(e.target.value)} />
               <div className="flex gap-3">
                 <button onClick={() => setDeckImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition-colors">취소</button>
-                <button onClick={() => {
-                  try {
-                    const data = JSON.parse(decodeURIComponent(atob(deckImportText.trim())));
-                    setTempDeckCounts(data); setToastMsg('덱을 성공적으로 불러왔습니다!'); setDeckImportModalOpen(false); setDeckImportText('');
-                  } catch(e) { setToastMsg('잘못된 덱 코드입니다.'); }
-                }} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors shadow-lg">불러오기</button>
+                <button onClick={() => { try { const data = JSON.parse(decodeURIComponent(atob(deckImportText.trim()))); setTempDeckCounts(data); setToastMsg('덱을 성공적으로 불러왔습니다!'); setDeckImportModalOpen(false); setDeckImportText(''); } catch(e) { setToastMsg('잘못된 덱 코드입니다.'); } }} className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors shadow-lg">불러오기</button>
               </div>
             </div>
           </div>
@@ -630,21 +638,7 @@ export default function App() {
               <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white text-sm mb-4 outline-none focus:border-emerald-400" placeholder="여기에 복사한 세이브 코드를 붙여넣으세요..." value={importText} onChange={e => setImportText(e.target.value)} />
               <div className="flex gap-3">
                 <button onClick={() => setImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-bold transition-colors">취소</button>
-                <button onClick={() => {
-                  try {
-                    const data = JSON.parse(decodeURIComponent(atob(importText.trim())));
-                    if(data.credits !== undefined) setCredits(data.credits);
-                    if(data.shopUpgrades) setShopUpgrades(data.shopUpgrades);
-                    if(data.unlockedCards) setUnlockedCards(data.unlockedCards);
-                    if(data.deckCounts) setDeckCounts(data.deckCounts);
-                    if(data.playerRelics) setPlayerRelics(data.playerRelics);
-                    if(data.normalCleared !== undefined) setNormalCleared(data.normalCleared);
-                    if(data.maxStageReached !== undefined) setMaxStageReached(data.maxStageReached);
-                    if(data.seenEnemies) setSeenEnemies(data.seenEnemies);
-                    if(data.usedCoupons) setUsedCoupons(data.usedCoupons);
-                    saveGame(data); setToastMsg('세이브를 성공적으로 불러왔습니다!'); setImportModalOpen(false); setImportText('');
-                  } catch(e) { setToastMsg('잘못된 세이브 데이터입니다.'); }
-                }} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition-colors shadow-lg">불러오기</button>
+                <button onClick={() => { try { const data = JSON.parse(decodeURIComponent(atob(importText.trim()))); if(data.credits !== undefined) setCredits(data.credits); if(data.shopUpgrades) setShopUpgrades(data.shopUpgrades); if(data.unlockedCards) setUnlockedCards(data.unlockedCards); if(data.deckCounts) setDeckCounts(data.deckCounts); if(data.playerRelics) setPlayerRelics(data.playerRelics); if(data.normalCleared !== undefined) setNormalCleared(data.normalCleared); if(data.maxStageReached !== undefined) setMaxStageReached(data.maxStageReached); if(data.seenEnemies) setSeenEnemies(data.seenEnemies); if(data.usedCoupons) setUsedCoupons(data.usedCoupons); saveGame(data); setToastMsg('세이브를 성공적으로 불러왔습니다!'); setImportModalOpen(false); setImportText(''); } catch(e) { setToastMsg('잘못된 세이브 데이터입니다.'); } }} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition-colors shadow-lg">불러오기</button>
               </div>
             </div>
           </div>
@@ -662,17 +656,13 @@ export default function App() {
           <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />
         )}
 
-        {/* ✨ 설정(Settings) 창에 관리자 권한 기능 추가 전달 ✨ */}
         {gameState === 'SETTINGS' && (
           <Settings 
-            setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame}
-            handleExport={handleExport} setImportModalOpen={setImportModalOpen} 
-            couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon}
-            handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput}
-            setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={handleAdminUnlock}
-            adminUnlockAllCards={adminUnlockAllCards} adminGiveMoney={adminGiveMoney}
-            adminUnlockAllRelics={adminUnlockAllRelics} adminClearSave={adminClearSave} // ✨ 새 기능 추가됨
-            warpStage={warpStage} setWarpStage={setWarpStage} startBattle={startBattle} getTotalCards={getTotalCards} normalCleared={normalCleared}
+            setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} 
+            couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} 
+            adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={handleAdminUnlock} adminUnlockAllCards={adminUnlockAllCards} 
+            adminGiveMoney={adminGiveMoney} adminUnlockAllRelics={adminUnlockAllRelics} adminClearSave={adminClearSave} adminCheatStats={adminCheatStats}
+            handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage}
           />
         )}
 

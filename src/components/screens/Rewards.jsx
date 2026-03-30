@@ -18,9 +18,46 @@ export default function Rewards({
   getCardDef,
   shopUpgrades,
   specialBossRewardCard,
-  handleSpecialBossRewardClaim
+  handleSpecialBossRewardClaim,
+  pendingRelicReward,         // ✨ 유물 관련 상태 추가
+  handleRelicRewardClaim      // ✨ 유물 획득 핸들러 추가
 }) {
   if (!combatState) return null;
+
+  // 🌟 0. 빠빰! 유물 발견 보상 화면 (최우선 표시, 취소 불가)
+  if (gameState === 'RELIC_REWARD' && pendingRelicReward) {
+    let rColor = 'text-slate-400';
+    let rBorder = 'border-slate-400';
+    if (pendingRelicReward.rarity === 'uncommon') { rColor = 'text-cyan-400'; rBorder = 'border-cyan-400'; }
+    if (pendingRelicReward.rarity === 'rare') { rColor = 'text-yellow-400'; rBorder = 'border-yellow-400'; }
+    if (pendingRelicReward.rarity === 'special') { rColor = 'text-fuchsia-400'; rBorder = 'border-fuchsia-400'; }
+    if (pendingRelicReward.rarity === 'mythic') { rColor = 'text-red-500 font-black'; rBorder = 'border-red-500'; }
+
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative overflow-hidden">
+        {/* 뒤에 번쩍이는 후광 이펙트 (빠빰 애니메이션 효과) */}
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-[100px] pointer-events-none animate-pulse`}></div>
+
+        <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-amber-500 mb-12 animate-[bounce_1s_ease-in-out_infinite] drop-shadow-[0_0_20px_rgba(251,191,36,0.8)]">
+          🌟 유물 발견! 🌟
+        </h1>
+
+        {/* 유물 클릭 시 바로 획득! (취소 불가) */}
+        <div 
+          onClick={handleRelicRewardClaim} 
+          className={`z-10 bg-slate-800/80 backdrop-blur-md p-8 md:p-10 rounded-3xl border-4 ${rBorder} shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-sm w-full text-center transform transition-all duration-300 hover:scale-110 cursor-pointer animate-[scale-in_0.5s_ease-out]`}
+        >
+          <h2 className={`text-3xl md:text-4xl mb-6 ${rColor} drop-shadow-lg`}>{pendingRelicReward.name}</h2>
+          <p className="text-slate-200 text-base md:text-lg bg-black/50 p-6 rounded-xl border border-white/10 shadow-inner break-keep leading-relaxed">
+            {pendingRelicReward.desc}
+          </p>
+          <div className="mt-8 text-amber-400 font-bold animate-pulse text-sm">
+            클릭하여 장착하기 (취소 불가)
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 1. 기본 보상 선택 화면
   if (gameState === 'REWARDS') {
@@ -52,7 +89,7 @@ export default function Rewards({
             }
             setRewardCards(selected);
             setGameState('REWARD_CARD');
-          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl">
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1">
             <PlusCircle className="w-12 h-12 md:w-16 md:h-16 mb-4 text-indigo-400"/>
             <span className="text-xl md:text-2xl font-bold">카드 추가</span>
           </button>
@@ -62,12 +99,12 @@ export default function Rewards({
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
             startNextStage(p, combatState.baseDeck);
-          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl">
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1">
             <Heart className="w-12 h-12 md:w-16 md:h-16 mb-4 text-green-400"/>
             <span className="text-xl md:text-2xl font-bold">회복 & 정화</span>
           </button>
 
-          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl">
+          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1">
             <Trash2 className="w-12 h-12 md:w-16 md:h-16 mb-4 text-red-400"/>
             <span className="text-xl md:text-2xl font-bold">카드 삭제</span>
           </button>
@@ -98,7 +135,7 @@ export default function Rewards({
               <h3 className="text-xl font-bold mb-6">덱에 추가하시겠습니까?</h3>
               <div className="w-36 h-48 mb-8"><Card card={confirmSelection.card} /></div>
               <div className="flex gap-4 w-full">
-                <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 rounded-lg font-bold flex-1">취소</button>
+                <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 transition-colors rounded-lg font-bold flex-1">취소</button>
                 <button onClick={() => {
                   const newDeck = [...combatState.baseDeck, { ...confirmSelection.card }];
                   if (confirmSelection.isNew) {
@@ -108,7 +145,7 @@ export default function Rewards({
                   }
                   setConfirmSelection(null);
                   startNextStage(combatState.player, newDeck);
-                }} className="px-6 py-3 bg-indigo-600 rounded-lg font-bold flex-1 shadow-lg shadow-indigo-500/30">추가</button>
+                }} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-lg font-bold flex-1 shadow-lg shadow-indigo-500/30">추가</button>
               </div>
             </div>
           </div>
@@ -123,7 +160,7 @@ export default function Rewards({
       <div className="flex flex-col min-h-[100dvh] bg-slate-900 text-white p-4 md:p-10 relative">
         <div className="flex justify-between items-center mb-6 w-full max-w-6xl mx-auto px-2">
           <h2 className="text-2xl md:text-3xl font-bold text-red-400">삭제할 카드를 선택하세요</h2>
-          <button onClick={() => setGameState('REWARDS')} className="py-2 px-4 bg-slate-700 rounded-lg font-bold border border-slate-500 shadow-md">돌아가기</button>
+          <button onClick={() => setGameState('REWARDS')} className="py-2 px-4 bg-slate-700 hover:bg-slate-600 transition-colors rounded-lg font-bold border border-slate-500 shadow-md">돌아가기</button>
         </div>
         <div className="flex flex-wrap justify-center gap-3 overflow-y-auto hide-scrollbar pb-10 max-w-6xl mx-auto px-2">
           {combatState.baseDeck.map((card, idx) => (
@@ -142,13 +179,13 @@ export default function Rewards({
               <h3 className="text-xl font-bold mb-6">정말로 삭제하시겠습니까?</h3>
               <div className="w-36 h-48 mb-6"><Card card={confirmSelection.card} /></div>
               <div className="flex gap-4 w-full">
-                <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 rounded-lg font-bold flex-1">취소</button>
+                <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 transition-colors rounded-lg font-bold flex-1">취소</button>
                 <button onClick={() => {
                   const newDeck = [...combatState.baseDeck];
                   newDeck.splice(confirmSelection.idx, 1);
                   setConfirmSelection(null);
                   startNextStage(combatState.player, newDeck);
-                }} className="px-6 py-3 bg-red-700 rounded-lg font-bold flex-1 shadow-lg">삭제</button>
+                }} className="px-6 py-3 bg-red-700 hover:bg-red-600 transition-colors rounded-lg font-bold flex-1 shadow-lg">삭제</button>
               </div>
             </div>
           </div>
@@ -170,7 +207,7 @@ export default function Rewards({
           </div>
           <div className="absolute inset-0 border-4 border-fuchsia-500/50 rounded-xl animate-pulse" />
         </div>
-        <button onClick={handleSpecialBossRewardClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-24">수락하기</button>
+        <button onClick={handleSpecialBossRewardClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-24 transition-transform hover:scale-105">수락하기</button>
       </div>
     );
   }

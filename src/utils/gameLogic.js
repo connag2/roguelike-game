@@ -54,7 +54,6 @@ export const getCardDef = (id, shopUpgrades) => {
 };
 
 export const generateEnemyIntent = (template, stage) => {
-  // 🌟 보스 데이터 등이 누락되어 앱이 뻗는 현상을 막기 위한 방어 코드
   if (!template || !template.deck || template.deck.length === 0) {
     return { name: '오류 방지', type: 'attack', value: 0, desc: '행동을 읽을 수 없습니다.' };
   }
@@ -73,7 +72,7 @@ export const generateEnemyIntent = (template, stage) => {
 export const generateEnemies = (stage) => {
   let enemyTemplates = [];
 
-  // 🌟 5층 보스, 네임드 보스 진입 시 화면이 까맣게 변하는 것(크래시)을 완벽 차단
+  // 🌟 블랙스크린 방지: 데이터 로드 실패 시 무조건 슬라임으로 대체하여 앱 터짐 방지
   try {
     if (stage === 100) {
       enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
@@ -86,16 +85,12 @@ export const generateEnemies = (stage) => {
     }
   } catch (error) {
     console.error("적 생성 중 오류 발생. 기본 몬스터로 대체합니다:", error);
-    enemyTemplates = [ENEMIES[0]]; // 데이터가 깨졌을 때 슬라임으로 강제 대체
+    enemyTemplates = [ENEMIES[0]]; 
   }
 
-  // 혹시라도 undefined나 null이 배열에 들어가는 것을 방지
+  // 혹시라도 undefined 데이터가 들어가는 것 차단
   enemyTemplates = enemyTemplates.filter(Boolean);
-  
-  // 모든 템플릿이 날아갔을 경우 최후의 방어선
-  if (enemyTemplates.length === 0) {
-    enemyTemplates = [ENEMIES[0]];
-  }
+  if (enemyTemplates.length === 0) enemyTemplates = [ENEMIES[0]];
 
   return enemyTemplates.map((template, idx) => {
     const isNamedBoss = [25, 50, 75, 100].includes(stage);
@@ -108,7 +103,7 @@ export const generateEnemies = (stage) => {
     else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.6);
     
     let name = template.name || '알 수 없는 적';
-    if (stage === 100) name += ` (${String.fromCharCode(65 + idx)})`; // 100층 보스 A, B, C 구별
+    if (stage === 100) name += ` (${String.fromCharCode(65 + idx)})`; 
 
     return {
       uid: Math.random().toString() + idx,
