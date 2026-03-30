@@ -4,7 +4,7 @@ import { HelpCircle } from 'lucide-react';
 export default function Tooltip({ desc }) {
   if (!desc) return null;
 
-  // 설명문 키워드 추출 제목 함수 (생략 가능, 기존 유지)
+  // 설명문에서 특정 키워드를 추출하여 툴팁 제목으로 사용 (예: "방어", "약화" 등)
   const getTitle = () => {
     if (desc.includes('피해')) return '공격';
     if (desc.includes('방어')) return '방어';
@@ -18,22 +18,25 @@ export default function Tooltip({ desc }) {
   };
 
   return (
-    <div className="relative group inline-block ml-1">
-      {/* 1. ? 아이콘: 드래그 방지 및 클릭 활성화 */}
+    // ✨ inline-flex 및 items-center를 사용하여 텍스트와 아이콘이 항상 같은 줄에 있도록 함
+    <div className="relative group inline-flex items-center ml-1">
+      {/* ? 아이콘: 드래그 방지 및 클릭 활성화 설정 */}
       <HelpCircle 
         className="w-3 h-3 md:w-3.5 md:h-3.5 text-slate-400 hover:text-indigo-400 transition-colors cursor-help"
         style={{ 
-          WebkitAppRegion: 'no-drag', // 📌 Electron 드래그 방지
-          pointerEvents: 'auto'       // 📌 마우스 이벤트 활성화
+          WebkitAppRegion: 'no-drag', // Electron 드래그 방지
+          pointerEvents: 'auto'       // 마우스 이벤트 활성화
         }}
       />
       
-      {/* 2. 툴팁 내용 박스: 여기에 no-drag를 확실히 추가해야 합니다. */}
+      {/* 툴팁 내용 박스: 이 부분을 집중적으로 수정했습니다. */}
       <div 
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2.5 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[9999] pointer-events-none animate-in fade-in zoom-in duration-200"
+        // ✨ z-index를 99999로 설정하여 다른 UI 요소(카드, battlefield 등) 위에 표시되도록 함
+        // ✨ pointer-events-auto로 설정하여 Electron 환경에서도 작동하도록 함
+        // ✨ transform 및 positioning을 최적화하여 레이아웃 무너짐 방지
+        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-48 p-2.5 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[99999] pointer-events-auto animate-in fade-in zoom-in duration-200"
         style={{ 
-          WebkitAppRegion: 'no-drag', // 📌 [핵심 고정] 박스 자체도 드래그 영역에서 제외
-          pointerEvents: 'auto'       // 📌 툴팁 박스 내부 이벤트 활성화
+          WebkitAppRegion: 'no-drag', // 박스 자체도 드래그 영역에서 제외
         }}
       >
         <div className="text-xs">
