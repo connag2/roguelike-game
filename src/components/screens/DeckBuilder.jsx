@@ -77,8 +77,8 @@ export default function DeckBuilder({
         search={searchQuery} setSearch={setSearchQuery}
       />
 
-      {/* flex-1 추가: 모든 카드가 표시되도록 영역 확장 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 flex-1 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-4 mt-4">
+      {/* flex-1 추가: 모든 카드가 표시되도록 영역 확장, pb-24로 하단 여백 대폭 증가 */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 flex-1 overflow-y-auto hide-scrollbar pb-24 w-full max-w-6xl mx-auto px-4 mt-4">
         {filteredCards.map(baseCard => {
           const count = tempDeckCounts[baseCard.id] || 0;
           const card = getCardDef(baseCard.id, shopUpgrades); 

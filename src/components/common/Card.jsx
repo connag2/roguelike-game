@@ -14,7 +14,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   let tagUi = null;
   let bgStyle = 'bg-slate-900';
   
-  // 등급별 스타일 정의 (신화 등급 포함)
   if (rarity === 'uncommon') { 
     rarityShadow = 'shadow-[0_0_12px_rgba(34,211,238,0.4)]'; 
     nameColor = 'text-cyan-300';
@@ -38,7 +37,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
 
-  // 강화 상태일 때 강조
   if (card.isUpgraded) {
     rarityShadow = 'shadow-[0_0_15px_rgba(234,179,8,0.4)]';
     nameColor = 'text-yellow-400';
@@ -52,9 +50,9 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   return (
     <div 
       onClick={onClick}
-      className={`border-2 p-2 md:p-2.5 rounded-xl flex flex-col relative transition-all ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2' : ''} ${cardStatusStyle} w-full h-full aspect-[3/4.2] overflow-hidden shrink-0 shadow-2xl`}
+      // 👇 수정된 부분: aspect-[3/4.2]를 지우고 aspect-[2/3]으로 더 길게 변경했습니다.
+      className={`border-2 p-2 md:p-2.5 rounded-xl flex flex-col relative transition-all ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] overflow-hidden shrink-0 shadow-2xl`}
     >
-      {/* 미해금 자물쇠 표시 (텍스트는 보이도록 배경 블러 제거) */}
       {isLocked && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center justify-center pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
@@ -62,7 +60,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       )}
       
-      {/* 상단 정보 영역 */}
       <div className="z-10 relative flex justify-between items-start shrink-0">
         <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
         <div className="flex flex-col items-end gap-1">
@@ -75,18 +72,16 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       </div>
       
-      {/* 이름 영역 */}
       <div className="text-center z-10 shrink-0 mt-1 md:mt-2 mb-1">
         <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight drop-shadow-md truncate break-keep ${nameColor}`}>{card.name}</h4>
       </div>
       
-      {/* 설명 영역 (툴팁 포함) */}
-      <div className="text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1.5 md:p-2 rounded relative flex-1 flex flex-col items-center justify-center overflow-hidden z-10 font-medium border border-white/5 w-full shadow-inner">
+      {/* 👇 설명칸이 버튼을 밀어내지 않도록 min-h-0 추가 */}
+      <div className="text-[9px] md:text-[11px] text-slate-200 text-center leading-snug bg-black/60 p-1.5 md:p-2 rounded relative flex-1 min-h-0 flex flex-col items-center justify-center overflow-hidden z-10 font-medium border border-white/5 w-full shadow-inner">
         <div className="line-clamp-4 w-full break-keep px-0.5">{card.desc}</div>
         <div className="mt-1 shrink-0"><Tooltip desc={card.desc} /></div>
       </div>
       
-      {/* 하단 버튼 영역 (덱 빌더용) */}
       {count !== null && onAdd && onRemove && !isLocked && (
         <div className="mt-2 flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1.5 py-1 md:px-2 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm">
           <button 
