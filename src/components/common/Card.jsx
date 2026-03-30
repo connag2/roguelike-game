@@ -2,23 +2,13 @@ import React from 'react';
 import { Sword, Shield, Lock, Star, Sparkles } from 'lucide-react';
 import Tooltip from './Tooltip';
 
-/**
- * Card 컴포넌트
- * @param {Object} card - 카드 데이터 객체
- * @param {number} count - 덱 빌딩 시 선택된 수량
- * @param {boolean} isLocked - 잠금 상태 여부
- * @param {Function} onAdd - 카드 추가 핸들러
- * @param {Function} onRemove - 카드 제거 핸들러
- * @param {Function} onClick - 클릭 핸들러
- * @param {boolean} canAdd - 추가 가능 여부
- */
 export default function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
   if (!card) return null;
   
   const isAttack = card.type === 'attack';
   const rarity = card.rarity || 'common';
   
-  // 기본 테두리 설정 (강화 시 황금색으로 덮어씌워짐)
+  // 기본 테두리 설정
   let borderStyle = isAttack ? 'border-red-500' : 'border-blue-500';
   
   let rarityShadow = '';
@@ -50,7 +40,7 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
 
-  // 강화(Upgrade) 시 시각 효과 적용
+  // 강화 효과 적용
   if (card.isUpgraded) {
     borderStyle = 'border-yellow-400 ring-2 ring-yellow-400/50'; 
     rarityShadow = 'shadow-[0_0_25px_rgba(250,204,21,0.6)] animate-pulse'; 
@@ -69,7 +59,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
       onClick={onClick}
       className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all duration-300 overflow-hidden ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border`}
     >
-      {/* 잠금 필터 */}
       {isLocked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
@@ -77,7 +66,7 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       )}
       
-      {/* 상단: 코스트 및 뱃지 영역 */}
+      {/* 상단 코스트 및 뱃지 */}
       <div className="z-10 relative flex justify-between items-start shrink-0">
         <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">
           코스트 {card.cost}
@@ -100,23 +89,22 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         </div>
       </div>
       
-      {/* 중단: 카드 이름 */}
+      {/* 카드 이름 */}
       <div className="text-center z-10 shrink-0 mt-1 mb-1">
         <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>
           {card.name.split(' +')[0]} 
         </h4>
       </div>
       
-      {/* 하단: 효과 설명 (가독성 극대화 및 툴팁 정렬 최적화) */}
-      <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center overflow-y-auto hide-scrollbar z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1">
-        {/* flex-wrap과 items-center를 사용하여 텍스트와 ? 아이콘이 한 줄에 자연스럽게 배치되도록 함 */}
-        <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep">
+      {/* ✨ 설명 영역: overflow-visible로 설정하여 툴팁이 잘리지 않게 함 */}
+      <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
+        <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
           <span className="text-center leading-normal">{card.desc}</span>
           <Tooltip desc={card.desc} />
         </div>
       </div>
       
-      {/* 덱 빌딩 전용: 추가/제거 버튼 */}
+      {/* 덱 빌딩 버튼 */}
       {count !== null && onAdd && onRemove && !isLocked && (
         <div className="mt-auto flex items-center justify-between bg-slate-800/90 border border-slate-600 px-1 py-1 md:px-1.5 md:py-1.5 rounded-lg z-20 shrink-0 backdrop-blur-sm overflow-visible">
           <button 
