@@ -24,49 +24,28 @@ export const getCardDef = (id, shopUpgrades) => {
   const upgradeLevel = (shopUpgrades?.upgradedCards || []).filter(cId => cId === id).length;
   
   if (upgradeLevel > 0) {
-    let ratePerLevel = 0.3;
-    if (base.rarity === 'uncommon') ratePerLevel = 0.4; 
-    else if (base.rarity === 'rare') ratePerLevel = 0.5; 
-    else if (base.rarity === 'special') ratePerLevel = 0.6; 
-    else if (base.rarity === 'mythic') ratePerLevel = 0.8;
-
     const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
     
-    // 업그레이드 수치 증가 도우미 (작은 수치도 점진적으로 상승하도록 처리)
-    const incAttr = (attr, forceOneEvery = 2) => {
-       if (upgraded[attr] !== undefined) {
-           let baseVal = base[attr];
-           let inc = Math.floor(baseVal * ratePerLevel * upgradeLevel);
-           if (inc === 0 && upgradeLevel >= forceOneEvery) inc = Math.floor(upgradeLevel / forceOneEvery);
-           upgraded[attr] += inc;
-       }
-    };
+    const scale = (val, factor = 0.3) => val ? val + Math.floor(val * factor * upgradeLevel) : val;
+    const flat = (val, interval = 2) => val ? val + Math.floor(upgradeLevel / interval) : val;
 
-    if (upgraded.damage) incAttr('damage', 1);
-    if (upgraded.block) incAttr('block', 1);
-    if (upgraded.heal) incAttr('heal', 1);
+    upgraded.damage = scale(base.damage);
+    upgraded.block = scale(base.block);
+    upgraded.heal = scale(base.heal);
     
-    incAttr('enemyWeak', 2);
-    incAttr('enemyVuln', 2);
-    incAttr('enemyPoison', 1);
-    incAttr('selfStrength', 2);
-    incAttr('selfDex', 2);
-    incAttr('selfThorns', 1);
-    incAttr('manaGain', 3);
-    incAttr('draw', 3);
-    incAttr('multiHit', 4);
-    
-    let upDesc = base.desc;
+    upgraded.enemyWeak = flat(base.enemyWeak, 2);
+    upgraded.enemyVuln = flat(base.enemyVuln, 2);
+    upgraded.enemyPoison = flat(base.enemyPoison, 1);
+    upgraded.selfStrength = flat(base.selfStrength, 2);
+    upgraded.selfDex = flat(base.selfDex, 2);
+    upgraded.manaGain = flat(base.manaGain, 3);
+    upgraded.draw = flat(base.draw, 3);
+
+    let upDesc = base.desc || '';
     if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
     if (base.block) upDesc = upDesc.replace(`${base.block}의 방어`, `${upgraded.block}의 방어`);
     if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal} 회복`, `체력을 ${upgraded.heal} 회복`);
-    if (base.enemyWeak) upDesc = upDesc.replace(`약화 ${base.enemyWeak}`, `약화 ${upgraded.enemyWeak}`);
-    if (base.enemyVuln) upDesc = upDesc.replace(`취약 ${base.enemyVuln}`, `취약 ${upgraded.enemyVuln}`);
-    if (base.enemyPoison) upDesc = upDesc.replace(`중독 ${base.enemyPoison}`, `중독 ${upgraded.enemyPoison}`);
-    if (base.selfStrength) upDesc = upDesc.replace(`근력 ${base.selfStrength}`, `근력 ${upgraded.selfStrength}`).replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`);
-    if (base.selfDex) upDesc = upDesc.replace(`민첩 ${base.selfDex}`, `민첩 ${upgraded.selfDex}`).replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`);
-    if (base.manaGain) upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`);
-    if (base.draw) upDesc = upDesc.replace(`카드를 ${base.draw}장 뽑`, `카드를 ${upgraded.draw}장 뽑`);
+    if (base.draw) upDesc = upDesc.replace(`카드를 ${base.draw}장`, `카드를 ${upgraded.draw}장`);
     
     upgraded.desc = upDesc;
     return upgraded;
@@ -75,44 +54,64 @@ export const getCardDef = (id, shopUpgrades) => {
 };
 
 export const generateEnemyIntent = (template, stage) => {
+  // 🌟 보스 데이터 등이 누락되어 앱이 뻗는 현상을 막기 위한 방어 코드
+  if (!template || !template.deck || template.deck.length === 0) {
+    return { name: '오류 방지', type: 'attack', value: 0, desc: '행동을 읽을 수 없습니다.' };
+  }
+  
   const baseCard = template.deck[Math.floor(Math.random() * template.deck.length)];
   let scaledValue = (baseCard.value || 0) + Math.floor(stage * 0.75);
   let scaledHeal = (baseCard.heal || 0) + Math.floor(stage * 1.5);
-  let scaledDesc = baseCard.desc.replace(baseCard.value?.toString(), scaledValue.toString()).replace(baseCard.heal?.toString(), scaledHeal.toString());
+  let scaledDesc = baseCard.desc || '';
+  
+  if (baseCard.value !== undefined) scaledDesc = scaledDesc.replace(baseCard.value.toString(), scaledValue.toString());
+  if (baseCard.heal !== undefined) scaledDesc = scaledDesc.replace(baseCard.heal.toString(), scaledHeal.toString());
+  
   return { ...baseCard, value: scaledValue, heal: scaledHeal, desc: scaledDesc };
 };
 
 export const generateEnemies = (stage) => {
   let enemyTemplates = [];
 
-  if (stage === 100) {
-    enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
+  // 🌟 5층 보스, 네임드 보스 진입 시 화면이 까맣게 변하는 것(크래시)을 완벽 차단
+  try {
+    if (stage === 100) {
+      enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
+    } else if ([25, 50, 75].includes(stage)) {
+      enemyTemplates = [SPECIAL_BOSSES[stage]];
+    } else if (stage % 5 === 0) {
+      enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
+    } else {
+      enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+    }
+  } catch (error) {
+    console.error("적 생성 중 오류 발생. 기본 몬스터로 대체합니다:", error);
+    enemyTemplates = [ENEMIES[0]]; // 데이터가 깨졌을 때 슬라임으로 강제 대체
   }
-  else if ([25, 50, 75].includes(stage)) {
-    enemyTemplates = [SPECIAL_BOSSES[stage]];
-  } 
-  else if (stage % 5 === 0) {
-    enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
-  } 
-  else {
-    enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+
+  // 혹시라도 undefined나 null이 배열에 들어가는 것을 방지
+  enemyTemplates = enemyTemplates.filter(Boolean);
+  
+  // 모든 템플릿이 날아갔을 경우 최후의 방어선
+  if (enemyTemplates.length === 0) {
+    enemyTemplates = [ENEMIES[0]];
   }
 
   return enemyTemplates.map((template, idx) => {
     const isNamedBoss = [25, 50, 75, 100].includes(stage);
     const isNormalBoss = stage % 5 === 0 && !isNamedBoss;
     
-    let hpBase = template.baseHp + (stage * 12);
-    let hpFinal = hpBase;
+    let hpBase = template.baseHp || 50;
+    let hpFinal = hpBase + (stage * 12);
     
-    if (isNamedBoss) hpFinal = Math.floor(hpBase * 2.2);
-    else if (isNormalBoss) hpFinal = Math.floor(hpBase * 1.6);
+    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 2.2);
+    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.6);
     
-    let name = template.name;
-    if (stage === 100) name += ` ${['A', 'B', 'C'][idx]}`;
+    let name = template.name || '알 수 없는 적';
+    if (stage === 100) name += ` (${String.fromCharCode(65 + idx)})`; // 100층 보스 A, B, C 구별
 
     return {
-      uid: Math.random().toString(),
+      uid: Math.random().toString() + idx,
       name: name,
       hp: hpFinal,
       maxHp: hpFinal,
