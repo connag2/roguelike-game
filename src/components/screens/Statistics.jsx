@@ -1,12 +1,12 @@
 import React from 'react';
-import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap } from 'lucide-react';
+// ✨ 모든 필수 아이콘 완벽하게 임포트 
+import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap, Star, Swords } from 'lucide-react';
 import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 
 export default function Statistics({
   maxStageReached, normalCleared, seenEnemies, unlockedCards, credits, unlockedRelics, gameStats, setGameState 
 }) {
-  // 수집률 계산
   const totalCards = CARD_LIBRARY.length;
   const cardCompletion = ((unlockedCards.length / totalCards) * 100).toFixed(1);
 
@@ -15,7 +15,6 @@ export default function Statistics({
 
   const relicCompletion = ((unlockedRelics.length / RELIC_LIBRARY.length) * 100).toFixed(1);
 
-  // 구버전 세이브 호환을 위한 안전한 스탯 객체
   const safeGameStats = {
     totalKills: gameStats?.totalKills || 0,
     totalBossKills: gameStats?.totalBossKills || 0,
@@ -23,7 +22,6 @@ export default function Statistics({
     totalRuns: gameStats?.totalRuns || 0
   };
 
-  // 🌟 업적 리스트 (조건을 만족하면 자동으로 해금됨)
   const ACHIEVEMENTS = [
     { id: 'first_blood', title: '첫 피', desc: '첫 번째 적을 처치하세요.', condition: safeGameStats.totalKills >= 1, icon: '🗡️', bg: 'from-red-900 to-red-700', border: 'border-red-500' },
     { id: 'boss_slayer_1', title: '초보 사냥꾼', desc: '보스를 1회 처치하세요.', condition: safeGameStats.totalBossKills >= 1, icon: '👹', bg: 'from-orange-900 to-orange-700', border: 'border-orange-500' },
@@ -43,8 +41,6 @@ export default function Statistics({
 
   return (
     <div className="flex flex-col items-center justify-start min-h-[100dvh] bg-slate-900 text-white p-4 md:p-8 pt-8 overflow-y-auto hide-scrollbar relative">
-      
-      {/* 상단 헤더 & 뒤로가기 버튼 고정 */}
       <div className="w-full max-w-6xl flex justify-between items-center mb-8 shrink-0 relative z-10">
         <h1 className="text-3xl md:text-5xl font-black text-indigo-400 drop-shadow-lg flex items-center gap-3">
           <Activity className="w-8 h-8 md:w-12 md:h-12" /> 플레이어 기록실
@@ -55,8 +51,6 @@ export default function Statistics({
       </div>
       
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10 shrink-0">
-        
-        {/* 좌측: 종합 요약 패널 */}
         <div className="lg:col-span-4 bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-2xl flex flex-col gap-4">
           <div className="flex items-center gap-3 border-b border-slate-600 pb-3 mb-2">
             <Trophy className="w-8 h-8 text-yellow-400" />
@@ -85,7 +79,6 @@ export default function Statistics({
           </div>
         </div>
 
-        {/* 우측: 수집 달성률 패널 */}
         <div className="lg:col-span-8 bg-slate-800 p-6 md:p-8 rounded-3xl border border-slate-700 shadow-2xl flex flex-col justify-center">
           <div className="flex items-center gap-3 border-b border-slate-600 pb-3 mb-6">
             <Target className="text-red-400 w-8 h-8" />
@@ -122,10 +115,8 @@ export default function Statistics({
              </div>
           </div>
         </div>
-
       </div>
 
-      {/* 하단: 업적 갤러리 */}
       <div className="w-full max-w-6xl bg-slate-800 p-6 md:p-8 rounded-3xl border border-slate-700 shadow-2xl mb-10 shrink-0">
         <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-slate-600 pb-4 mb-6 gap-4">
           <div className="flex items-center gap-3">
@@ -146,7 +137,6 @@ export default function Statistics({
                 className={`relative p-4 rounded-2xl border-2 transition-all duration-500 overflow-hidden group 
                   ${isUnlocked ? `bg-gradient-to-br ${ach.bg} ${ach.border} shadow-[0_0_15px_rgba(0,0,0,0.5)] hover:-translate-y-1 hover:shadow-xl` : 'bg-slate-900 border-slate-800 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'}`}
               >
-                {/* 배경 장식 */}
                 {isUnlocked && <div className="absolute -right-4 -bottom-4 text-6xl opacity-20 pointer-events-none transform -rotate-12 group-hover:scale-110 transition-transform">{ach.icon}</div>}
                 
                 <div className="flex items-center gap-3 mb-2 relative z-10">
@@ -171,7 +161,6 @@ export default function Statistics({
           })}
         </div>
       </div>
-
     </div>
   );
 }

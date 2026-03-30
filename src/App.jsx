@@ -17,7 +17,7 @@ import MonsterDex from './components/screens/MonsterDex';
 import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
-import UpdateHistory from './components/screens/UpdateHistory'; // ✨ 새로 추가됨
+import UpdateHistory from './components/screens/UpdateHistory';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -46,7 +46,6 @@ export default function App() {
   const [unlockedCards, setUnlockedCards] = useState(BASE_CARDS);
   const [deckCounts, setDeckCounts] = useState({ strike: 3, defend: 3, heavy_strike: 3, shield_bash: 3, heal: 2, mana_potion: 3, focus: 3 });
   
-  // 유물 관련 상태
   const [playerRelics, setPlayerRelics] = useState([]);
   const [unlockedRelics, setUnlockedRelics] = useState([]); 
   const [startingRelic, setStartingRelic] = useState(null); 
@@ -58,7 +57,6 @@ export default function App() {
   const [seenEnemies, setSeenEnemies] = useState([]);
   const [usedCoupons, setUsedCoupons] = useState([]);
   
-  // 통계 관련 상태
   const [gameStats, setGameStats] = useState({ totalKills: 0, totalBossKills: 0, totalCreditsEarned: 0, totalRuns: 0 });
 
   const [combatState, setCombatState] = useState(null);
@@ -536,9 +534,13 @@ export default function App() {
     saveGame({ usedCoupons: updatedCoupons, unlockedCards: updatedUnlocked, credits: credits + creditsToAdd });
   };
 
+  // ✨ 관리자 권한 기능 확대 ✨
   const handleAdminUnlock = () => { if (adminCodeInput === '20090324') { setIsAdminUnlocked(true); setToastMsg('개발자 권한 활성화됨'); } else setToastMsg('잘못된 코드입니다.'); };
   const adminGiveMoney = () => { const nextCredits = credits + 99999; setCredits(nextCredits); saveGame({ credits: nextCredits }); setToastMsg('99,999 크레딧 지급됨'); };
   const adminUnlockAllCards = () => { const allIds = CARD_LIBRARY.map(c => c.id); setUnlockedCards(allIds); saveGame({ unlockedCards: allIds }); setToastMsg('모든 카드 해금됨'); };
+  const adminUnlockAllRelics = () => { const allIds = RELIC_LIBRARY.map(r => r.id); setUnlockedRelics(allIds); saveGame({ unlockedRelics: allIds }); setToastMsg('모든 유물 해금됨'); };
+  const adminClearSave = () => { localStorage.removeItem('roguelike_tactics_save'); window.location.reload(); };
+
   const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
   const handleDeckExport = () => { const data = JSON.stringify(tempDeckCounts); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('현재 덱이 복사되었습니다!'); };
   const handleExitGame = async () => { setToastMsg('저장 중...'); await saveGame(); if (window.require) window.close(); else setGameState('MENU'); };
@@ -560,7 +562,6 @@ export default function App() {
       <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
         {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
 
-        {/* ✨ 방법(튜토리얼) 모달: 최신 업데이트 내용이 제거되고 원래의 도움말만 남았습니다 */}
         {tutorialModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={() => setTutorialModalOpen(false)}>
             <div className="bg-slate-800 p-6 md:p-8 rounded-2xl border-2 border-indigo-500 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-draw" onClick={e => e.stopPropagation()}>
@@ -649,18 +650,30 @@ export default function App() {
           </div>
         )}
 
-        {/* ✨ 메인 화면 */}
         {gameState === 'MENU' && (
           <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />
         )}
 
-        {/* ✨ 새로 연결된 업데이트 내역 화면 */}
         {gameState === 'UPDATE_HISTORY' && (
           <UpdateHistory setGameState={setGameState} />
         )}
 
         {gameState === 'STATISTICS' && (
           <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />
+        )}
+
+        {/* ✨ 설정(Settings) 창에 관리자 권한 기능 추가 전달 ✨ */}
+        {gameState === 'SETTINGS' && (
+          <Settings 
+            setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame}
+            handleExport={handleExport} setImportModalOpen={setImportModalOpen} 
+            couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon}
+            handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput}
+            setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={handleAdminUnlock}
+            adminUnlockAllCards={adminUnlockAllCards} adminGiveMoney={adminGiveMoney}
+            adminUnlockAllRelics={adminUnlockAllRelics} adminClearSave={adminClearSave} // ✨ 새 기능 추가됨
+            warpStage={warpStage} setWarpStage={setWarpStage} startBattle={startBattle} getTotalCards={getTotalCards} normalCleared={normalCleared}
+          />
         )}
 
         {gameState === 'DECK_BUILDING' && (
