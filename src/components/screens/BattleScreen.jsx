@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward } from 'lucide-react';
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
+
+// ✨ 분리한 이펙트 컴포넌트들 임포트
+import TierEffects from '../effects/TierEffects';
+import StatusEffects from '../effects/StatusEffects';
+import UniqueEffects from '../effects/UniqueEffects';
 
 export default function BattleScreen({
   combatState, isPlayerTurn, setViewingPile, viewingPile, setGameState, hoveredCard, setHoveredCard,
@@ -9,130 +14,82 @@ export default function BattleScreen({
   viewingEnemy, showEnemyDeck, playerRelics, fastMode, setFastMode, saveGame
 }) {
   const [playEffect, setPlayEffect] = useState(null);
+  const prevHpRef = useRef(combatState?.player?.hp);
+
+  useEffect(() => {
+    if (combatState?.player?.hp < prevHpRef.current) {
+      const dmg = prevHpRef.current - combatState.player.hp;
+      const effectId = Date.now();
+      setPlayEffect({ id: effectId, name: 'enemy_attack', damage: dmg });
+      setTimeout(() => setPlayEffect(prev => prev?.id === effectId ? null : prev), 600);
+    }
+    prevHpRef.current = combatState?.player?.hp;
+  }, [combatState?.player?.hp]);
 
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
 
-  // ✨ 개별 카드 특징에 맞춘 이펙트 분기 로직
   const handlePlayCard = (idx) => {
     const card = hand[idx];
-    
-    // 1. 특정 카드 ID 우선 매칭
-    if (card.id === 'furioso') {
-      setPlayEffect('furioso');
-      setTimeout(() => setPlayEffect(null), 1200);
-    } else if (card.id === 'meteor_fall') {
-      setPlayEffect('meteor');
-      setTimeout(() => setPlayEffect(null), 900);
-    } else if (card.id === 'snipe') {
-      setPlayEffect('snipe');
-      setTimeout(() => setPlayEffect(null), 800);
-    } 
-    // 2. 공통 효과 매칭 (회복기)
-    else if (card.heal && card.heal > 0) {
-      setPlayEffect('heal');
-      setTimeout(() => setPlayEffect(null), 700);
-    } 
-    // 3. 기본 공격 등급별 연출 (기존 유지)
+    const hits = card.multiHit || 1;
+    const effectId = Date.now();
+    let effectName = null;
+    let duration = 800;
+
+    if (card.id === 'furioso') { effectName = 'furioso'; duration = 1200 + (hits * 100); }
+    else if (card.id === 'meteor_fall') { effectName = 'meteor'; duration = 900; }
+    else if (card.id === 'snipe') { effectName = 'snipe'; duration = 800; }
+    else if (card.id === 'vampire_sword' || card.id === 'vampiric_strike' || card.id === 'soul_slash') { effectName = 'vampire'; duration = 800; }
+    else if (card.gamble) { effectName = 'gamble'; duration = 1000; }
+    else if (card.enemyPoison && card.enemyPoison > 0) { effectName = 'poison'; duration = 800; }
+    else if (card.block && card.block > 0 && !card.type.includes('attack')) { effectName = 'block'; duration = 600; }
+    else if (card.heal && card.heal > 0 && !card.type.includes('attack')) { effectName = 'heal'; duration = 700; }
     else if (card.type.includes('attack')) {
-      if (card.rarity === 'mythic') {
-        setPlayEffect('mythic');
-        setTimeout(() => setPlayEffect(null), 800);
-      } else if (card.rarity === 'rare') {
-        setPlayEffect('rare');
-        setTimeout(() => setPlayEffect(null), 600);
-      } else if (card.rarity === 'special') {
-        setPlayEffect('special');
-        setTimeout(() => setPlayEffect(null), 700);
-      }
+      if (card.rarity === 'mythic') { effectName = 'mythic'; duration = 800 + (hits * 150); }
+      else if (card.rarity === 'rare') { effectName = 'rare'; duration = 600 + (hits * 150); }
+      else if (card.rarity === 'special') { effectName = 'special'; duration = 700 + (hits * 150); }
+      else if (card.rarity === 'uncommon') { effectName = 'uncommon_attack'; duration = 500 + (hits * 150); }
+      else { effectName = 'common_attack'; duration = 400 + (hits * 150); }
     }
-    
-    // 실제 카드 플레이 로직 실행
+
+    if (effectName) {
+      setPlayEffect({ id: effectId, name: effectName, hits });
+      setTimeout(() => setPlayEffect(prev => prev?.id === effectId ? null : prev), duration);
+    }
     playCard(idx);
   };
 
+  const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
+
   return (
-    <div className="flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden">
+    <div className={`flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden ${isShaking ? 'animate-shake' : ''}`}>
       
-      {/* 💥 [특수 카드] Furioso (퓨리오소) 이펙트 - 다중 난도질 */}
-      {playEffect === 'furioso' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-black/50 overflow-hidden">
-          {/* 여러 개의 검기가 랜덤한 각도와 시간차로 쏟아짐 */}
-          <div className="absolute w-[150vw] h-[2vh] bg-white -rotate-12 scale-y-150 shadow-[0_0_20px_white] delay-75 animate-ping"></div>
-          <div className="absolute w-[150vw] h-[4vh] bg-red-500 rotate-45 scale-y-150 shadow-[0_0_50px_red] delay-150 animate-pulse"></div>
-          <div className="absolute w-[150vw] h-[2vh] bg-white rotate-75 scale-y-150 shadow-[0_0_20px_white] delay-300 animate-ping"></div>
-          <div className="absolute w-[150vw] h-[5vh] bg-black border-y-4 border-red-600 -rotate-45 scale-y-150 shadow-[0_0_50px_red] delay-500 animate-pulse"></div>
-          <h1 className="text-[5rem] md:text-[9rem] text-red-100 font-black drop-shadow-[0_0_30px_red] tracking-tighter opacity-90 scale-150 animate-bounce delay-300">
-            FURIOSO!
-          </h1>
+      {/* 🎨 CSS 애니메이션 스타일 (TierEffects 등에서 공통 사용) */}
+      <style>{`
+        @keyframes slashHit { 0% { transform: scaleX(0) scaleY(1); opacity: 0; } 10% { transform: scaleX(0.5) scaleY(3); opacity: 1; } 100% { transform: scaleX(1.5) scaleY(0); opacity: 0; } }
+        .slash-line { animation: slashHit 0.25s ease-out forwards; opacity: 0; }
+        @keyframes screenShake { 0% { transform: translate(0, 0); } 20% { transform: translate(-10px, 10px); } 40% { transform: translate(10px, -10px); } 60% { transform: translate(-10px, -10px); } 80% { transform: translate(10px, 10px); } 100% { transform: translate(0, 0); } }
+        .animate-shake { animation: screenShake 0.4s ease-out; }
+        @keyframes flashRed { 0% { background-color: rgba(220, 38, 38, 0.6); } 100% { background-color: transparent; } }
+        .animate-flash-red { animation: flashRed 0.5s ease-out forwards; }
+      `}</style>
+
+      {/* ✨ 컴포넌트로 분리된 이펙트들 (코드가 엄청 깔끔해졌습니다!) */}
+      <TierEffects playEffect={playEffect} />
+      <StatusEffects playEffect={playEffect} />
+      <UniqueEffects playEffect={playEffect} />
+
+      {/* 🩸 [적 공격 피격] 연출은 구조상 여기에 유지 (BattleScreen의 상태와 밀접함) */}
+      {playEffect?.name === 'enemy_attack' && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none animate-flash-red flex items-center justify-center">
+          <h1 className="text-[6rem] md:text-[10rem] text-red-500 font-black drop-shadow-[0_0_30px_black] animate-bounce">- {playEffect.damage}</h1>
         </div>
       )}
 
-      {/* ☄️ [특수 카드] Meteor Fall (운석 낙하) 이펙트 */}
-      {playEffect === 'meteor' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-end justify-start overflow-hidden bg-orange-950/30">
-          <div className="w-[100vw] h-[100vh] absolute top-[-50vh] right-[-50vw] bg-gradient-to-bl from-orange-500 via-red-600 to-transparent w-[300px] h-[300px] md:w-[600px] md:h-[600px] rounded-full blur-xl animate-bounce shadow-[0_0_100px_orange]"></div>
-          <div className="absolute inset-0 bg-red-600/20 animate-ping delay-300"></div>
-          <div className="w-full text-center absolute top-1/2 -translate-y-1/2 text-[4rem] md:text-[7rem] text-orange-400 font-black drop-shadow-[0_0_30px_orange] tracking-widest animate-pulse delay-200">
-            METEOR FALL
-          </div>
-        </div>
-      )}
-
-      {/* 🎯 [특수 카드] Snipe (저격) 이펙트 */}
-      {playEffect === 'snipe' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-black/60 overflow-hidden">
-          {/* 조준점 크로스헤어 */}
-          <div className="absolute w-64 h-64 md:w-96 md:h-96 border-4 border-red-500 rounded-full animate-ping flex items-center justify-center">
-            <div className="w-full h-1 bg-red-500 absolute"></div>
-            <div className="h-full w-1 bg-red-500 absolute"></div>
-            <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse shadow-[0_0_20px_red]"></div>
-          </div>
-          <div className="absolute inset-0 bg-white opacity-0 animate-[pulse_0.2s_ease-in-out_2]"></div>
-        </div>
-      )}
-
-      {/* 💚 [공통] Heal (회복) 이펙트 */}
-      {playEffect === 'heal' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center overflow-hidden mix-blend-screen shadow-[inset_0_0_150px_rgba(34,197,94,0.5)] bg-green-900/10">
-          <div className="absolute w-[100vw] h-[100vh] bg-[radial-gradient(circle,rgba(74,222,128,0.2)_0%,transparent_70%)] animate-pulse"></div>
-          <div className="text-[4rem] md:text-[6rem] text-green-300 font-black drop-shadow-[0_0_30px_green] animate-bounce">
-            + HEAL +
-          </div>
-        </div>
-      )}
-
-      {/* 💥 [신화] 기본 타격 이펙트 */}
-      {playEffect === 'mythic' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-red-950/40 mix-blend-color-dodge overflow-hidden">
-          <div className="absolute w-[200vw] h-[10vh] bg-gradient-to-r from-transparent via-red-500 to-transparent -rotate-45 scale-y-150 animate-ping shadow-[0_0_100px_red]"></div>
-          <div className="absolute w-[200vw] h-[10vh] bg-gradient-to-r from-transparent via-red-500 to-transparent rotate-45 scale-y-150 animate-ping shadow-[0_0_100px_red] delay-75"></div>
-          <h1 className="text-[6rem] md:text-[10rem] text-red-500 font-black drop-shadow-[0_0_50px_red] animate-pulse tracking-tighter mix-blend-plus-lighter opacity-90">
-            신화의 일격!
-          </h1>
-        </div>
-      )}
-
-      {/* ⚡ [전설] 기본 타격 이펙트 */}
-      {playEffect === 'rare' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-yellow-600/10 mix-blend-screen overflow-hidden">
-          <div className="absolute inset-0 border-[15px] border-yellow-400/60 animate-ping"></div>
-          <div className="text-[5rem] md:text-[8rem] text-yellow-300 font-black drop-shadow-[0_0_50px_yellow] animate-bounce tracking-widest">
-            ⚡ CRITICAL ⚡
-          </div>
-        </div>
-      )}
-
-      {/* ✨ [특수] 기본 타격 이펙트 */}
-      {playEffect === 'special' && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center bg-fuchsia-900/20 overflow-hidden">
-          <div className="absolute w-[150vw] h-[150vw] md:w-[100vw] md:h-[100vh] bg-[radial-gradient(circle,rgba(217,70,239,0.6)_0%,transparent_60%)] animate-pulse"></div>
-          <div className="text-[4rem] md:text-[7rem] text-fuchsia-300 font-black drop-shadow-[0_0_50px_fuchsia] animate-ping text-center leading-none">
-            ✨ EX SKILL ✨
-          </div>
-        </div>
-      )}
-
+      {/* ====== 이하 UI 렌더링 로직 (동일) ====== */}
+      {/* ... (기존 렌더링 코드 유지) ... */}
+      
+      {/* 덱/무덤 팝업 */}
       {viewingPile && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col p-4 md:p-10 backdrop-blur-md" onClick={() => setViewingPile(null)}>
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
@@ -145,6 +102,7 @@ export default function BattleScreen({
         </div>
       )}
 
+      {/* 적 정보 팝업 */}
       {showEnemyDeck && viewingEnemy && (
         <div className="fixed inset-0 bg-black/90 z-[10000] flex flex-col items-center justify-center p-4 backdrop-blur-md" onClick={() => { setViewingEnemy(null); setShowEnemyDeck(false); }}>
           <div className="bg-slate-800 p-6 rounded-xl border-2 border-red-500 w-full max-w-lg" onClick={e => e.stopPropagation()}>
@@ -164,6 +122,7 @@ export default function BattleScreen({
         </div>
       )}
 
+      {/* 상단 유물 바 */}
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-10 w-full pl-1">
           {playerRelics.map((r, i) => {
@@ -172,7 +131,6 @@ export default function BattleScreen({
             if (r.rarity === 'rare') { rBorder = 'border-yellow-500'; rText = 'text-yellow-200'; }
             if (r.rarity === 'special') { rBorder = 'border-fuchsia-500'; rText = 'text-fuchsia-200'; }
             if (r.rarity === 'mythic') { rBorder = 'border-red-500'; rText = 'text-red-300'; }
-
             return (
               <div key={i} className={`relative group cursor-help bg-slate-800 border-2 ${rBorder} px-2 py-0.5 md:py-1 rounded-lg flex items-center shadow-md hover:bg-slate-700 transition-colors`}>
                 <span className={`text-[10px] md:text-xs font-bold ${rText}`}>{r.name}</span>
@@ -188,19 +146,15 @@ export default function BattleScreen({
         </div>
       )}
 
+      {/* 상단 스테이지 바 */}
       <div className="flex justify-between items-center bg-slate-800/80 p-2 md:p-3 rounded-lg border border-slate-700 shadow-md z-10 shrink-0">
         <div className="font-bold text-sm md:text-lg flex items-center gap-1 md:gap-2 text-indigo-300">
           <RefreshCw className="w-4 h-4 md:w-5 md:h-5" /> {mode === 'HARD' ? '하드 모드' : '일반 모드'} - STAGE {stage} 
         </div>
         <div className="flex items-center gap-2 md:gap-4 font-bold text-xs md:text-base">
-          <button 
-            onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} 
-            className={`p-1.5 md:p-2 rounded-full border transition-colors ${fastMode ? 'bg-indigo-600 border-indigo-400' : 'bg-slate-700 border-slate-500 hover:bg-slate-600'}`}
-            title="빠른 전투 토글"
-          >
+          <button onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} className={`p-1.5 md:p-2 rounded-full border transition-colors ${fastMode ? 'bg-indigo-600 border-indigo-400' : 'bg-slate-700 border-slate-500 hover:bg-slate-600'}`} title="빠른 전투 토글">
             <FastForward className={`w-4 h-4 md:w-5 md:h-5 ${fastMode ? 'text-white' : 'text-slate-400'}`} />
           </button>
-          
           <button onClick={() => setTutorialModalOpen(true)} className="bg-slate-700 hover:bg-slate-600 p-1.5 md:p-2 rounded-full border border-slate-500 transition-colors"><HelpCircle className="w-4 h-4 md:w-5 md:h-5 text-indigo-300" /></button>
           <span className="text-slate-300 cursor-pointer hover:text-indigo-300 transition-colors bg-slate-700/50 px-3 py-1.5 rounded-lg border border-slate-600 font-black shadow-inner" onClick={() => setViewingPile('baseDeck')}>총 덱: {baseDeck.length}장</span>
           <button onClick={() => setGameState('GAME_OVER')} className="text-slate-500 hover:text-red-500 opacity-60 hover:opacity-100 transition-all border border-slate-600 rounded px-2 py-1">포기</button>
@@ -211,9 +165,8 @@ export default function BattleScreen({
         <h1 className="text-[8rem] md:text-[12rem] font-black italic whitespace-nowrap tracking-tighter">{isPlayerTurn ? 'PLAYER TURN' : 'ENEMY TURN'}</h1>
       </div>
 
+      {/* 전투 필드 (플레이어 vs 적) */}
       <div className="flex-1 flex flex-row justify-center items-end pb-8 border-b-2 border-slate-700/50 w-full max-w-5xl mx-auto mt-10 relative z-10">
-        
-        {/* 플레이어 영역 */}
         <div className={`flex flex-col items-center w-1/3 min-w-[120px] transition-all duration-500 origin-bottom ${isPlayerTurn ? 'scale-110 z-30' : 'scale-95 opacity-50 z-10'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-slate-700 rounded-full flex justify-center items-center mb-2 md:mb-4 border-4 border-indigo-500 relative shadow-2xl">
             <Shield className="w-10 h-10 md:w-16 md:h-16 text-indigo-300" />
@@ -224,7 +177,6 @@ export default function BattleScreen({
             <div className="bg-green-500 h-full transition-all duration-300" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
             <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-xs font-bold drop-shadow-md">{player.hp} / {player.maxHp}</span>
           </div>
-
           <div className="flex gap-1 md:gap-2 h-8 mt-1 flex-wrap justify-center">
             <StatusIcon type="strength" value={player.buffs?.strength} />
             <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
@@ -237,7 +189,6 @@ export default function BattleScreen({
 
         <div className="text-3xl md:text-5xl font-black text-slate-700 italic px-6 pb-16">VS</div>
 
-        {/* 적 영역 */}
         <div className="flex flex-row gap-4 md:gap-8 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
             const isVanguard = idx === 0; const eCard = enemy.intentCard;
@@ -251,7 +202,6 @@ export default function BattleScreen({
                 </div>
                 <h3 className={`text-xs md:text-lg font-bold mb-1 ${enemy.isBoss ? 'text-red-300' : 'text-red-400'} truncate w-full text-center`}>{enemy.name}</h3>
                 <div className="w-full max-w-[100px] md:max-w-[140px] bg-slate-800 h-3 md:h-5 rounded-full overflow-hidden border border-slate-600 relative"><div className={`${enemy.isBoss ? 'bg-red-600' : 'bg-red-500'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/><span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-bold drop-shadow-md">{enemy.hp} / {enemy.maxHp}</span></div>
-                
                 <div className="flex gap-1 mt-1 flex-wrap justify-center w-full min-h-[16px]">
                   <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
                   <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
@@ -264,6 +214,7 @@ export default function BattleScreen({
         </div>
       </div>
 
+      {/* 하단 마나 및 손패 */}
       <div className="h-[30vh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-2 md:pb-4 relative w-full pt-4">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 text-center font-bold text-slate-300 text-[10px] md:text-sm mb-1 md:mb-2 z-10 border border-slate-700 bg-slate-800/80 px-3 py-1 rounded-full shadow-lg">손패: {hand.length} / {MAX_HAND_SIZE}장</div>
         <div className="flex w-full px-2 md:px-4 relative justify-center items-end h-full">
