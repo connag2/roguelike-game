@@ -77,22 +77,24 @@ export default function DeckBuilder({
         search={searchQuery} setSearch={setSearchQuery}
       />
 
-      {/* flex-1 추가: 모든 카드가 표시되도록 영역 확장, pb-24로 하단 여백 대폭 증가 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 flex-1 overflow-y-auto hide-scrollbar pb-24 w-full max-w-6xl mx-auto px-4 mt-4">
+      {/* ✨ 억지로 줄어드는 grid 대신 flex-wrap을 사용하여 카드 크기를 시원시원하게 고정 */}
+      <div className="flex-1 overflow-y-auto hide-scrollbar flex flex-wrap gap-4 md:gap-6 content-start justify-center pb-24 w-full max-w-7xl mx-auto px-4 mt-4">
         {filteredCards.map(baseCard => {
           const count = tempDeckCounts[baseCard.id] || 0;
           const card = getCardDef(baseCard.id, shopUpgrades); 
           if (!card) return null;
           return (
-            <Card 
-              key={baseCard.id}
-              card={card} 
-              count={count} 
-              isLocked={false} 
-              onAdd={handleAddCard} 
-              onRemove={handleRemoveCard}
-              canAdd={getTotalCards(tempDeckCounts) < 20}
-            />
+            // ✨ 반응형으로 카드 틀(wrapper)의 크기를 강제 고정 (모바일에서도 큼직하게 유지)
+            <div key={baseCard.id} className="w-32 h-48 sm:w-36 sm:h-56 md:w-44 md:h-[260px] lg:w-48 lg:h-[280px] shrink-0 transition-transform hover:scale-105 origin-center">
+              <Card 
+                card={card} 
+                count={count} 
+                isLocked={false} 
+                onAdd={handleAddCard} 
+                onRemove={handleRemoveCard}
+                canAdd={getTotalCards(tempDeckCounts) < 20}
+              />
+            </div>
           );
         })}
       </div>
