@@ -7,7 +7,7 @@ import { HelpCircle } from 'lucide-react';
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
-import { useBattle } from './hooks/useBattle'; // ✨ 새로 추가된 전투 전용 훅
+import { useBattle } from './hooks/useBattle'; 
 
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
@@ -212,7 +212,6 @@ export default function App() {
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
-  // ✨ 삭제된 수백 줄의 전투 처리 로직을 이 훅이 전부 대신합니다!
   const { playCard, checkRevive } = useBattle({
     combatState, setCombatState,
     playerRelics, setPlayerRelics,
@@ -344,6 +343,7 @@ export default function App() {
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
       let r = 'common';
+      // ✨ 전설 확률 5%로 조정 (0.05 미만)
       if (roll < 0.05) r = 'rare';
       else if (roll < 0.3) r = 'uncommon';
       
@@ -399,7 +399,7 @@ export default function App() {
       setToastMsg('덱이 20장이 아닙니다. 먼저 덱을 20장으로 맞춰주세요.');
       return;
     }
-    handleWarp(50); // 50층으로 이동하는 함수 호출
+    handleWarp(50); 
     msg = '워프 쿠폰: 50층 보스에게 이동합니다!';
     valid = true;
   }
