@@ -7,6 +7,7 @@ import { HelpCircle } from 'lucide-react';
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
+import { useBattle } from './hooks/useBattle'; // ✨ 새로 추가된 전투 전용 훅
 
 import MainMenu from './components/screens/MainMenu';
 import BattleScreen from './components/screens/BattleScreen';
@@ -211,153 +212,16 @@ export default function App() {
     if (changed) { setSeenEnemies(newSeen); saveGame({ seenEnemies: newSeen }); }
   };
 
-  const checkRevive = (target, enemiesArray) => {
-    if (target.hp <= 0) {
-      const rev = target.passives?.findIndex(ps => ps.id === 'revive');
-      if (rev !== undefined && rev > -1) { 
-        target.hp = Math.floor(target.maxHp / 2); target.passives.splice(rev, 1); setToastMsg('부활!'); 
-      } else if (enemiesArray) {
-        const idx = enemiesArray.indexOf(target);
-        if (idx > -1) enemiesArray.splice(idx, 1);
-      }
-    }
-  };
-
-  const playCard = (cardIndex) => {
-    if (combatState.turn !== 'PLAYER') return;
-    const card = combatState.hand[cardIndex];
-    if (combatState.player.mana < card.cost) return;
-
-    setCombatState(prev => {
-      let p = { ...prev.player };
-      let newEnemies = [...prev.enemies];
-      let newHand = [...prev.hand];
-      let newDiscard = [...prev.discardPile];
-      let newDraw = [...prev.drawPile];
-
-      p.mana -= card.cost;
-      const isWin = !card.gamble || Math.random() < card.gambleWinChance;
-
-      const deal = (amt) => {
-        if (newEnemies.length === 0) return;
-        let target = newEnemies[0];
-        let dmg = amt + (p.buffs.strength || 0);
-        if (p.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97);
-        if (target.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-        if (target.block >= dmg) target.block -= dmg; else { target.hp -= (dmg - target.block); target.block = 0; }
-        checkRevive(target, newEnemies);
-      };
-
-      if (isWin) {
-        if (card.winDamage) deal(newEnemies[0]?.isBoss ? card.winDamageBoss : card.winDamage);
-        if (card.missingHpDamage) deal((card.damage || 0) + Math.floor((p.maxHp - p.hp) * card.missingHpDamage));
-        else if (card.consumeAllMana) { deal((card.damage || 0) + p.mana * card.manaMultiplier); p.mana = 0; }
-        else if (card.damage) { let cur = card.damage; for(let i=0; i<(card.multiHit || 1); i++) { deal(cur); if (card.increasingDamage) cur += card.increasingDamage; } }
-        if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) p.block += card.block + (p.buffs.dexterity || 0);
-        if (card.doubleBlock) p.block *= 2;
-        if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
-        if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + card.heal);
-        if (card.manaGain && !card.gamble) p.mana += card.manaGain;
-        if (card.winManaGain) p.mana += card.winManaGain;
-        if (card.selfStrength) p.buffs.strength += card.selfStrength;
-        if (card.selfDex) p.buffs.dexterity += card.selfDex;
-        if (card.selfThorns) p.buffs.thorns += card.selfThorns;
-        if (newEnemies.length > 0) {
-          if (card.enemyWeak) newEnemies[0].debuffs.weak += card.enemyWeak;
-          if (card.enemyVuln) newEnemies[0].debuffs.vulnerable += card.enemyVuln;
-          if (card.enemyPoison) newEnemies[0].debuffs.poison += card.enemyPoison;
-        }
-      } else {
-        setToastMsg("실패...");
-        if (card.loseDamage) deal(card.loseDamage);
-        if (card.loseSelfDamage) p.hp -= card.loseSelfDamage;
-        if (card.losePercentMaxHpDamage) p.hp -= Math.floor(p.maxHp * card.losePercentMaxHpDamage);
-      }
-
-      for(let i=0; i<(card.draw || 0); i++) {
-        if(newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10) - 1) break;
-        if(newDraw.length === 0) { if(newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
-        if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
-      }
-      newHand.splice(cardIndex, 1); newDiscard.push(card);
-
-      if (newEnemies.length === 0) {
-        try {
-          const isSpecialBoss = [25, 50, 75, 100].includes(prev.stage);
-          const isNormalBoss = prev.stage % 5 === 0 && !isSpecialBoss;
-          
-          let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
-          if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
-          
-          if (prev.stage >= maxStageReached) setMaxStageReached(prev.stage + 1);
-          
-          let extraCredits = 0, healAmount = 0;
-          (playerRelics || []).forEach(r => {
-            if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
-            if (r.effect?.type === 'END_COMBAT_HEAL') healAmount += r.effect.heal;
-          });
-
-          let earned = 5 + prev.stage + (Math.floor(prev.stage / 5) * 5) + extraCredits;
-          if (isNormalBoss || isSpecialBoss) earned += 15;
-          p.hp = Math.min(p.maxHp, p.hp + healAmount);
-          
-          newStats.totalCreditsEarned = (newStats.totalCreditsEarned || 0) + earned;
-          setGameStats(newStats);
-          setCredits(credits + earned);
-
-          let relicDropChance = 0.05;
-          if (isNormalBoss) relicDropChance = 0.20;
-          if (isSpecialBoss) relicDropChance = 0.50;
-
-          let droppedRelic = null;
-          if (Math.random() < relicDropChance) {
-            const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
-            if (availableRelics.length > 0) {
-              droppedRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
-            }
-          }
-
-          const determineReward = (st) => {
-            const roll = Math.random();
-            if ([25, 50, 75].includes(st)) {
-              if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
-              if (roll < 0.11) {
-                if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
-                if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
-                if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
-              }
-            }
-            if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
-            if (isNormalBoss && roll < 0.10) {
-              const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
-              return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
-            }
-            return null;
-          };
-
-          const spReward = determineReward(prev.stage);
-          if (spReward) setSpecialBossRewardCard(spReward);
-
-          saveGame({ credits: credits + earned, maxStageReached: prev.stage >= maxStageReached ? prev.stage + 1 : maxStageReached, gameStats: newStats });
-          
-          if (droppedRelic) {
-            setPendingRelicReward(droppedRelic);
-            setTimeout(() => setGameState('RELIC_REWARD'), 600);
-          } else {
-            if (spReward) setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-            else if (prev.mode === 'NORMAL' && prev.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); }
-            else setTimeout(() => setGameState('REWARDS'), 600);
-          }
-        } catch (err) {
-          console.error("보상 처리 중 에러 발생:", err);
-          setTimeout(() => setGameState('REWARDS'), 600);
-        }
-        
-        return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] };
-      }
-      return { ...prev, player: p, enemies: newEnemies, hand: newHand, discardPile: newDiscard, drawPile: newDraw };
-    });
-  };
+  // ✨ 삭제된 수백 줄의 전투 처리 로직을 이 훅이 전부 대신합니다!
+  const { playCard, checkRevive } = useBattle({
+    combatState, setCombatState,
+    playerRelics, setPlayerRelics,
+    fastMode, setToastMsg, setGameState, saveGame,
+    gameStats, setGameStats,
+    credits, setCredits,
+    maxStageReached, setMaxStageReached,
+    setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared
+  });
 
   const handleRelicRewardClaim = () => {
     if (!pendingRelicReward) return;
@@ -450,7 +314,7 @@ export default function App() {
       });
     }, fastMode ? 500 : 1500);
     return () => clearTimeout(timer);
-  }, [gameState, combatState?.turn, fastMode]);
+  }, [gameState, combatState?.turn, fastMode, checkRevive]);
 
   const getFilteredCards = (t, e, r, o, q) => {
     return CARD_LIBRARY.filter(c => {
@@ -608,7 +472,7 @@ export default function App() {
                   <h3 className="text-lg font-bold text-orange-400 mb-3 underline underline-offset-4">✨ 상태 효과 상세 설명</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
                     <div className="space-y-2">
-                      <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 3% 감소합니다.</p>
+                      <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 25% 감소합니다.</p>
                       <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 30% 증가합니다.</p>
                       <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 1 감소합니다.</p>
                     </div>

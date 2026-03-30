@@ -1,3 +1,4 @@
+// src/utils/gameLogic.js
 import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, MANA_CARD_IDS, GAME_RULES } from '../constants/gameData';
 
 export const shuffle = (array) => {
@@ -9,14 +10,31 @@ export const shuffle = (array) => {
   return newArray;
 };
 
+// ✨ 새로 추가됨: 버프/디버프 최대 중첩치 제한 (무한 스택 방지)
+export const clampStack = (val, max = 999) => Math.min(Math.max(0, val), max);
+
 export const decayStack = (val) => {
   if (!val || val <= 0) return 0;
   let drop = 1;
   if (val >= 10) drop = Math.floor(val / 3);
   else if (val >= 5) drop = 2;
-  return Math.max(0, val - drop);
+  return clampStack(val - drop); // 클램프 적용
 };
 
+// ✨ 새로 추가됨: 통합 대미지 계산기 (약화 25% 감소, 취약 30% 증가로 밸런스 조정)
+export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak = 0, targetVuln = 0) => {
+  let dmg = baseDamage + attackerStrength;
+  if (attackerWeak > 0) dmg = Math.floor(dmg * 0.75); // 약화 시 대미지 25% 감소
+  if (targetVuln > 0) dmg = Math.floor(dmg * 1.30);   // 취약 시 대미지 30% 증가
+  return Math.max(0, dmg);
+};
+
+// ✨ 새로 추가됨: 통합 방어도 계산기
+export const calculateBlock = (baseBlock, dex = 0) => {
+  return Math.max(0, baseBlock + dex);
+};
+
+// 아래부터는 기존 로직 유지
 export const getCardDef = (id, shopUpgrades) => {
   if (!id) return null;
   const base = CARD_LIBRARY.find(c => c.id === id);
@@ -71,8 +89,6 @@ export const generateEnemyIntent = (template, stage) => {
 
 export const generateEnemies = (stage) => {
   let enemyTemplates = [];
-
-  // 🌟 블랙스크린 방지: 데이터 로드 실패 시 무조건 슬라임으로 대체하여 앱 터짐 방지
   try {
     if (stage === 100) {
       enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
@@ -84,11 +100,10 @@ export const generateEnemies = (stage) => {
       enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
     }
   } catch (error) {
-    console.error("적 생성 중 오류 발생. 기본 몬스터로 대체합니다:", error);
+    console.error("적 생성 중 오류 발생:", error);
     enemyTemplates = [ENEMIES[0]]; 
   }
 
-  // 혹시라도 undefined 데이터가 들어가는 것 차단
   enemyTemplates = enemyTemplates.filter(Boolean);
   if (enemyTemplates.length === 0) enemyTemplates = [ENEMIES[0]];
 
