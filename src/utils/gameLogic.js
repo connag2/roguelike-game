@@ -81,20 +81,24 @@ export const generateEnemyIntent = (template, stage) => {
   }
   
   const baseCard = template.deck[Math.floor(Math.random() * template.deck.length)];
-  let newIntent = { ...baseCard };
+  let newIntent = { ...baseCard }; // 원본 속성(heal 등)을 그대로 복사
+  let newDesc = baseCard.desc || '';
   
-  // 원래 공격력(value)이 존재하는 카드에만 스테이지 비례 공격력 추가
+  // 1. 원본 카드에 '공격력(value)'이 명시되어 있을 때만 스테이지 비례 공격력 추가
   if (baseCard.value !== undefined) {
     newIntent.value = baseCard.value + Math.floor(stage * 0.75);
-    if (newIntent.desc) newIntent.desc = newIntent.desc.replace(baseCard.value.toString(), newIntent.value.toString());
+    newDesc = newDesc.replace(baseCard.value.toString(), newIntent.value.toString());
+  } else {
+    // 공격력이 없는 카드(예: 퓨어 힐)는 확실하게 value 속성을 지워줌 (UI 표기 오류 방지)
+    delete newIntent.value; 
   }
   
-  // 원래 회복력(heal)이 존재하는 카드에만 스테이지 비례 회복력 추가
+  // 2. 원본 카드에 '회복(heal)'이 명시되어 있을 때만 처리 (작성하신 500 수치 고정)
   if (baseCard.heal !== undefined) {
-    newIntent.heal = baseCard.heal + Math.floor(stage * 1.5);
-    if (newIntent.desc) newIntent.desc = newIntent.desc.replace(baseCard.heal.toString(), newIntent.heal.toString());
+    newIntent.heal = baseCard.heal; 
   }
   
+  newIntent.desc = newDesc;
   return newIntent;
 };
 
