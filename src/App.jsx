@@ -18,7 +18,7 @@ import Rewards from './components/screens/Rewards';
 import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 import UpdateHistory from './components/screens/UpdateHistory';
-import GameGuide from './components/screens/GameGuide'; // ✨ 신규 가이드 컴포넌트 임포트
+import GameGuide from './components/screens/GameGuide';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -81,6 +81,8 @@ export default function App() {
   const [deckImportText, setDeckImportText] = useState('');
   const [showEnemyDeck, setShowEnemyDeck] = useState(false);
   const [viewingEnemy, setViewingEnemy] = useState(null);
+  
+  // ✨ 세이브 불러오기용 모달 상태 추가
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
 
@@ -101,22 +103,27 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // ✨ 세이브 데이터 안전하게 불러오기 (try-catch 추가)
   useEffect(() => {
-    const saved = localStorage.getItem('roguelike_tactics_save');
-    if (saved) {
-      const d = JSON.parse(saved);
-      if (d.credits !== undefined) setCredits(d.credits);
-      if (d.shopUpgrades) setShopUpgrades(d.shopUpgrades);
-      if (d.unlockedCards) setUnlockedCards(d.unlockedCards);
-      if (d.deckCounts) setDeckCounts(d.deckCounts);
-      if (d.unlockedRelics) setUnlockedRelics(d.unlockedRelics);
-      if (d.startingRelic) setStartingRelic(d.startingRelic);
-      if (d.gameStats) setGameStats(d.gameStats);
-      if (d.normalCleared !== undefined) setNormalCleared(d.normalCleared);
-      if (d.fastMode !== undefined) setFastMode(d.fastMode);
-      if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
-      if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
-      if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
+    try {
+      const saved = localStorage.getItem('roguelike_tactics_save');
+      if (saved) {
+        const d = JSON.parse(saved);
+        if (d.credits !== undefined) setCredits(d.credits);
+        if (d.shopUpgrades) setShopUpgrades(d.shopUpgrades);
+        if (d.unlockedCards) setUnlockedCards(d.unlockedCards);
+        if (d.deckCounts) setDeckCounts(d.deckCounts);
+        if (d.unlockedRelics) setUnlockedRelics(d.unlockedRelics);
+        if (d.startingRelic) setStartingRelic(d.startingRelic);
+        if (d.gameStats) setGameStats(d.gameStats);
+        if (d.normalCleared !== undefined) setNormalCleared(d.normalCleared);
+        if (d.fastMode !== undefined) setFastMode(d.fastMode);
+        if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
+        if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
+        if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
+      }
+    } catch (e) {
+      console.error("세이브 데이터 로드 실패", e);
     }
   }, []);
 
@@ -367,14 +374,12 @@ export default function App() {
   const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
   const handleExitGame = async () => { setToastMsg('저장 중...'); await saveGame(); if (window.require) window.close(); else setGameState('MENU'); };
 
-  // ✨ 신규: 프리미엄 뽑기 (전설 3% 확률 반영)
   const handlePremiumGacha = () => {
     if (credits < 100) { setToastMsg('크레딧이 부족합니다.'); return; }
     const result = [];
     setCredits(prev => prev - 100);
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
-      // 전설/특수 확률 3%로 하향 조정
       let rarity = roll < 0.03 ? 'rare' : 'uncommon'; 
       const pool = CARD_LIBRARY.filter(c => c.rarity === rarity || (rarity === 'rare' && c.rarity === 'special'));
       const card = pool[Math.floor(Math.random() * pool.length)];
@@ -384,7 +389,6 @@ export default function App() {
     saveGame({ credits: credits - 100 });
   };
 
-  // ✨ 신규: 카드 추가 핸들러 (마나 카드 최대 2개 제한 적용)
   const handleAddCard = (id) => {
     const total = getTotalCards(tempDeckCounts);
     const isManaCard = MANA_CARD_IDS.includes(id);
@@ -392,8 +396,6 @@ export default function App() {
 
     if (total >= 20) { setToastMsg('덱은 최대 20장까지만 가능합니다.'); return; }
     if ((tempDeckCounts[id] || 0) >= 3) { setToastMsg('동일 카드는 최대 3장까지 가능합니다.'); return; }
-    
-    // 마나 카드 제한 체크 (최대 2장)
     if (isManaCard && currentManaCount >= 2) {
       setToastMsg('마나 관련 카드는 덱에 최대 2장까지만 넣을 수 있습니다.');
       return;
@@ -417,6 +419,79 @@ export default function App() {
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setDeckImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 rounded-lg">취소</button>
                 <button onClick={() => { try { const data = JSON.parse(decodeURIComponent(atob(deckImportText.trim()))); setTempDeckCounts(data); setDeckImportModalOpen(false); setToastMsg('덱 성공!'); } catch(e) { setToastMsg('오류!'); } }} className="flex-1 py-3 bg-indigo-600 rounded-lg">확인</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* 👇 여기에 스테이지 도약(Skip) 모달 코드를 추가하세요! 👇 */}
+        {skipModalOpen && (
+          <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
+            <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
+              <h3 className="text-2xl font-black mb-2 text-emerald-400">스테이지 도약</h3>
+              <p className="text-slate-300 text-xs mb-6 break-keep">
+                최대 도달 층({maxStageReached}층)을 기준으로, 이전에 돌파했던 보스 층에서 바로 시작할 수 있습니다.
+              </p>
+              
+              <div className="grid grid-cols-4 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-1">
+                {Array.from({ length: Math.floor(maxStageReached / 5) }, (_, i) => (i + 1) * 5).map(floor => (
+                  <button 
+                    key={floor}
+                    onClick={() => {
+                      if (getTotalCards() !== 20) { 
+                        setToastMsg('덱을 20장 꽉 채워야 시작할 수 있습니다.'); 
+                        setSkipModalOpen(false); 
+                        return; 
+                      }
+                      startBattle('NORMAL', floor);
+                      setSkipModalOpen(false);
+                      setToastMsg(`${floor}층부터 도약을 시작합니다!`);
+                    }}
+                    className="py-2 bg-slate-900 hover:bg-emerald-600 border border-slate-600 hover:border-emerald-400 rounded-lg text-sm font-bold transition-all text-slate-200 hover:text-white"
+                  >
+                    {floor}층
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={() => setSkipModalOpen(false)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg font-bold transition-colors">
+                취소
+              </button>
+            </div>
+          </div>
+        )}
+        {/* 👆 추가 완료 👆 */}
+
+        {/* ✨ 세이브 전체 불러오기 모달 추가 (누락되었던 부분) */}
+        {importModalOpen && (
+          <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setImportModalOpen(false)}>
+            <div className="bg-slate-800 p-6 rounded-xl border-2 border-amber-500 w-full max-w-md" onClick={e => e.stopPropagation()}>
+              <h3 className="text-xl font-bold mb-4 text-amber-400">세이브 정보 불러오기</h3>
+              <p className="text-xs text-slate-400 mb-2">복사해둔 세이브 코드를 아래에 붙여넣어주세요.</p>
+              <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white" value={importText} onChange={e => setImportText(e.target.value)} />
+              <div className="flex gap-3 mt-4">
+                <button onClick={() => setImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 rounded-lg font-bold">취소</button>
+                <button onClick={() => { 
+                  try { 
+                    const d = JSON.parse(decodeURIComponent(atob(importText.trim()))); 
+                    if (d.credits !== undefined) setCredits(d.credits);
+                    if (d.shopUpgrades) setShopUpgrades(d.shopUpgrades);
+                    if (d.unlockedCards) setUnlockedCards(d.unlockedCards);
+                    if (d.deckCounts) setDeckCounts(d.deckCounts);
+                    if (d.unlockedRelics) setUnlockedRelics(d.unlockedRelics);
+                    if (d.startingRelic) setStartingRelic(d.startingRelic);
+                    if (d.gameStats) setGameStats(d.gameStats);
+                    if (d.normalCleared !== undefined) setNormalCleared(d.normalCleared);
+                    if (d.fastMode !== undefined) setFastMode(d.fastMode);
+                    if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
+                    if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
+                    if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
+                    saveGame(d);
+                    setImportModalOpen(false); 
+                    setToastMsg('세이브 불러오기 성공!'); 
+                  } catch(e) { 
+                    setToastMsg('잘못된 세이브 코드입니다!'); 
+                  } 
+                }} className="flex-1 py-3 bg-amber-600 text-white rounded-lg font-bold hover:bg-amber-500">불러오기 적용</button>
               </div>
             </div>
           </div>
