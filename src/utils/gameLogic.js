@@ -38,7 +38,6 @@ export const calculateBlock = (baseBlock, dex = 0) => {
   return Math.max(0, baseBlock + dex);
 };
 
-// 아래부터는 기존 로직 유지
 export const getCardDef = (id, shopUpgrades) => {
   if (!id) return null;
   const base = CARD_LIBRARY.find(c => c.id === id);
@@ -49,26 +48,61 @@ export const getCardDef = (id, shopUpgrades) => {
     const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
     
     const scale = (val, factor = 0.3) => val ? val + Math.floor(val * factor * upgradeLevel) : val;
-    const flat = (val, interval = 2) => val ? val + Math.floor(upgradeLevel / interval) : val;
+    // interval 변수를 받아 특정 강화 수치마다 오르도록 조정
+    const flat = (val, interval) => val ? val + Math.floor(upgradeLevel / interval) : val;
 
+    // 대미지, 방어, 힐은 지속적으로 스케일링
     upgraded.damage = scale(base.damage);
     upgraded.block = scale(base.block);
     upgraded.heal = scale(base.heal);
     
-    upgraded.enemyWeak = flat(base.enemyWeak, 2);
-    upgraded.enemyVuln = flat(base.enemyVuln, 2);
-    upgraded.enemyPoison = flat(base.enemyPoison, 1);
-    upgraded.selfStrength = flat(base.selfStrength, 2);
-    upgraded.selfDex = flat(base.selfDex, 2);
-    upgraded.manaGain = flat(base.manaGain, 3);
-    upgraded.draw = flat(base.draw, 3);
+    // ✨ 다단 히트(추가 타수): 4강마다 1타 추가 (밸런스를 위해 4강으로 설정)
+    upgraded.multiHit = flat(base.multiHit, 4);
 
+    // ✨ 버프/디버프: +4강마다 1씩 증가
+    upgraded.enemyWeak = flat(base.enemyWeak, 4);
+    upgraded.enemyVuln = flat(base.enemyVuln, 4);
+    upgraded.enemyPoison = flat(base.enemyPoison, 4); 
+    upgraded.selfStrength = flat(base.selfStrength, 4);
+    upgraded.selfDex = flat(base.selfDex, 4);
+    
+    // ✨ 드로우/마나: +5강마다 1씩 증가
+    upgraded.manaGain = flat(base.manaGain, 5);
+    upgraded.draw = flat(base.draw, 5);
+
+    // ✨ 텍스트(설명) 업데이트 로직 강화
     let upDesc = base.desc || '';
     if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
     if (base.block) upDesc = upDesc.replace(`${base.block}의 방어`, `${upgraded.block}의 방어`);
-    if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal} 회복`, `체력을 ${upgraded.heal} 회복`);
+    if (base.heal) upDesc = upDesc.replace(`체력을 ${base.heal}`, `체력을 ${upgraded.heal}`);
+    
+    // 카드 드로우 텍스트 교체
     if (base.draw) upDesc = upDesc.replace(`카드를 ${base.draw}장`, `카드를 ${upgraded.draw}장`);
     
+    // 마나 텍스트 교체
+    if (base.manaGain) {
+      upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`)
+                     .replace(`마나 ${base.manaGain}`, `마나 ${upgraded.manaGain}`);
+    }
+
+    // 다단 히트 텍스트 교체
+    if (base.multiHit) {
+      upDesc = upDesc.replace(`${base.multiHit}번 연속`, `${upgraded.multiHit}번 연속`);
+      // "총 N" 대미지 계산 표기가 텍스트에 있다면 같이 업데이트
+      if (upDesc.includes('(총')) {
+        const oldTotal = base.damage * base.multiHit;
+        const newTotal = upgraded.damage * upgraded.multiHit;
+        upDesc = upDesc.replace(`(총 ${oldTotal})`, `(총 ${newTotal})`);
+      }
+    }
+
+    // 버프/디버프 텍스트 교체
+    if (base.enemyWeak) upDesc = upDesc.replace(`약화 ${base.enemyWeak}`, `약화 ${upgraded.enemyWeak}`);
+    if (base.enemyVuln) upDesc = upDesc.replace(`취약 ${base.enemyVuln}`, `취약 ${upgraded.enemyVuln}`);
+    if (base.enemyPoison) upDesc = upDesc.replace(`중독 ${base.enemyPoison}`, `중독 ${upgraded.enemyPoison}`);
+    if (base.selfStrength) upDesc = upDesc.replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`);
+    if (base.selfDex) upDesc = upDesc.replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`);
+
     upgraded.desc = upDesc;
     return upgraded;
   }
