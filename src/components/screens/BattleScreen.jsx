@@ -45,7 +45,9 @@ export default function BattleScreen({
     // 시각적 연타 효과 루프
     for (let i = 0; i < hits; i++) {
       let effectName = null;
-      if (card.id === 'furioso') effectName = 'furioso';
+      // ✨ 마나 물약은 타격 모션이 아닌 힐/마나 전용 이펙트 출력!
+      if (card.id === 'mana_potion') effectName = 'mana_potion'; 
+      else if (card.id === 'furioso') effectName = 'furioso';
       else if (card.id === 'meteor_fall') effectName = 'meteor';
       else if (card.id === 'snipe') effectName = 'snipe';
       else effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`;
@@ -71,12 +73,28 @@ export default function BattleScreen({
         .animate-flash-red { animation: flashRed 0.5s ease-out forwards; }
         @keyframes pulse-glow { 0%, 100% { text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4); } 50% { text-shadow: 0 0 25px rgba(59, 130, 246, 1), 0 0 40px rgba(59, 130, 246, 0.6); } }
         .mana-font { animation: pulse-glow 2s infinite; font-family: 'Arial Black', sans-serif; }
+        
+        /* ✨ 마나 물약 전용 애니메이션 추가 */
+        @keyframes manaSooth {
+          0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+          50% { transform: scale(1.5) translateY(-20px); opacity: 1; filter: drop-shadow(0 0 20px #06b6d4); }
+          100% { transform: scale(2) translateY(-40px); opacity: 0; }
+        }
+        .mana-sooth { animation: manaSooth 0.6s ease-out forwards; }
       `}</style>
 
       {/* 특수 이펙트들 */}
-      <TierEffects playEffect={playEffect} />
+      {playEffect?.name !== 'mana_potion' && <TierEffects playEffect={playEffect} />}
       <StatusEffects playEffect={playEffect} />
       <UniqueEffects playEffect={playEffect} />
+
+      {/* ✨ 마나 물약 사용 시 나오는 영롱한 이펙트 */}
+      {playEffect?.name === 'mana_potion' && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
+          <div className="absolute w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
+          <Zap className="w-32 h-32 text-cyan-300 mana-sooth" />
+        </div>
+      )}
 
       {/* 🩸 플레이어 피격 대미지 수치 */}
       {playEffect?.name === 'enemy_attack' && (
@@ -184,7 +202,15 @@ export default function BattleScreen({
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
             <Skull className="w-10 h-10 md:w-16 md:h-16 text-indigo-500/80" />
-            {player.block > 0 && <div className="absolute -top-2 -right-2 bg-blue-600 w-8 h-8 md:w-10 md:h-10 rounded-full flex justify-center items-center font-black border-2 border-blue-300 animate-bounce shadow-md text-sm">{player.block}</div>}
+            
+            {/* ✨ 플레이어 방어 아이콘 개선 (방패 모양을 직관적으로 보여줌) */}
+            {player.block > 0 && (
+              <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
+                <Shield className="absolute text-white/30 w-full h-full p-1" />
+                <span className="relative z-10 text-white text-xs md:text-sm">{player.block}</span>
+              </div>
+            )}
+            
           </div>
           <h3 className="text-sm md:text-xl font-black mb-1 text-indigo-400 tracking-tighter uppercase italic">PLAYER</h3>
           <div className="w-full max-w-[120px] md:max-w-[200px] bg-slate-950 h-4 md:h-5 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
@@ -227,7 +253,7 @@ export default function BattleScreen({
                   <Skull className={`${enemy.isBoss ? 'w-12 h-12 md:w-20 md:h-20 text-red-500' : 'w-8 h-8 md:w-12 md:h-12 text-red-700/80'}`} />
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
                   
-                  {isTarget && playEffect && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
+                  {isTarget && playEffect && playEffect.name !== 'mana_potion' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                 </div>
 
                 <h3 className={`text-[10px] md:text-base font-black mb-1 ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>{enemy.name}</h3>
@@ -251,14 +277,17 @@ export default function BattleScreen({
 
       {/* 🃏 하단 마나 및 손패 UI */}
       <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 text-center font-bold text-slate-500 text-[9px] md:text-xs tracking-[0.2em] z-10 bg-slate-950/40 px-4 py-1 rounded-full border border-slate-800/50 shadow-sm backdrop-blur-sm">PLAYER HAND : {hand.length} / {MAX_HAND_SIZE}</div>
+        
+        {/* ✨ 손패 제한 UI 변경 (카드 밑에 가려지지 않도록 우측 하단 z-1000 레이어로 이동) */}
+        <div className="absolute bottom-[200px] md:bottom-[240px] right-4 md:right-8 text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest z-[1000] bg-slate-900/90 px-4 py-2 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md">
+          손패 : <span className="text-indigo-400">{hand.length}</span> / {MAX_HAND_SIZE}장
+        </div>
         
         <div className="flex w-full px-4 relative justify-center items-end h-full">
-          {/* 마나 및 드로우 덱 (마나 텍스트에서 기울임 제거) */}
+          {/* 마나 및 드로우 덱 */}
           <div className="absolute left-2 md:left-8 bottom-6 flex flex-col items-center gap-4 z-20">
             <div className="relative group">
               <div className="w-14 h-14 md:w-20 md:h-20 bg-blue-950 border-[3px] border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_20px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.8)] transition-all">
-                {/* 💡 기존의 italic을 제거했습니다 */}
                 <span className="text-2xl md:text-4xl font-black text-white mana-font">{player.mana}</span>
               </div>
               <div className="absolute -bottom-2 bg-slate-950 px-3 py-0.5 rounded-full border border-blue-500/50 text-[9px] md:text-[10px] font-black text-blue-400 shadow-lg tracking-widest">MANA</div>
