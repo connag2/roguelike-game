@@ -293,9 +293,10 @@ export default function BattleScreen({
                      className="relative transition-all duration-300 ease-out origin-bottom -ml-8 md:-ml-12 first:ml-0" 
                      style={{ zIndex: isHovered ? 100 : 10 + idx, transform: isHovered ? `translateY(-60px) scale(1.15) rotate(0deg)` : `translateY(${translateY}px) rotate(${rotation}deg)` }}>
                   
-                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 shadow-xl rounded-2xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
-                    <Card card={card} isLocked={false} />
-                  </div>
+                  {/* 👇 bg-slate-900을 추가하고, rounded-2xl을 rounded-xl로 변경했습니다 */}
+      <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
+        <Card card={card} isLocked={false} />
+      </div>
                 </div>
               );
             })}
