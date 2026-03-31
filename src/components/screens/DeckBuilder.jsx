@@ -2,7 +2,7 @@ import React from 'react';
 import { Eraser, Download, Upload, Save, Maximize, HelpCircle } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
-import { RELIC_LIBRARY } from '../constants/relicData'; // 유물 정보 불러오기
+import { RELIC_LIBRARY } from '../../constants/relicData'; // ✅ ../../ 로 수정
 
 export default function DeckBuilder({
   toggleFullScreen,
