@@ -3,7 +3,7 @@ import {
   Sword, Shield, Zap, Heart, Target, RefreshCw, Scissors, 
   FlaskConical, Wind, AlertCircle, MoveRight, Ghost, 
   Flame, Sparkles, Skull, Crosshair, Box, Target as Aim,
-  Dna, ZapOff, ShieldAlert, Footprints, FastForward
+  Dna, ZapOff, ShieldAlert, Footprints, FastForward, Droplet, Plus
 } from 'lucide-react';
 
 export default function CommonEffects({ playEffect, fastMode }) {
@@ -12,69 +12,152 @@ export default function CommonEffects({ playEffect, fastMode }) {
   const duration = fastMode ? "duration-100" : "duration-200";
   const { cardId } = playEffect;
 
-  // 💥 타격 이펙트 도구: 날카로운 베기 (타겟 중심 크기로 변경)
-  const renderSharpSlash = (color, angle = "rotate-45", scale = "") => (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999] mix-blend-screen">
-      <div className={`w-[250%] h-[3px] md:h-[5px] ${color} blur-[0.5px] slash-hit ${angle} ${scale}`} 
+  // 💥 1. 공격 계열 (물리적 타격)
+  const renderSlash = (color = 'bg-slate-200', angle = 'rotate-45', height = 'h-[3px]', extra = '') => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+      <div className={`w-[200%] ${height} ${color} blur-[1px] slash-hit ${angle} ${extra}`} 
            style={{ animationDuration: fastMode ? '0.1s' : '0.2s' }} />
     </div>
   );
 
-  // 💥 타격 이펙트 도구: 원형 충격파 (부모 크기에 맞게 변경)
-  const renderImpact = (color, scale = "scale-100") => (
-    <div className={`absolute inset-0 flex items-center justify-center pointer-events-none z-[9999] mix-blend-color-dodge`}>
-      <div className={`w-full h-full rounded-full ${color} blur-xl animate-out fade-out zoom-out ${duration} ${scale}`} />
+  const renderPierce = (color = 'bg-slate-300') => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+      <div className={`w-8 h-8 rounded-full ${color} blur-sm pierce-hit`} 
+           style={{ animationDuration: fastMode ? '0.1s' : '0.2s' }} />
+    </div>
+  );
+
+  // 🛡️ 2. 방어 계열 (단단함, 보호막)
+  const renderShield = (color = 'text-blue-400', Icon = Shield, extra = '') => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+      <Icon className={`w-3/4 h-3/4 ${color} opacity-60 shield-pop ${extra}`} 
+            style={{ animationDuration: fastMode ? '0.2s' : '0.3s' }} />
+    </div>
+  );
+
+  // ⚡ 3. 마나/기력 회복 계열 (상승하는 에너지)
+  const renderEnergy = (color = 'text-yellow-400', Icon = Zap) => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+      <Icon className={`w-1/2 h-1/2 ${color} opacity-80 energy-rise`} 
+            style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
+    </div>
+  );
+
+  // 💚 4. 체력 회복 계열 (따뜻한 고동)
+  const renderHeal = (Icon = Plus) => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+      <Icon className="w-1/2 h-1/2 text-green-400 heal-pulse" 
+            style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
+    </div>
+  );
+
+  // 🧪 5. 상태이상/독 계열 (퍼지는 이펙트)
+  const renderPoison = () => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
+      <Droplet className="w-1/2 h-1/2 text-green-500 opacity-70 poison-splash" 
+               style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
     </div>
   );
 
   return (
     <>
       <style>{`
+        /* 타격 (빠르게 나타났다 베어지고 사라짐) */
         @keyframes sharpSlash { 
           0% { transform: scaleX(0) scaleY(1); opacity: 0; }
-          15% { transform: scaleX(0.6) scaleY(4); opacity: 1; }
+          20% { transform: scaleX(0.8) scaleY(2); opacity: 1; }
           100% { transform: scaleX(1.5) scaleY(0.1); opacity: 0; }
         }
         .slash-hit { animation: sharpSlash linear forwards; }
+
+        /* 찌르기 (순간적으로 점이 커졌다 사라짐) */
+        @keyframes pierceHit {
+          0% { transform: scale(0.1); opacity: 0; }
+          30% { transform: scale(1.5); opacity: 0.8; }
+          100% { transform: scale(0.5); opacity: 0; }
+        }
+        .pierce-hit { animation: pierceHit ease-out forwards; }
+
+        /* 방어 (단단하게 튕겨져 나옴) */
+        @keyframes shieldPop {
+          0% { transform: scale(0.5); opacity: 0; }
+          50% { transform: scale(1.1); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+        .shield-pop { animation: shieldPop ease-out forwards; }
+
+        /* 마나/에너지 (아래에서 위로 떠오름) */
+        @keyframes energyRise {
+          0% { transform: translateY(15px) scale(0.8); opacity: 0; }
+          50% { transform: translateY(-5px) scale(1.1); opacity: 1; }
+          100% { transform: translateY(-20px) scale(1); opacity: 0; }
+        }
+        .energy-rise { animation: energyRise ease-out forwards; }
+
+        /* 회복 (부드럽게 커지며 깜빡임) */
+        @keyframes healPulse {
+          0% { transform: scale(0.8); opacity: 0; }
+          50% { transform: scale(1.3); opacity: 1; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
+        .heal-pulse { animation: healPulse ease-out forwards; }
+
+        /* 독/디버프 (무겁게 떨어지거나 퍼짐) */
+        @keyframes poisonSplash {
+          0% { transform: translateY(-10px) scale(0.5); opacity: 0; }
+          50% { transform: translateY(0) scale(1.2); opacity: 0.8; }
+          100% { transform: translateY(10px) scale(1.5); opacity: 0; filter: blur(4px); }
+        }
+        .poison-splash { animation: poisonSplash ease-in forwards; }
       `}</style>
 
-      {/* ⚔️ 일반 카드 36종 개별 이펙트 리스트 */}
-      {cardId === 'strike' && renderSharpSlash('bg-white shadow-[0_0_10px_white]')}
-      {cardId === 'defend' && <div className="absolute inset-0 flex items-center justify-center"><Shield className="w-full h-full text-blue-400/40 animate-ping" /></div>}
-      {cardId === 'heavy_strike' && renderSharpSlash('bg-red-500 shadow-[0_0_20px_red]', 'rotate-[110deg]', 'scale-y-150')}
-      {cardId === 'shield_bash' && <div className="absolute inset-0 flex items-center justify-center"><Shield className="w-[120%] h-[120%] text-blue-400 animate-in zoom-in" />{renderImpact('bg-blue-600/40')}</div>}
-      {cardId === 'focus' && <div className="absolute inset-0 flex items-center justify-center"><Zap className="w-full h-full text-yellow-400 animate-bounce" /></div>}
-      {cardId === 'stab' && renderSharpSlash('bg-cyan-200 shadow-[0_0_12px_cyan]', 'rotate-0')}
-      {cardId === 'uppercut' && renderSharpSlash('bg-orange-400', '-rotate-90')}
-      {cardId === 'club_smash' && renderSharpSlash('bg-amber-900', 'rotate-90 scale-x-125')}
-      {cardId === 'quick_strike' && renderSharpSlash('bg-indigo-300 opacity-60', 'rotate-12')}
-      {cardId === 'angry_strike' && <div className="absolute inset-0 bg-red-900/20 rounded-full">{renderSharpSlash('bg-red-600', 'rotate-45')}</div>}
-      {cardId === 'sweep' && renderSharpSlash('bg-slate-200', 'rotate-0 scale-x-150')}
-      {cardId === 'counter' && <div className="absolute inset-0 flex items-center justify-center"><AlertCircle className="w-full h-full text-red-600 animate-ping" /></div>}
-      {cardId === 'crouch' && <div className="absolute inset-0 flex items-center justify-center"><Shield className="w-[150%] h-[150%] text-slate-500/30 animate-in slide-in-from-bottom-10" /></div>}
-      {cardId === 'dodge' && <div className="absolute inset-0 flex items-center justify-center"><Ghost className="w-full h-full text-cyan-400/30 animate-pulse" /></div>}
-      {cardId === 'taunt' && <div className="absolute inset-0 flex items-center justify-center"><Crosshair className="w-[120%] h-[120%] text-purple-600/30 animate-ping" /></div>}
-      {cardId === 'combat_prep' && <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="w-3/4 h-3/4 text-amber-300 animate-spin" /></div>}
-      {cardId === 'first_aid' && <div className="absolute inset-0 flex items-center justify-center"><Heart className="w-3/4 h-3/4 text-green-400 animate-ping" /></div>}
-      {cardId === 'maintenance' && <div className="absolute inset-0 flex items-center justify-center"><RefreshCw className="w-3/4 h-3/4 text-slate-400 animate-spin" /></div>}
-      {cardId === 'poison_dart' && <div className="relative w-full h-full">{renderSharpSlash('bg-green-400', 'rotate-0')}{renderImpact('bg-green-700/30')}</div>}
-      {cardId === 'meditate' && <div className="absolute inset-0 flex items-center justify-center"><div className="w-[200%] h-[200%] border-2 border-blue-400/20 rounded-full animate-ping" /></div>}
-      {cardId === 'reckless_charge' && <div className="absolute inset-0 flex items-center justify-center"><MoveRight className="w-full h-full text-red-500 animate-out slide-out-to-right-full" /></div>}
-      {cardId === 'toxic_strike' && <div className="absolute inset-0">{renderSharpSlash('bg-green-300', 'rotate-15')}{renderSharpSlash('bg-green-300', 'rotate-[-15deg]')}</div>}
-      {cardId === 'warcry' && <div className="absolute inset-0 border-[8px] border-white/5 rounded-full animate-ping" />}
-      {cardId === 'sand_throw' && <div className="absolute inset-0 bg-yellow-900/10 flex items-center justify-center text-yellow-200/50 font-bold rounded-full">SAND!</div>}
-      {cardId === 'bone_crush' && renderSharpSlash('bg-slate-400', 'rotate-90')}
-      {cardId === 'throwing_dagger' && <div className="absolute inset-0 flex items-center justify-center"><Sword className="w-1/2 h-1/2 text-slate-300 rotate-90 animate-out slide-out-to-right-full" /></div>}
-      {cardId === 'double_cut' && <div className="absolute inset-0">{renderSharpSlash('bg-white', 'rotate-[30deg]')}{renderSharpSlash('bg-white', 'rotate-[-30deg]')}</div>}
-      {cardId === 'vital_strike' && <div className="absolute inset-0 flex items-center justify-center"><Aim className="w-full h-full text-yellow-400 opacity-50 animate-spin" />{renderSharpSlash('bg-yellow-100', 'rotate-0')}</div>}
-      {cardId === 'old_shield' && <div className="absolute inset-0 flex items-center justify-center"><Shield className="w-3/4 h-3/4 text-slate-600/40 animate-pulse" /></div>}
-      {cardId === 'firm_stand' && <div className="absolute inset-0 border-x-[15px] border-blue-900/20 animate-in fade-in rounded-full" />}
-      {cardId === 'kihap' && <div className="absolute inset-0 flex items-center justify-center font-black text-3xl text-orange-500 animate-ping">氣!</div>}
-      {cardId === 'short_rest' && <div className="absolute inset-0 bg-green-900/10 flex items-center justify-center text-3xl rounded-full">💚</div>}
-      {cardId === 'gamblers_strike' && <div className="absolute inset-0 flex items-center justify-center text-4xl animate-bounce">🎲</div>}
-      {cardId === 'poison_flask' && <div className="absolute inset-0 flex items-center justify-center"><FlaskConical className="w-3/4 h-3/4 text-green-500 animate-bounce" /></div>}
-      {cardId === 'spiked_shield' && <div className="absolute inset-0 flex items-center justify-center"><div className="relative w-full h-full flex items-center justify-center"><Shield className="w-full h-full text-indigo-400/50" /><Scissors className="absolute -top-2 -right-2 w-1/2 h-1/2 text-red-400 rotate-180" /></div></div>}
-      {cardId === 'twin_strike' && <div className="absolute inset-0">{renderSharpSlash('bg-white', 'rotate-45')}{renderSharpSlash('bg-white', 'rotate-45')}</div>}
+      {/* ⚔️ 공격 계열 */}
+      {cardId === 'strike' && renderSlash('bg-slate-200', 'rotate-45')}
+      {cardId === 'heavy_strike' && renderSlash('bg-slate-400', 'rotate-[60deg]', 'h-[6px]')}
+      {cardId === 'stab' && renderPierce('bg-slate-300')}
+      {cardId === 'uppercut' && renderSlash('bg-slate-300', '-rotate-90')}
+      {cardId === 'club_smash' && renderSlash('bg-orange-900/50', 'rotate-90', 'h-[8px]')}
+      {cardId === 'quick_strike' && renderSlash('bg-cyan-200', 'rotate-15', 'h-[2px]')}
+      {cardId === 'angry_strike' && renderSlash('bg-red-400', 'rotate-45')}
+      {cardId === 'sweep' && renderSlash('bg-slate-200', 'rotate-0', 'h-[3px]', 'w-[300%]')}
+      {cardId === 'bone_crush' && renderSlash('bg-stone-400', 'rotate-45', 'h-[8px]')}
+      {cardId === 'throwing_dagger' && renderSlash('bg-slate-300', 'rotate-0 w-[50%] ml-[-50%]')}
+      {cardId === 'double_cut' && <div className="absolute inset-0">{renderSlash('bg-slate-200', 'rotate-[30deg]')}{renderSlash('bg-slate-200', 'rotate-[-30deg]')}</div>}
+      {cardId === 'vital_strike' && <div className="absolute inset-0">{renderPierce('bg-red-300')}{renderSlash('bg-slate-100', 'rotate-0')}</div>}
+      {cardId === 'twin_strike' && <div className="absolute inset-0">{renderSlash('bg-slate-200', 'rotate-45 mt-[-20px]')}{renderSlash('bg-slate-200', 'rotate-45 mt-[20px]')}</div>}
+      {cardId === 'gamblers_strike' && <div className="absolute inset-0 flex items-center justify-center text-3xl animate-bounce">🎲</div>}
+
+      {/* 🛡️ 방어 계열 */}
+      {cardId === 'defend' && renderShield('text-blue-400')}
+      {cardId === 'shield_bash' && <div className="absolute inset-0">{renderShield('text-blue-500')}{renderPierce('bg-blue-200/50')}</div>}
+      {cardId === 'crouch' && renderShield('text-slate-500', Shield, 'translate-y-4 scale-y-75')}
+      {cardId === 'old_shield' && renderShield('text-stone-500', Shield, 'opacity-40')}
+      {cardId === 'firm_stand' && renderShield('text-slate-600', Box, 'scale-x-125')}
+      {cardId === 'spiked_shield' && renderShield('text-red-400', ShieldAlert)}
+
+      {/* ⚡ 마나 & 유틸리티 계열 */}
+      {cardId === 'focus' && renderEnergy('text-yellow-400', Zap)}
+      {cardId === 'meditate' && renderEnergy('text-cyan-400', Wind)}
+      {cardId === 'kihap' && renderEnergy('text-orange-500', Flame)}
+      {cardId === 'combat_prep' && renderEnergy('text-amber-300', Sparkles)}
+      {cardId === 'maintenance' && renderEnergy('text-slate-400', RefreshCw)}
+      
+      {/* 💚 체력 회복 계열 */}
+      {cardId === 'first_aid' && renderHeal(Plus)}
+      {cardId === 'short_rest' && renderHeal(Heart)}
+
+      {/* 🧪 상태이상 & 디버프 계열 */}
+      {cardId === 'poison_dart' && <div className="absolute inset-0">{renderSlash('bg-green-300', 'rotate-0')}{renderPoison()}</div>}
+      {cardId === 'toxic_strike' && <div className="absolute inset-0">{renderSlash('bg-green-400', 'rotate-45')}</div>}
+      {cardId === 'poison_flask' && renderPoison()}
+
+      {/* 💨 이동 & 특수 계열 */}
+      {cardId === 'dodge' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]"><Ghost className="w-1/2 h-1/2 text-slate-400 opacity-50 animate-out slide-out-to-right duration-200" /></div>}
+      {cardId === 'reckless_charge' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]"><FastForward className="w-1/2 h-1/2 text-red-400 opacity-70 animate-out slide-out-to-right duration-200" /></div>}
+      {cardId === 'taunt' && renderShield('text-red-500', Crosshair)}
+      {cardId === 'counter' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]"><AlertCircle className="w-1/2 h-1/2 text-red-500 animate-ping duration-200" /></div>}
+      {cardId === 'warcry' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]"><Wind className="w-3/4 h-3/4 text-red-300 opacity-50 animate-ping duration-300" /></div>}
+      {cardId === 'sand_throw' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]"><Sparkles className="w-1/2 h-1/2 text-yellow-600/50 blur-[2px] animate-out zoom-out duration-200" /></div>}
     </>
   );
 }
