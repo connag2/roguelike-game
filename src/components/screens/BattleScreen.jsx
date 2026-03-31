@@ -2,8 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap } from 'lucide-react';
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
-
-// ✨ 이펙트 컴포넌트들 임포트
 import CommonEffects from '../effects/CommonEffects';
 import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
@@ -30,7 +28,6 @@ export default function BattleScreen({
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
 
-  // 비동기로 변경하여 타수만큼 시각적 효과 지연 처리
   const handlePlayCard = async (idx) => {
     if (playEffect && playEffect.name !== 'enemy_attack') return;
 
@@ -79,12 +76,10 @@ export default function BattleScreen({
         .mana-sooth { animation: manaSooth 0.6s ease-out forwards; }
       `}</style>
 
-      {/* 특수 이펙트들 */}
       {playEffect?.name !== 'mana_potion' && <TierEffects playEffect={playEffect} />}
       <StatusEffects playEffect={playEffect} />
       <UniqueEffects playEffect={playEffect} />
 
-      {/* ✨ 마나 물약 전용 이펙트 */}
       {playEffect?.name === 'mana_potion' && (
         <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
           <div className="absolute w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
@@ -92,14 +87,12 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* 🩸 플레이어 피격 대미지 수치 */}
       {playEffect?.name === 'enemy_attack' && (
         <div className="fixed inset-0 z-[9999] pointer-events-none animate-flash-red flex items-center justify-center">
           <h1 className="text-[5rem] md:text-[8rem] text-red-500 font-black drop-shadow-[0_0_30px_black] animate-bounce">- {playEffect.damage}</h1>
         </div>
       )}
 
-      {/* 팝업 UI들: 덱/무덤/적 정보 */}
       {viewingPile && (
         <div className="fixed inset-0 bg-black/95 z-[10000] flex flex-col p-4 md:p-10 backdrop-blur-xl" onClick={() => setViewingPile(null)}>
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
@@ -163,19 +156,15 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* 상단 유물 바 */}
+      {/* ✨ 상단 유물 바 (전투화면 원래대로 원상복구 완료!) */}
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-10 w-full px-2">
           {playerRelics.map((r, i) => (
-            <div key={i} className="flex items-center gap-1 bg-slate-800/80 border-2 border-slate-600 py-1 px-2 rounded-lg shadow-sm">
-              <span className="text-[10px] font-bold text-slate-100 uppercase tracking-tighter">{r.name}</span>
-              {/* ✨ 오직 ? 아이콘 위에서만 상단(bottom-full)으로 팝업 */}
-              <div className="relative group cursor-help flex items-center pl-1">
-                <HelpCircle className="w-3.5 h-3.5 text-slate-400 hover:text-indigo-400 transition-colors" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-3 bg-slate-900 border-2 border-indigo-500 rounded-xl shadow-2xl z-[100000] pointer-events-none">
-                  <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-700 pb-1">{r.name}</div>
-                  <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
-                </div>
+            <div key={i} className="relative group cursor-help bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors">
+              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter">{r.name}</span>
+              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
+                <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-800 pb-1">{r.name}</div>
+                <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
               </div>
             </div>
           ))}
@@ -197,7 +186,6 @@ export default function BattleScreen({
         </div>
       </div>
 
-      {/* ⚔️ 전투 필드 (카드가 겹치지 않게 pb-16 md:pb-24 로 공간을 띄움) */}
       <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
@@ -251,7 +239,6 @@ export default function BattleScreen({
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
                   <Skull className={`${enemy.isBoss ? 'w-12 h-12 md:w-20 md:h-20 text-red-500' : 'w-8 h-8 md:w-12 md:h-12 text-red-700/80'}`} />
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
-                  
                   {isTarget && playEffect && playEffect.name !== 'mana_potion' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                 </div>
 
@@ -274,7 +261,6 @@ export default function BattleScreen({
         </div>
       </div>
 
-      {/* 🃏 하단 마나 및 손패 UI */}
       <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4">
         
         <div className="absolute bottom-[200px] md:bottom-[240px] right-4 md:right-8 text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest z-[1000] bg-slate-900/90 px-4 py-2 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md">
@@ -282,7 +268,6 @@ export default function BattleScreen({
         </div>
         
         <div className="flex w-full px-4 relative justify-center items-end h-full">
-          {/* 마나 및 드로우 덱 */}
           <div className="absolute left-2 md:left-8 bottom-6 flex flex-col items-center gap-4 z-20">
             <div className="relative group">
               <div className="w-14 h-14 md:w-20 md:h-20 bg-blue-950 border-[3px] border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_20px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.8)] transition-all">
@@ -296,7 +281,6 @@ export default function BattleScreen({
             </div>
           </div>
 
-          {/* 패에 든 카드 */}
           <div className="flex justify-center items-end w-full px-20 md:px-40 h-full pb-4 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
@@ -309,8 +293,7 @@ export default function BattleScreen({
                      className="relative transition-all duration-300 ease-out origin-bottom -ml-8 md:-ml-12 first:ml-0" 
                      style={{ zIndex: isHovered ? 100 : 10 + idx, transform: isHovered ? `translateY(-60px) scale(1.15) rotate(0deg)` : `translateY(${translateY}px) rotate(${rotation}deg)` }}>
                   
-                  {/* ✨ 마나가 부족하여 낼 수 없는 카드도 투명도를 40% -> 80%로 올려서 잘 보이도록 수정 */}
-                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 shadow-xl rounded-2xl transition-all ${canPlay ? 'cursor-pointer' : 'opacity-80 grayscale pointer-events-none'}`}>
+                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 shadow-xl rounded-2xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
                     <Card card={card} isLocked={false} />
                   </div>
                 </div>
@@ -318,7 +301,6 @@ export default function BattleScreen({
             })}
           </div>
 
-          {/* 턴 종료 및 버린 패 */}
           <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
             <button 
               onClick={() => setCombatState(prev => ({ ...prev, turn: 'ENEMY' }))} 
