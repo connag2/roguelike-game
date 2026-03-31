@@ -2,6 +2,7 @@ import React from 'react';
 import { Eraser, Download, Upload, Save, Maximize, HelpCircle } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
+import { RELIC_LIBRARY } from '../constants/relicData'; // 유물 정보 불러오기
 
 export default function DeckBuilder({
   toggleFullScreen,
@@ -22,7 +23,8 @@ export default function DeckBuilder({
   shopUpgrades,
   handleAddCard,
   handleRemoveCard,
-  setTutorialModalOpen
+  setTutorialModalOpen,
+  normalCleared, unlockedRelics, startingRelic, setStartingRelic // 100층 클리어 프롭스
 }) {
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white pt-16 md:pt-4 p-4 md:p-10 relative">
@@ -77,14 +79,50 @@ export default function DeckBuilder({
         search={searchQuery} setSearch={setSearchQuery}
       />
 
-      {/* ✨ 억지로 줄어드는 grid 대신 flex-wrap을 사용하여 카드 크기를 시원시원하게 고정 */}
+      {/* ✨ 100층 클리어 유저를 위한 '시작 유물 선택' 영역 */}
+      {normalCleared && unlockedRelics && unlockedRelics.length > 0 && (
+        <div className="w-full max-w-7xl mx-auto px-4 mt-2 mb-2 flex items-center gap-3 bg-slate-800/80 p-3 rounded-xl border border-amber-500/50 overflow-x-auto hide-scrollbar">
+          <span className="text-amber-400 font-black text-sm shrink-0 drop-shadow-md">🎁 시작 유물 선택:</span>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setStartingRelic(null)} 
+              className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all whitespace-nowrap ${startingRelic === null ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_orange]' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
+            >
+              선택 안함
+            </button>
+            {unlockedRelics.map(rid => {
+              const relDef = RELIC_LIBRARY.find(r => r.id === rid);
+              if (!relDef) return null;
+              const isSelected = startingRelic === rid;
+              return (
+                <div key={rid} className="flex items-center gap-1">
+                  <button 
+                    onClick={() => setStartingRelic(rid)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border font-bold transition-all whitespace-nowrap ${isSelected ? 'bg-amber-600 border-amber-400 text-white shadow-[0_0_10px_orange]' : 'bg-slate-700 border-slate-600 text-slate-300 hover:bg-slate-600'}`}
+                  >
+                    {relDef.name}
+                  </button>
+                  {/* ✨ 오직 ? 아이콘 위에서만 상단(bottom-full)으로 팝업 */}
+                  <div className="relative group cursor-help flex items-center">
+                    <HelpCircle className="w-4 h-4 text-slate-400 hover:text-indigo-400 transition-colors" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-3 bg-slate-900 border-2 border-indigo-500 rounded-xl shadow-[0_10px_30px_rgba(0,0,0,0.8)] z-[100000] pointer-events-none">
+                      <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-700 pb-1">{relDef.name}</div>
+                      <div className="text-[10px] text-slate-300 leading-relaxed whitespace-pre-wrap">{relDef.desc}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto hide-scrollbar flex flex-wrap gap-4 md:gap-6 content-start justify-center pb-24 w-full max-w-7xl mx-auto px-4 mt-4">
         {filteredCards.map(baseCard => {
           const count = tempDeckCounts[baseCard.id] || 0;
           const card = getCardDef(baseCard.id, shopUpgrades); 
           if (!card) return null;
           return (
-            // ✨ 반응형으로 카드 틀(wrapper)의 크기를 강제 고정 (모바일에서도 큼직하게 유지)
             <div key={baseCard.id} className="w-32 h-48 sm:w-36 sm:h-56 md:w-44 md:h-[260px] lg:w-48 lg:h-[280px] shrink-0 transition-transform hover:scale-105 origin-center">
               <Card 
                 card={card} 

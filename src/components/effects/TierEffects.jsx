@@ -5,9 +5,9 @@ export default function TierEffects({ playEffect }) {
   if (!playEffect) return null;
 
   const renderSlashes = (hits, colorClass, size = "thick") => {
-    // size가 thin이면 선을 가늘게 처리하여 화면 가림 방지
-    const heightClass = size === "thin" ? "h-[2px] md:h-[5px]" : "h-[20px] md:h-[40px]";
-    const opacityClass = size === "thin" ? "opacity-60" : "opacity-100";
+    // 얇은 이펙트도 투명도를 100%로 주어 확실하게 보이도록 수정했습니다.
+    const heightClass = size === "thin" ? "h-[3px] md:h-[6px]" : "h-[20px] md:h-[40px]";
+    const opacityClass = "opacity-100";
 
     return Array.from({ length: hits }).map((_, i) => {
       const rot = (i % 2 === 0 ? 25 : -25) + (Math.random() * 20 - 10);
@@ -24,11 +24,11 @@ export default function TierEffects({ playEffect }) {
 
   return (
     <>
-      {/* 💥 [일반 공격] 선을 아주 가늘게(thin)하고 투명도를 줌 */}
-      {playEffect.name === 'common_attack' && renderSlashes(playEffect.hits, 'bg-white/80 shadow-[0_0_8px_white]', "thin")}
+      {/* 💥 [일반 공격] 반투명 옵션(/80) 제거, 완전 불투명 */}
+      {playEffect.name === 'common_attack' && renderSlashes(playEffect.hits, 'bg-white shadow-[0_0_8px_white]', "thin")}
       
-      {/* 💥 [희귀 공격] 약간 더 밝지만 여전히 가늘게 처리 */}
-      {playEffect.name === 'uncommon_attack' && renderSlashes(playEffect.hits, 'bg-cyan-400/80 shadow-[0_0_10px_cyan]', "thin")}
+      {/* 💥 [희귀 공격] 반투명 옵션(/80) 제거, 완전 불투명 */}
+      {playEffect.name === 'uncommon_attack' && renderSlashes(playEffect.hits, 'bg-cyan-400 shadow-[0_0_10px_cyan]', "thin")}
       
       {/* 아래 전설, 특수, 신화는 기존의 웅장함을 유지 */}
       {playEffect.name === 'rare' && (

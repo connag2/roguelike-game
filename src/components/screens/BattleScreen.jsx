@@ -39,13 +39,10 @@ export default function BattleScreen({
     const tier = card.rarity || 'common';
     const delay = fastMode ? 100 : 200;
 
-    // 논리적 데미지/상태 변경 함수 호출
     playCard(idx);
 
-    // 시각적 연타 효과 루프
     for (let i = 0; i < hits; i++) {
       let effectName = null;
-      // ✨ 마나 물약은 타격 모션이 아닌 힐/마나 전용 이펙트 출력!
       if (card.id === 'mana_potion') effectName = 'mana_potion'; 
       else if (card.id === 'furioso') effectName = 'furioso';
       else if (card.id === 'meteor_fall') effectName = 'meteor';
@@ -74,7 +71,6 @@ export default function BattleScreen({
         @keyframes pulse-glow { 0%, 100% { text-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4); } 50% { text-shadow: 0 0 25px rgba(59, 130, 246, 1), 0 0 40px rgba(59, 130, 246, 0.6); } }
         .mana-font { animation: pulse-glow 2s infinite; font-family: 'Arial Black', sans-serif; }
         
-        /* ✨ 마나 물약 전용 애니메이션 추가 */
         @keyframes manaSooth {
           0% { transform: scale(0.5) translateY(20px); opacity: 0; }
           50% { transform: scale(1.5) translateY(-20px); opacity: 1; filter: drop-shadow(0 0 20px #06b6d4); }
@@ -88,7 +84,7 @@ export default function BattleScreen({
       <StatusEffects playEffect={playEffect} />
       <UniqueEffects playEffect={playEffect} />
 
-      {/* ✨ 마나 물약 사용 시 나오는 영롱한 이펙트 */}
+      {/* ✨ 마나 물약 전용 이펙트 */}
       {playEffect?.name === 'mana_potion' && (
         <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
           <div className="absolute w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
@@ -171,11 +167,15 @@ export default function BattleScreen({
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-10 w-full px-2">
           {playerRelics.map((r, i) => (
-            <div key={i} className="relative group cursor-help bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors">
-              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter">{r.name}</span>
-              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
-                <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-800 pb-1">{r.name}</div>
-                <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
+            <div key={i} className="flex items-center gap-1 bg-slate-800/80 border-2 border-slate-600 py-1 px-2 rounded-lg shadow-sm">
+              <span className="text-[10px] font-bold text-slate-100 uppercase tracking-tighter">{r.name}</span>
+              {/* ✨ 오직 ? 아이콘 위에서만 상단(bottom-full)으로 팝업 */}
+              <div className="relative group cursor-help flex items-center pl-1">
+                <HelpCircle className="w-3.5 h-3.5 text-slate-400 hover:text-indigo-400 transition-colors" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-56 p-3 bg-slate-900 border-2 border-indigo-500 rounded-xl shadow-2xl z-[100000] pointer-events-none">
+                  <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-700 pb-1">{r.name}</div>
+                  <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
+                </div>
               </div>
             </div>
           ))}
@@ -203,7 +203,6 @@ export default function BattleScreen({
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
             <Skull className="w-10 h-10 md:w-16 md:h-16 text-indigo-500/80" />
             
-            {/* ✨ 플레이어 방어 아이콘 개선 (방패 모양을 직관적으로 보여줌) */}
             {player.block > 0 && (
               <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
                 <Shield className="absolute text-white/30 w-full h-full p-1" />
@@ -278,7 +277,6 @@ export default function BattleScreen({
       {/* 🃏 하단 마나 및 손패 UI */}
       <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4">
         
-        {/* ✨ 손패 제한 UI 변경 (카드 밑에 가려지지 않도록 우측 하단 z-1000 레이어로 이동) */}
         <div className="absolute bottom-[200px] md:bottom-[240px] right-4 md:right-8 text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest z-[1000] bg-slate-900/90 px-4 py-2 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md">
           손패 : <span className="text-indigo-400">{hand.length}</span> / {MAX_HAND_SIZE}장
         </div>
@@ -310,7 +308,9 @@ export default function BattleScreen({
                 <div key={card.uid} onMouseEnter={() => setHoveredCard(idx)} onMouseLeave={() => setHoveredCard(null)} 
                      className="relative transition-all duration-300 ease-out origin-bottom -ml-8 md:-ml-12 first:ml-0" 
                      style={{ zIndex: isHovered ? 100 : 10 + idx, transform: isHovered ? `translateY(-60px) scale(1.15) rotate(0deg)` : `translateY(${translateY}px) rotate(${rotation}deg)` }}>
-                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 shadow-xl rounded-2xl transition-all ${canPlay ? 'cursor-pointer' : 'opacity-40 grayscale pointer-events-none'}`}>
+                  
+                  {/* ✨ 마나가 부족하여 낼 수 없는 카드도 투명도를 40% -> 80%로 올려서 잘 보이도록 수정 */}
+                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 shadow-xl rounded-2xl transition-all ${canPlay ? 'cursor-pointer' : 'opacity-80 grayscale pointer-events-none'}`}>
                     <Card card={card} isLocked={false} />
                   </div>
                 </div>
