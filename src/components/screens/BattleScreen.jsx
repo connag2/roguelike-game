@@ -3,7 +3,7 @@ import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sw
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 
-// ✨ 이펙트 컴포넌트들 정상 임포트
+// ✨ 이펙트 컴포넌트들 임포트
 import CommonEffects from '../effects/CommonEffects';
 import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
@@ -30,24 +30,31 @@ export default function BattleScreen({
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
 
-  const handlePlayCard = (idx) => {
+  // 비동기로 변경하여 타수만큼 시각적 효과 지연 처리
+  const handlePlayCard = async (idx) => {
+    if (playEffect && playEffect.name !== 'enemy_attack') return;
+
     const card = hand[idx];
     const hits = card.multiHit || 1;
-    const effectId = Date.now();
     const tier = card.rarity || 'common';
-    let baseDuration = fastMode ? 300 : 600;
-    let attackDuration = hits > 1 ? (fastMode ? hits * 100 : hits * 200) : baseDuration;
-    let duration = attackDuration;
+    const delay = fastMode ? 100 : 200;
 
-    let effectName = null;
-    if (card.id === 'furioso') { effectName = 'furioso'; duration = fastMode ? (hits * 80) : (hits * 150); }
-    else if (card.id === 'meteor_fall') { effectName = 'meteor'; duration = 900; }
-    else if (card.id === 'snipe') { effectName = 'snipe'; duration = 800; }
-    else { effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`; }
-
-    setPlayEffect({ id: effectId, name: effectName, tier, cardId: card.id, hits });
-    setTimeout(() => setPlayEffect(prev => prev?.id === effectId ? null : prev), duration);
+    // 논리적 데미지/상태 변경 함수 호출
     playCard(idx);
+
+    // 시각적 연타 효과 루프
+    for (let i = 0; i < hits; i++) {
+      let effectName = null;
+      if (card.id === 'furioso') effectName = 'furioso';
+      else if (card.id === 'meteor_fall') effectName = 'meteor';
+      else if (card.id === 'snipe') effectName = 'snipe';
+      else effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`;
+
+      setPlayEffect({ id: Date.now() + i, name: effectName, tier, cardId: card.id, hits });
+      await new Promise(r => setTimeout(r, delay));
+    }
+    
+    setPlayEffect(null);
   };
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
@@ -66,8 +73,7 @@ export default function BattleScreen({
         .mana-font { animation: pulse-glow 2s infinite; font-family: 'Arial Black', sans-serif; }
       `}</style>
 
-      {/* 이펙트 레이어 */}
-      <CommonEffects playEffect={playEffect} fastMode={fastMode} />
+      {/* 특수 이펙트들 (일반 Common은 타겟 내부로 이동됨) */}
       <TierEffects playEffect={playEffect} />
       <StatusEffects playEffect={playEffect} />
       <UniqueEffects playEffect={playEffect} />
@@ -95,7 +101,6 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* ✨ 적 정보 상세 팝업 수정 */}
       {showEnemyDeck && viewingEnemy && (
         <div className="fixed inset-0 bg-black/95 z-[10001] flex items-center justify-center p-4 backdrop-blur-xl" onClick={() => { setViewingEnemy(null); setShowEnemyDeck(false); }}>
           <div className="bg-slate-900 p-8 rounded-3xl border-4 border-red-900/50 w-full max-w-2xl shadow-[0_0_50px_rgba(220,38,38,0.2)]" onClick={e => e.stopPropagation()}>
@@ -111,7 +116,6 @@ export default function BattleScreen({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* 패시브 영역 */}
               <div className="space-y-4">
                 <h3 className="text-xl font-black text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-2"><Zap className="w-5 h-5 text-amber-400"/> PASSIVE SKILLS</h3>
                 <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2 hide-scrollbar">
@@ -124,7 +128,6 @@ export default function BattleScreen({
                 </div>
               </div>
 
-              {/* 덱(스킬) 영역 */}
               <div className="space-y-4">
                 <h3 className="text-xl font-black text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-2"><Sword className="w-5 h-5 text-red-500"/> ATTACK PATTERN</h3>
                 <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2 hide-scrollbar">
@@ -220,10 +223,14 @@ export default function BattleScreen({
                   </div>
                 </div>
 
+                {/* 🎯 이펙트 렌더링 위치 변경: 스컬 아이콘 위로 오버레이 되도록 내부 삽입 */}
                 <div className={`rounded-full flex justify-center items-center mb-2 border-4 shadow-2xl relative transition-transform hover:scale-110 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-28 h-28 md:w-44 md:h-44' : 'bg-slate-800 border-red-900/50 w-24 h-24 md:w-32 md:h-32'}`}>
                   <Skull className={`${enemy.isBoss ? 'w-16 h-16 md:w-28 md:h-28 text-red-500' : 'w-12 h-12 md:w-16 md:h-16 text-red-700/80'}`} />
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-10 h-10 rounded-full flex justify-center items-center font-black border-2 border-slate-400 text-xs shadow-xl">{enemy.block}</div>}
+                  
+                  {isTarget && playEffect && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                 </div>
+
                 <h3 className={`text-xs md:text-2xl font-black mb-2 ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>{enemy.name}</h3>
                 <div className="w-full max-w-[120px] md:max-w-[200px] bg-slate-950 h-5 md:h-7 rounded-full overflow-hidden border-2 border-slate-800 relative shadow-inner">
                   <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
@@ -248,7 +255,6 @@ export default function BattleScreen({
         <div className="absolute top-0 left-1/2 -translate-x-1/2 text-center font-black text-slate-500 text-[10px] md:text-sm tracking-[0.2em] z-10 bg-slate-950/40 px-6 py-1 rounded-full border border-slate-800/50 shadow-xl backdrop-blur-sm">PLAYER HAND : {hand.length} / {MAX_HAND_SIZE}</div>
         
         <div className="flex w-full px-6 relative justify-center items-end h-full">
-          {/* ✨ 강화된 마나 및 드로우 덱 UI */}
           <div className="absolute left-4 md:left-12 bottom-10 flex flex-col items-center gap-6 z-20">
             <div className="relative group">
               <div className="w-16 h-16 md:w-32 md:h-32 bg-blue-950 border-4 border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_40px_rgba(59,130,246,0.6)] group-hover:shadow-[0_0_60px_rgba(59,130,246,0.9)] transition-all">
@@ -264,7 +270,8 @@ export default function BattleScreen({
 
           <div className="flex justify-center items-end w-full px-24 md:px-48 h-full pb-8 overflow-visible">
             {hand.map((card, idx) => {
-              const canPlay = isPlayerTurn && player.mana >= card.cost;
+              // ⛔ 애니메이션 도중 다른 카드 내기 방지
+              const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
               const isHovered = hoveredCard === idx;
               const offset = idx - (hand.length - 1) / 2;
               const rotation = offset * 4.5;
