@@ -129,6 +129,9 @@ export function useBattle({
         if (card.selfStrength) p.buffs.strength = clampStack(p.buffs.strength + card.selfStrength);
         if (card.selfDex) p.buffs.dexterity = clampStack(p.buffs.dexterity + card.selfDex);
         if (card.selfThorns) p.buffs.thorns = clampStack(p.buffs.thorns + card.selfThorns);
+        
+        // ✨ 자해(selfDamage) 적용 로직 추가! (방어도 무시하고 직접 체력 감소)
+        if (card.selfDamage) p.hp -= card.selfDamage;
       }
 
       for(let i=0; i<(card.draw || 0); i++) {

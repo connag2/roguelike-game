@@ -1,4 +1,5 @@
 import React from 'react';
+import { Sparkles, Droplets } from 'lucide-react';
 
 export default function TierEffects({ playEffect }) {
   if (!playEffect) return null;
