@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap } from 'lucide-react';
+import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; // ✨ Heart 추가!
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 import CommonEffects from '../effects/CommonEffects';
@@ -225,15 +225,15 @@ export default function BattleScreen({
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
                 <div className="mb-4 relative z-10">
-                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
-                    <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
-                    <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
-                      {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
-                      <span className="text-[10px] md:text-xs font-black text-white">
-                        {eCard.value ? (eCard.multi ? `${eCard.value + (enemy.buffs?.strength || 0)}x${eCard.multi}` : (eCard.value + (enemy.buffs?.strength || 0))) : eCard.heal ? `+${eCard.heal}` : '?'}
-                      </span>
-                    </div>
-                  </div>
+                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
+  <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
+  <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
+    {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
+    <span className="text-[10px] md:text-xs font-black text-white">
+      {eCard.value ? (eCard.multi ? `${eCard.value + (enemy.buffs?.strength || 0)}x${eCard.multi}` : (eCard.value + (enemy.buffs?.strength || 0))) : eCard.heal ? `+${eCard.heal}` : '?'}
+    </span>
+  </div>
+</div>
                 </div>
 
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
