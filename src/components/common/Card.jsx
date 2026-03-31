@@ -40,7 +40,7 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
 
   if (card.isUpgraded) {
     borderStyle = 'border-yellow-400 ring-2 ring-yellow-400/50'; 
-    rarityShadow = 'shadow-[0_0_25px_rgba(250,204,21,0.6)] animate-pulse'; 
+    rarityShadow = 'shadow-[0_0_25px_rgba(250,204,21,0.6)]'; // animate-pulse 삭제 완료
     nameColor = 'text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]'; 
     if (rarity !== 'mythic' && rarity !== 'special' && rarity !== 'rare') bgStyle = 'bg-gradient-to-br from-slate-900 to-yellow-900/30';
   }
