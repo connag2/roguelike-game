@@ -179,8 +179,8 @@ export default function BattleScreen({
         </div>
       </div>
 
-      {/* ⚔️ 전투 필드 (오브젝트 전체적으로 축소) */}
-      <div className="flex-1 flex flex-row justify-center items-end pb-4 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
+      {/* ⚔️ 전투 필드 (카드가 겹치지 않게 pb-16 md:pb-24 로 공간을 띄움) */}
+      <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
             <Skull className="w-10 h-10 md:w-16 md:h-16 text-indigo-500/80" />
@@ -201,7 +201,7 @@ export default function BattleScreen({
           </div>
         </div>
 
-        <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 pb-16 select-none tracking-tighter">VS</div>
+        <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
         <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
@@ -223,7 +223,6 @@ export default function BattleScreen({
                   </div>
                 </div>
 
-                {/* 🎯 이펙트 렌더링 위치 및 적 크기 축소 */}
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
                   <Skull className={`${enemy.isBoss ? 'w-12 h-12 md:w-20 md:h-20 text-red-500' : 'w-8 h-8 md:w-12 md:h-12 text-red-700/80'}`} />
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
@@ -250,16 +249,17 @@ export default function BattleScreen({
         </div>
       </div>
 
-      {/* 🃏 하단 마나 및 손패 UI (크기 대폭 축소) */}
+      {/* 🃏 하단 마나 및 손패 UI */}
       <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 text-center font-bold text-slate-500 text-[9px] md:text-xs tracking-[0.2em] z-10 bg-slate-950/40 px-4 py-1 rounded-full border border-slate-800/50 shadow-sm backdrop-blur-sm">PLAYER HAND : {hand.length} / {MAX_HAND_SIZE}</div>
         
         <div className="flex w-full px-4 relative justify-center items-end h-full">
-          {/* 마나 및 드로우 덱 (축소) */}
+          {/* 마나 및 드로우 덱 (마나 텍스트에서 기울임 제거) */}
           <div className="absolute left-2 md:left-8 bottom-6 flex flex-col items-center gap-4 z-20">
             <div className="relative group">
               <div className="w-14 h-14 md:w-20 md:h-20 bg-blue-950 border-[3px] border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_20px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.8)] transition-all">
-                <span className="text-2xl md:text-4xl font-black text-white italic mana-font">{player.mana}</span>
+                {/* 💡 기존의 italic을 제거했습니다 */}
+                <span className="text-2xl md:text-4xl font-black text-white mana-font">{player.mana}</span>
               </div>
               <div className="absolute -bottom-2 bg-slate-950 px-3 py-0.5 rounded-full border border-blue-500/50 text-[9px] md:text-[10px] font-black text-blue-400 shadow-lg tracking-widest">MANA</div>
             </div>
@@ -269,7 +269,7 @@ export default function BattleScreen({
             </div>
           </div>
 
-          {/* 패에 든 카드 (크기 및 간격 축소) */}
+          {/* 패에 든 카드 */}
           <div className="flex justify-center items-end w-full px-20 md:px-40 h-full pb-4 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
@@ -289,7 +289,7 @@ export default function BattleScreen({
             })}
           </div>
 
-          {/* 턴 종료 및 버린 패 (축소) */}
+          {/* 턴 종료 및 버린 패 */}
           <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
             <button 
               onClick={() => setCombatState(prev => ({ ...prev, turn: 'ENEMY' }))} 
