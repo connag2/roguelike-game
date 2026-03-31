@@ -134,12 +134,17 @@ export function useBattle({
         if (card.selfDamage) p.hp -= card.selfDamage;
       }
 
+      // 1. 카드를 손패에서 먼저 제거 (아직 버린 패로 보내진 않음)
+      newHand.splice(cardIndex, 1); 
+
+      // 2. 카드 드로우 (- 1 조건 제거하여 10장까지 꽉 채우도록 허용)
       for(let i=0; i<(card.draw || 0); i++) {
-        if(newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10) - 1) break;
+        if(newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
         if(newDraw.length === 0) { if(newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
         if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
       }
-      newHand.splice(cardIndex, 1); 
+      
+      // 3. 드로우 처리가 모두 끝난 후 사용한 카드를 버린 패로 이동
       newDiscard.push(card);
 
       return { ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw };
