@@ -81,14 +81,21 @@ export const generateEnemyIntent = (template, stage) => {
   }
   
   const baseCard = template.deck[Math.floor(Math.random() * template.deck.length)];
-  let scaledValue = (baseCard.value || 0) + Math.floor(stage * 0.75);
-  let scaledHeal = (baseCard.heal || 0) + Math.floor(stage * 1.5);
-  let scaledDesc = baseCard.desc || '';
+  let newIntent = { ...baseCard };
   
-  if (baseCard.value !== undefined) scaledDesc = scaledDesc.replace(baseCard.value.toString(), scaledValue.toString());
-  if (baseCard.heal !== undefined) scaledDesc = scaledDesc.replace(baseCard.heal.toString(), scaledHeal.toString());
+  // 원래 공격력(value)이 존재하는 카드에만 스테이지 비례 공격력 추가
+  if (baseCard.value !== undefined) {
+    newIntent.value = baseCard.value + Math.floor(stage * 0.75);
+    if (newIntent.desc) newIntent.desc = newIntent.desc.replace(baseCard.value.toString(), newIntent.value.toString());
+  }
   
-  return { ...baseCard, value: scaledValue, heal: scaledHeal, desc: scaledDesc };
+  // 원래 회복력(heal)이 존재하는 카드에만 스테이지 비례 회복력 추가
+  if (baseCard.heal !== undefined) {
+    newIntent.heal = baseCard.heal + Math.floor(stage * 1.5);
+    if (newIntent.desc) newIntent.desc = newIntent.desc.replace(baseCard.heal.toString(), newIntent.heal.toString());
+  }
+  
+  return newIntent;
 };
 
 export const generateEnemies = (stage) => {
