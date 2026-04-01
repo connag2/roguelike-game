@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
-import { Bell, ArrowLeft, Star, Zap, Crown, ChevronDown, ChevronUp, AlertTriangle, Monitor, Gift, CheckCircle, X } from 'lucide-react';
+import { Bell, ArrowLeft, Star, Zap, Crown, ChevronDown, ChevronUp, AlertTriangle, Monitor, Gift, CheckCircle, X, Send } from 'lucide-react';
 
-// ⚠️ App.jsx에서 usedCoupons 배열을 props로 넘겨주어야 "사용 완료" 여부가 정확히 뜹니다.
-export default function UpdateHistory({ setGameState, usedCoupons = [] }) {
+// props로 필요한 상태와 함수들을 받아옵니다.
+export default function UpdateHistory({ setGameState, usedCoupons = [], couponInput, setCouponInput, handleCoupon }) {
   const [expandedVersions, setExpandedVersions] = useState(['v1.1.3']);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
 
-  // ✨ 현재 유저에게 공개할 쿠폰 목록 (50층 워프, 50층/75층 보상 등 비밀 코드는 제외됨)
+  // 공개용 쿠폰 목록 (워프 및 특정 층 보상 제외)
   const PUBLIC_COUPONS = [
-    { code: 'WELCOME', desc: '신규 유저 환영 패키지 (크레딧 지급)' },
+    { code: 'WELCOME', desc: '신규 유저 환영 패키지 (1000 크레딧)' },
     { code: 'SHOWMETHEMONEY', desc: '대량의 크레딧 지원금' },
     { code: 'GIVEMERELIC', desc: '무작위 유물 1개 획득' },
     { code: 'HEALME', desc: '체력 전체 즉시 회복' },
-    // 필요에 따라 App.jsx에 설정하신 실제 공개용 코드 이름으로 수정해서 사용하세요!
+    { code: 'LEGENDARY', desc: '전설 카드: 진·용살검 해금' } // App.jsx에 정의된 코드 반영
   ];
 
   const toggleVersion = (version) => {
@@ -67,9 +67,10 @@ export default function UpdateHistory({ setGameState, usedCoupons = [] }) {
     }
   ];
 
-  return (
+return (
     <div className="flex flex-col items-center justify-start min-h-[100dvh] bg-slate-900 text-white p-4 md:p-10 pt-10 overflow-y-auto hide-scrollbar relative">
-      <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-4xl mb-10 gap-4">
+      {/* ... (상단 타이틀 및 업데이트 내역 리스트 UI는 동일) */}
+        <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-4xl mb-10 gap-4">
         <h1 className="text-3xl md:text-5xl font-black text-emerald-400 drop-shadow-lg flex items-center gap-3">
           <Bell className="w-8 h-8 md:w-12 md:h-12" /> 업데이트 내역
         </h1>
@@ -123,14 +124,13 @@ export default function UpdateHistory({ setGameState, usedCoupons = [] }) {
       <button onClick={() => setGameState('MENU')} className="py-4 px-10 bg-indigo-600 hover:bg-indigo-500 rounded-full font-bold text-xl shadow-lg transition-all flex items-center gap-2 hover:-translate-y-1 active:scale-95">
         <ArrowLeft className="w-6 h-6" /> 메인으로 돌아가기
       </button>
-
-      {/* ✨ 쿠폰 목록 모달창 */}
+{/* ✨ 쿠폰 목록 및 입력 모달창 */}
       {isCouponModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-800 w-full max-w-lg rounded-3xl border-2 border-amber-500/50 shadow-[0_0_40px_rgba(245,158,11,0.2)] overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-slate-900 p-5 border-b border-slate-700 flex justify-between items-center">
               <h2 className="text-2xl font-black text-amber-400 flex items-center gap-2">
-                <Gift className="w-6 h-6" /> 배포된 쿠폰 코드
+                <Gift className="w-6 h-6" /> 쿠폰 센터
               </h2>
               <button onClick={() => setIsCouponModalOpen(false)} className="text-slate-500 hover:text-white transition-colors">
                 <X className="w-7 h-7" />
@@ -138,12 +138,31 @@ export default function UpdateHistory({ setGameState, usedCoupons = [] }) {
             </div>
             
             <div className="p-5 max-h-[60vh] overflow-y-auto hide-scrollbar space-y-3 bg-slate-800">
+              {/* ✨ 쿠폰 입력 필드 추가 */}
+              <div className="mb-6 p-4 bg-slate-900/80 rounded-2xl border border-indigo-500/30 flex gap-2">
+                <input 
+                  type="text"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="코드를 입력하세요"
+                  className="flex-1 bg-slate-800 border border-slate-600 rounded-xl px-4 py-2 text-indigo-300 font-bold focus:outline-none focus:border-indigo-400"
+                />
+                <button 
+                  onClick={handleCoupon}
+                  className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-xl transition-colors flex items-center gap-2 font-bold"
+                >
+                  <Send className="w-4 h-4" /> 사용
+                </button>
+              </div>
+
+              {/* 쿠폰 리스트 연동 */}
               {PUBLIC_COUPONS.map((coupon, idx) => {
+                // usedCoupons 배열에 해당 코드가 있는지 확인하여 중복 사용 체크
                 const isUsed = usedCoupons.includes(coupon.code.toUpperCase());
                 return (
-                  <div key={idx} className={`flex items-center justify-between p-4 rounded-xl border ${isUsed ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-700 border-slate-600 shadow-md'}`}>
+                  <div key={idx} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${isUsed ? 'bg-slate-900/50 border-slate-700 opacity-60' : 'bg-slate-700/50 border-slate-600 shadow-md'}`}>
                     <div>
-                      <div className={`font-black text-lg tracking-wider mb-1 ${isUsed ? 'text-slate-500 line-through' : 'text-indigo-300 select-all'}`}>
+                      <div className={`font-black text-lg tracking-wider mb-1 ${isUsed ? 'text-slate-500 line-through' : 'text-amber-200 select-all'}`}>
                         {coupon.code}
                       </div>
                       <div className={`text-sm font-medium ${isUsed ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -153,14 +172,20 @@ export default function UpdateHistory({ setGameState, usedCoupons = [] }) {
                     
                     <div className="shrink-0 ml-4">
                       {isUsed ? (
-                        <div className="flex flex-col items-center gap-1 text-slate-500">
+                        <div className="flex flex-col items-center gap-1 text-emerald-500/70">
                           <CheckCircle className="w-6 h-6" />
                           <span className="text-[10px] font-bold">사용 완료</span>
                         </div>
                       ) : (
-                        <div className="bg-emerald-600/20 text-emerald-400 border border-emerald-500/50 px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse">
-                          사용 가능!
-                        </div>
+                        <button 
+                          onClick={() => {
+                            setCouponInput(coupon.code);
+                            // 약간의 딜레이 후 자동 실행하거나, 입력값만 세팅할 수 있습니다.
+                          }}
+                          className="bg-amber-600/20 text-amber-400 border border-amber-500/50 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-600 hover:text-white transition-all cursor-pointer"
+                        >
+                          코드 복사
+                        </button>
                       )}
                     </div>
                   </div>
@@ -168,7 +193,7 @@ export default function UpdateHistory({ setGameState, usedCoupons = [] }) {
               })}
               
               <div className="mt-4 p-3 bg-slate-900/50 rounded-lg text-center border border-slate-700">
-                <p className="text-xs text-slate-400">💡 코드는 <span className="text-amber-400 font-bold">설정 메뉴</span>에서 입력할 수 있습니다.<br/>(드래그해서 복사 가능!)</p>
+                <p className="text-xs text-slate-400">💡 이미 사용한 쿠폰은 <span className="text-slate-500 font-bold">재사용이 불가능</span>합니다.</p>
               </div>
             </div>
           </div>
