@@ -9,9 +9,6 @@ export default function UpdateHistory({ setGameState, usedCoupons = [], couponIn
   // 공개용 쿠폰 목록 (워프 및 특정 층 보상 제외)
   const PUBLIC_COUPONS = [
     { code: 'WELCOME', desc: '신규 유저 환영 패키지 (1000 크레딧)' },
-    { code: 'SHOWMETHEMONEY', desc: '대량의 크레딧 지원금' },
-    { code: 'GIVEMERELIC', desc: '무작위 유물 1개 획득' },
-    { code: 'HEALME', desc: '체력 전체 즉시 회복' },
     { code: 'LEGENDARY', desc: '전설 카드: 진·용살검 해금' } // App.jsx에 정의된 코드 반영
   ];
 
