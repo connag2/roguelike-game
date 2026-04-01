@@ -10,16 +10,16 @@ export const shuffle = (array) => {
   return newArray;
 };
 
-// ✨ 버프/디버프 최대 중첩치 제한 (침묵, 속박은 무조건 1로 강제 고정하여 중첩 버그 방지)
+// ✨ 버프/디버프 최대 중첩치 제한 (침묵, 속박, 무형 등은 1로 강제 고정하여 버그 방지)
 export const clampStack = (val, max = 999, isHardCC = false) => {
   if (isHardCC) return Math.min(Math.max(0, val), 1);
   return Math.min(Math.max(0, val), max);
 };
 
-// ✨ 디버프/버프 감소 로직 (하드 CC는 턴 종료 시 무조건 0으로 해제)
+// ✨ 디버프/버프 감소 로직 (하드 CC나 1턴 지속 효과는 턴 종료 시 무조건 0으로 해제)
 export const decayStack = (val, isHardCC = false) => {
   if (!val || val <= 0) return 0;
-  if (isHardCC) return 0; // 침묵, 속박 등은 턴이 지나면 즉시 풀림
+  if (isHardCC) return 0; // 침묵, 속박, 무형 등은 1턴 후 즉시 풀림
   
   let drop = 1;
   if (val >= 10) drop = Math.floor(val / 3);
@@ -27,7 +27,7 @@ export const decayStack = (val, isHardCC = false) => {
   return clampStack(val - drop);
 };
 
-// ✨ 표식 및 무형 계산 추가
+// ✨ 대미지 계산 로직: 표식(mark)과 무형(intangible) 효과 추가 적용
 export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak = 0, targetVuln = 0, targetMark = 0, targetIntangible = 0) => {
   const base = Number(baseDamage) || 0;
   const strength = Number(attackerStrength) || 0;
@@ -37,13 +37,16 @@ export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak =
 
   let dmg = base + strength;
   
+  // 약화는 중첩 효율 때문에 3% 감소 유지, 결과를 정수로 변환
   if (weak > 0) dmg = Math.floor(dmg * 0.97); 
+  
+  // 취약 시 대미지 30% 증가, 결과를 정수로 변환
   if (vuln > 0) dmg = Math.floor(dmg * 1.30); 
   
-  // 표식: 타격당 추가 고정 피해
-  dmg += mark; 
+  // 표식 효과: 타격당 추가 고정 피해
+  dmg += mark;
   
-  // 무형: 최종 대미지가 0보다 크면 무조건 1로 고정
+  // 무형 효과: 최종 대미지가 0보다 크면 무조건 1로 고정 (신화 카드/특수 보스용)
   if (targetIntangible > 0 && dmg > 0) {
     dmg = 1;
   }
@@ -51,11 +54,11 @@ export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak =
   return Math.max(0, dmg);
 };
 
-// ✨ 허약 계산 추가
+// ✨ 방어도 계산 로직: 허약(frail) 효과 추가 적용
 export const calculateBlock = (baseBlock, dex = 0, frail = 0) => {
   let block = Math.max(0, (Number(baseBlock) || 0) + (Number(dex) || 0));
   
-  // 허약: 방어도 획득량 25% 감소
+  // 허약 효과: 방어도 획득량 25% 감소
   if (frail > 0) block = Math.floor(block * 0.75);
   
   return block;
@@ -70,6 +73,7 @@ export const getCardDef = (id, shopUpgrades) => {
   if (upgradeLevel > 0) {
     const upgraded = { ...base, name: `${base.name} +${upgradeLevel}`, isUpgraded: true, upgradeLevel };
     
+    // 안전한 스케일링 함수: 값이 없을 경우 0으로 처리하여 NaN 방지
     const scale = (val, factor = 0.3) => {
       const numVal = Number(val) || 0;
       return numVal > 0 ? numVal + Math.floor(numVal * factor * upgradeLevel) : val;
@@ -79,10 +83,12 @@ export const getCardDef = (id, shopUpgrades) => {
       return numVal > 0 ? numVal + Math.floor(upgradeLevel / interval) : val;
     };
 
+    // 대미지, 방어, 힐 스케일링
     upgraded.damage = scale(base.damage);
     upgraded.block = scale(base.block);
     upgraded.heal = scale(base.heal);
     
+    // 다단 히트 및 기본 버프/디버프 수치 업데이트
     upgraded.multiHit = flat(base.multiHit, 4);
     upgraded.enemyWeak = flat(base.enemyWeak, 4);
     upgraded.enemyVuln = flat(base.enemyVuln, 4);
@@ -92,13 +98,15 @@ export const getCardDef = (id, shopUpgrades) => {
     upgraded.manaGain = flat(base.manaGain, 5);
     upgraded.draw = flat(base.draw, 5);
 
-    // ✨ 신규 효과 스케일링 추가 (무형, 침묵, 속박은 1턴 고정이므로 스케일링 제외)
+    // ✨ 신규 상태 이상 스케일링 추가
     upgraded.enemyMark = flat(base.enemyMark, 4);
     upgraded.enemyFrail = flat(base.enemyFrail, 4);
     upgraded.selfRegen = flat(base.selfRegen, 4);
     upgraded.selfRage = flat(base.selfRage, 4);
     upgraded.selfInsight = flat(base.selfInsight, 4);
+    // 참고: 침묵(enemySilence), 속박(enemyBind), 무형(selfIntangible)은 밸런스와 버그 방지를 위해 스케일링하지 않음
 
+    // 텍스트(설명) 업데이트 로직
     let upDesc = base.desc || '';
     if (base.damage) upDesc = upDesc.replace(`${base.damage}의 피해`, `${upgraded.damage}의 피해`);
     if (base.block) upDesc = upDesc.replace(`${base.block}의 방어`, `${upgraded.block}의 방어`);
@@ -109,6 +117,7 @@ export const getCardDef = (id, shopUpgrades) => {
       upDesc = upDesc.replace(`마나를 ${base.manaGain}`, `마나를 ${upgraded.manaGain}`)
                      .replace(`마나 ${base.manaGain}`, `마나 ${upgraded.manaGain}`);
     }
+
     if (base.multiHit) {
       upDesc = upDesc.replace(`${base.multiHit}번 연속`, `${upgraded.multiHit}번 연속`);
       if (upDesc.includes('(총')) {
@@ -124,7 +133,7 @@ export const getCardDef = (id, shopUpgrades) => {
     if (base.selfStrength) upDesc = upDesc.replace(`근력을 ${base.selfStrength}`, `근력을 ${upgraded.selfStrength}`);
     if (base.selfDex) upDesc = upDesc.replace(`민첩을 ${base.selfDex}`, `민첩을 ${upgraded.selfDex}`);
     
-    // ✨ 신규 텍스트 변환
+    // 신규 효과 텍스트 변환
     if (base.enemyMark) upDesc = upDesc.replace(`표식 ${base.enemyMark}`, `표식 ${upgraded.enemyMark}`);
     if (base.enemyFrail) upDesc = upDesc.replace(`허약 ${base.enemyFrail}`, `허약 ${upgraded.enemyFrail}`);
     if (base.selfRegen) upDesc = upDesc.replace(`재생 ${base.selfRegen}`, `재생 ${upgraded.selfRegen}`);
@@ -204,8 +213,9 @@ export const generateEnemies = (stage) => {
       isBoss: isNamedBoss || isNormalBoss,
       template,
       intentCard: generateEnemyIntent(template, s),
-      debuffs: { weak: 0, vulnerable: 0, poison: 0 },
-      buffs: { strength: 0 },
+      // ✨ 신규 디버프/버프 관리 객체 확장
+      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 },
+      buffs: { strength: 0, intangible: 0, regen: 0, rage: 0 },
       passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : []
     };
   });
