@@ -220,20 +220,27 @@ export default function BattleScreen({
           {enemies.map((enemy, idx) => {
             const eCard = enemy.intentCard;
             const isTarget = idx === 0;
+
+            // ✨ 적의 실제 공격력 계산 (근력, 적 약화, 플레이어 취약 반영)
+            let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
+            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97); // gameLogic 기준 적용
+            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30); // gameLogic 기준 적용
+
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${!isPlayerTurn ? 'scale-105 z-30' : isTarget ? 'scale-100 opacity-90' : 'scale-90 opacity-40'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
                 <div className="mb-4 relative z-10">
                   <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
-  <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
-  <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
-    {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
-    <span className="text-[10px] md:text-xs font-black text-white">
-      {eCard.value ? (eCard.multi ? `${eCard.value + (enemy.buffs?.strength || 0)}x${eCard.multi}` : (eCard.value + (enemy.buffs?.strength || 0))) : eCard.heal ? `+${eCard.heal}` : '?'}
-    </span>
-  </div>
-</div>
+                    <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
+                    <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
+                      {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
+                      {/* ✨ 계산된 데미지 표시 및 색상 변경 (증가=빨강, 감소=초록) */}
+                      <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
+                        {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : '?'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
@@ -248,6 +255,16 @@ export default function BattleScreen({
                   <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
                 </div>
                 <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
+                  {/* ✨ 패시브 아이콘 추가 (노란색 번개 모양으로 표시) */}
+                  {enemy.passives && enemy.passives.map((p, pIdx) => (
+                    <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
+                      <Zap className="w-3 h-3 text-amber-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-32 md:w-48 p-2 bg-slate-900 border-2 border-amber-500/50 rounded-xl shadow-2xl z-[1000] pointer-events-none text-left">
+                        <div className="text-amber-400 font-bold text-[10px] md:text-xs mb-1 border-b border-slate-700 pb-1">{p.name}</div>
+                        <div className="text-[9px] md:text-[10px] text-slate-300 whitespace-normal leading-relaxed">{p.desc}</div>
+                      </div>
+                    </div>
+                  ))}
                   <StatusIcon type="strength" value={enemy.buffs?.strength} isEnemy={true} />
                   <StatusIcon type="dexterity" value={enemy.buffs?.dexterity} isEnemy={true} />
                   <StatusIcon type="thorns" value={enemy.buffs?.thorns} isEnemy={true} />
