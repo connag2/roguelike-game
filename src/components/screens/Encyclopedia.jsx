@@ -51,36 +51,43 @@ export default function Encyclopedia({
         </div>
       </div>
 
-      {tab === 'cards' && <FilterBar type={filterType} setType={setFilterType} effect={filterEffect} setEffect={setFilterEffect} rarity={filterRarity} setRarity={setFilterRarity} search={searchQuery} setSearch={setSearchQuery} />}
-      
-      <div className="flex-1 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-2 md:px-4 mt-4">
-        {tab === 'cards' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-            {filteredCards.map(baseCard => (
-              <Card key={baseCard.id} card={getCardDef(baseCard.id, shopUpgrades)} isLocked={!unlockedCards.includes(baseCard.id)} />
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredRelics.map(rel => {
-              const isLocked = !unlockedRelics.includes(rel.id);
-              let rColor = 'text-slate-400'; let borderColor = 'border-slate-600';
-              if (!isLocked) {
-                if(rel.rarity === 'uncommon') { rColor = 'text-cyan-400'; borderColor = 'border-cyan-700'; }
-                else if(rel.rarity === 'rare') { rColor = 'text-yellow-400'; borderColor = 'border-yellow-600'; }
-                else if(rel.rarity === 'special') { rColor = 'text-fuchsia-400'; borderColor = 'border-fuchsia-600'; }
-                else if(rel.rarity === 'mythic') { rColor = 'text-red-500 font-black drop-shadow'; borderColor = 'border-red-600 bg-red-950/40 shadow-[0_0_15px_rgba(220,38,38,0.3)]'; }
-              }
-              return (
-                <div key={rel.id} className={`p-5 rounded-xl border-2 transition-transform hover:-translate-y-1 ${isLocked ? 'bg-slate-900 border-slate-800 opacity-50 grayscale' : `bg-slate-800 ${borderColor}`}`}>
-                  <div className={`text-xl font-bold mb-3 ${rColor}`}>{isLocked ? '???' : rel.name}</div>
-                  <div className="text-sm text-slate-300 leading-relaxed font-medium break-keep">{isLocked ? '이 유물을 아직 발견하지 못했습니다.' : rel.desc}</div>
-                </div>
+      {/* 카드 탭일 때는 기존 FilterBar, 유물 탭일 때는 유물 전용 필터 렌더링 */}
+      {tab === 'cards' ? (
+        <FilterBar 
+          type={filterType} setType={setFilterType} 
+          effect={filterEffect} setEffect={setFilterEffect} 
+          rarity={filterRarity} setRarity={setFilterRarity} 
+          search={searchQuery} setSearch={setSearchQuery} 
+        />
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
+          {['all', 'common', 'uncommon', 'rare', 'special', 'mythic'].map((r) => {
+            const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화' };
+            return (
+              <button
+                key={r}
+                onClick={() => setFilterRarity(r)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                  filterRarity === r 
+                    ? 'bg-amber-600 text-white' 
+                    : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                }`}
+              >
+                {labels[r]}
+              </button>
+            );
+          })}
+          
+          <input
+            type="text"
+            placeholder="유물 이름 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="ml-auto px-4 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-500 w-full sm:w-auto mt-2 sm:mt-0"
+          />
+        </div>
               )
-            })}
+            })
           </div>
         )}
-      </div>
-    </div>
-  );
-}
+      
