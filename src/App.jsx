@@ -19,6 +19,7 @@ import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 import UpdateHistory from './components/screens/UpdateHistory';
 import GameGuide from './components/screens/GameGuide';
+import AdminPanel from './components/admin/AdminPanel'; 
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -82,7 +83,6 @@ export default function App() {
   const [showEnemyDeck, setShowEnemyDeck] = useState(false);
   const [viewingEnemy, setViewingEnemy] = useState(null);
   
-  // ✨ 세이브 불러오기용 모달 상태 추가
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
 
@@ -103,7 +103,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // ✨ 세이브 데이터 안전하게 불러오기 (try-catch 추가)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('roguelike_tactics_save');
@@ -358,7 +357,7 @@ export default function App() {
     }
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
     const updatedCoupons = [...usedCoupons, code];
-    const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
+    const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedCards] : unlockedCards;
     if (creditsToAdd > 0) setCredits(prev => prev + creditsToAdd);
     if (updatedUnlocked !== unlockedCards) setUnlockedCards(updatedUnlocked);
     setUsedCoupons(updatedCoupons); setCouponInput(''); setToastMsg(msg);
@@ -411,6 +410,28 @@ export default function App() {
 
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
+        {/* ✨ 모든 추가 기능이 연결된 고도화 어드민 패널 */}
+        <AdminPanel
+          credits={credits}
+          setCredits={setCredits}
+          unlockedCards={unlockedCards}
+          setUnlockedCards={setUnlockedCards}
+          unlockedRelics={unlockedRelics}
+          setUnlockedRelics={setUnlockedRelics}
+          combatState={combatState}
+          setCombatState={setCombatState}
+          setGameState={setGameState}
+          setToastMsg={setToastMsg}
+          saveGame={saveGame}
+          CARD_LIBRARY={CARD_LIBRARY}
+          RELIC_LIBRARY={RELIC_LIBRARY}
+          deckCounts={deckCounts}
+          setDeckCounts={setDeckCounts}
+          playerRelics={playerRelics}
+          setPlayerRelics={setPlayerRelics}
+          startBattle={startBattle}
+        />
+
         {deckImportModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setDeckImportModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-indigo-500 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -423,7 +444,7 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* 👇 여기에 스테이지 도약(Skip) 모달 코드를 추가하세요! 👇 */}
+
         {skipModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
@@ -459,9 +480,7 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* 👆 추가 완료 👆 */}
 
-        {/* ✨ 세이브 전체 불러오기 모달 추가 (누락되었던 부분) */}
         {importModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setImportModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-amber-500 w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -501,14 +520,14 @@ export default function App() {
           <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />
         )}
         {gameState === 'UPDATE_HISTORY' && (
-  <UpdateHistory 
-    setGameState={setGameState} 
-    usedCoupons={usedCoupons}          // 사용된 쿠폰 목록 전달
-    couponInput={couponInput}          // 현재 입력값 전달
-    setCouponInput={setCouponInput}    // 입력값 변경 함수 전달
-    handleCoupon={handleCoupon}        // 쿠폰 검증 및 실행 함수 전달
-  />
-)}
+          <UpdateHistory 
+            setGameState={setGameState} 
+            usedCoupons={usedCoupons}          
+            couponInput={couponInput}          
+            setCouponInput={setCouponInput}    
+            handleCoupon={handleCoupon}        
+          />
+        )}
         {gameState === 'STATISTICS' && <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />}
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} adminUnlockAllCards={() => {setUnlockedCards(CARD_LIBRARY.map(c=>c.id)); setToastMsg('완료');}} adminGiveMoney={() => {setCredits(credits+99999); setToastMsg('완료');}} adminUnlockAllRelics={() => {setUnlockedRelics(RELIC_LIBRARY.map(r=>r.id)); setToastMsg('완료');}} adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
         {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => {navigator.clipboard.writeText(btoa(encodeURIComponent(JSON.stringify(tempDeckCounts)))); setToastMsg('복사!');}} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} getCardDef={getCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id]||0)-1)})} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
