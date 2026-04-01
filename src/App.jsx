@@ -323,11 +323,16 @@ export default function App() {
   const openShop = () => { setGameState('SHOP'); };
   const getTotalCards = (counts = deckCounts) => Object.values(counts || {}).reduce((a, b) => a + b, 0);
 
+  // 🐛 [버그 수정 1] 가챠에서 카드 뽑을 때 로컬스토리지 저장이 꼬이는 현상 완전 수정
   const handleGacha = () => {
     if (credits < 50) return;
     const result = [];
     const pool = CARD_LIBRARY.filter(c => ['common', 'uncommon', 'rare'].includes(c.rarity));
     let duplicateRefund = 0;
+    
+    // 현재 보유 카드 배열의 복사본을 만들어 루프 내에서 실시간 동기화
+    let currentUnlocked = [...unlockedCards]; 
+
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
       let r = 'common';
@@ -335,15 +340,26 @@ export default function App() {
       else if (roll < 0.3) r = 'uncommon';
       const cPool = pool.filter(c => c.rarity === r);
       const card = cPool[Math.floor(Math.random() * cPool.length)];
-      if (unlockedCards.includes(card.id)) { result.push({ ...card, isDuplicate: true }); duplicateRefund += 10; } 
-      else { result.push({ ...card, isDuplicate: false }); setUnlockedCards(prev => [...prev, card.id]); }
+      
+      if (currentUnlocked.includes(card.id)) { 
+        result.push({ ...card, isDuplicate: true }); 
+        duplicateRefund += 10; 
+      } else { 
+        result.push({ ...card, isDuplicate: false }); 
+        currentUnlocked.push(card.id); // 복사본에 즉시 추가
+      }
     }
     const newCredits = credits - 50 + duplicateRefund;
     setCredits(newCredits);
+    setUnlockedCards(currentUnlocked); // 업데이트된 복사본 통째로 반영
     if (duplicateRefund > 0) setToastMsg(`${duplicateRefund} 크레딧 환급됨!`);
-    setGachaResult(result); saveGame({ credits: newCredits, unlockedCards });
+    setGachaResult(result); 
+    
+    // 세이브 데이터에도 확실히 최신 복사본을 전달
+    saveGame({ credits: newCredits, unlockedCards: currentUnlocked }); 
   };
 
+  // 🐛 [버그 수정 2] 쿠폰 기능에서 unlockedCards 배열에 배열이 중첩되는 치명적 오타 수정
   const handleCoupon = () => {
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
@@ -357,7 +373,10 @@ export default function App() {
     }
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
     const updatedCoupons = [...usedCoupons, code];
-    const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedCards] : unlockedCards;
+    
+    // 여기가 문제였습니다. [...unlockedCards, unlockedCards] -> [...unlockedCards, unlockedToAdd] 로 수정
+    const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
+    
     if (creditsToAdd > 0) setCredits(prev => prev + creditsToAdd);
     if (updatedUnlocked !== unlockedCards) setUnlockedCards(updatedUnlocked);
     setUsedCoupons(updatedCoupons); setCouponInput(''); setToastMsg(msg);
@@ -410,7 +429,6 @@ export default function App() {
 
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
-        {/* ✨ 모든 추가 기능이 연결된 고도화 어드민 패널 */}
         <AdminPanel
           credits={credits}
           setCredits={setCredits}
@@ -529,13 +547,66 @@ export default function App() {
           />
         )}
         {gameState === 'STATISTICS' && <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />}
-        {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} adminUnlockAllCards={() => {setUnlockedCards(CARD_LIBRARY.map(c=>c.id)); setToastMsg('완료');}} adminGiveMoney={() => {setCredits(credits+99999); setToastMsg('완료');}} adminUnlockAllRelics={() => {setUnlockedRelics(RELIC_LIBRARY.map(r=>r.id)); setToastMsg('완료');}} adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
+        
+        {/* 🐛 [버그 수정 3] Settings의 관리자 버튼 클릭 시 세이브가 안 되던 현상 수정 */}
+        {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} 
+          adminUnlockAllCards={() => {
+            const all = CARD_LIBRARY.map(c=>c.id); 
+            setUnlockedCards(all); 
+            saveGame({unlockedCards: all}); 
+            setToastMsg('완료');
+          }} 
+          adminGiveMoney={() => {
+            const nc = credits + 99999; 
+            setCredits(nc); 
+            saveGame({credits: nc}); 
+            setToastMsg('완료');
+          }} 
+          adminUnlockAllRelics={() => {
+            const all = RELIC_LIBRARY.map(r=>r.id); 
+            setUnlockedRelics(all); 
+            saveGame({unlockedRelics: all}); 
+            setToastMsg('완료');
+          }} 
+          adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
+        
         {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => {navigator.clipboard.writeText(btoa(encodeURIComponent(JSON.stringify(tempDeckCounts)))); setToastMsg('복사!');}} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} getCardDef={getCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id]||0)-1)})} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
-        {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={getCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} selectPremiumCard={(card) => { if(!unlockedCards.includes(card.id)) setUnlockedCards([...unlockedCards, card.id]); setPremiumGachaResult(null); setToastMsg('획득!'); saveGame(); }} setTutorialModalOpen={setTutorialModalOpen} />}
+        
+        {/* 🐛 [버그 수정 4] 프리미엄 가챠 보상 수령 시 최신 상태 세이브 연동 */}
+        {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={getCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} 
+          selectPremiumCard={(card) => { 
+            let newUnlocked = unlockedCards;
+            if(!unlockedCards.includes(card.id)) {
+              newUnlocked = [...unlockedCards, card.id];
+              setUnlockedCards(newUnlocked);
+            }
+            setPremiumGachaResult(null); 
+            setToastMsg('획득!'); 
+            saveGame({ unlockedCards: newUnlocked }); 
+          }} 
+          setTutorialModalOpen={setTutorialModalOpen} />}
+        
         {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard} playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10} setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} />}
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
-        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards} combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection} setConfirmSelection={setConfirmSelection} startNextStage={startNextStage} getCardDef={getCardDef} shopUpgrades={shopUpgrades} specialBossRewardCard={specialBossRewardCard} handleSpecialBossRewardClaim={() => { if(specialBossRewardCard) { if(!unlockedCards.includes(specialBossRewardCard.id)) setUnlockedCards([...unlockedCards, specialBossRewardCard.id]); setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); setSpecialBossRewardCard(null); setGameState('REWARDS'); saveGame(); } }} pendingRelicReward={pendingRelicReward} handleRelicRewardClaim={handleRelicRewardClaim} />}
+        
+        {/* 🐛 [버그 수정 5] 보스 클리어 보상 수령 시 최신 상태 세이브 연동 */}
+        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards} combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection} setConfirmSelection={setConfirmSelection} startNextStage={startNextStage} getCardDef={getCardDef} shopUpgrades={shopUpgrades} specialBossRewardCard={specialBossRewardCard} 
+          handleSpecialBossRewardClaim={() => { 
+            if(specialBossRewardCard) { 
+              let newUnlocked = unlockedCards;
+              if(!unlockedCards.includes(specialBossRewardCard.id)) {
+                newUnlocked = [...unlockedCards, specialBossRewardCard.id];
+                setUnlockedCards(newUnlocked);
+              }
+              setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
+              setSpecialBossRewardCard(null); 
+              setGameState('REWARDS'); 
+              saveGame({ unlockedCards: newUnlocked }); 
+            } 
+          }} 
+          pendingRelicReward={pendingRelicReward} handleRelicRewardClaim={handleRelicRewardClaim} />}
+        
         {gameState === 'GAME_OVER' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4"><h1 className="text-6xl md:text-8xl font-black text-red-600 mb-6">GAME OVER</h1><p className="text-2xl text-slate-300 mb-12">STAGE {combatState?.stage || 1}</p><button onClick={() => setGameState('MENU')} className="py-4 px-12 bg-indigo-600 rounded-full text-2xl font-bold">메인으로</button></div>}
         {gameState === 'GAME_CLEAR' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4"><h1 className="text-6xl font-black text-yellow-400 mb-8 animate-pulse">CONQUEROR!</h1><p className="text-xl text-slate-300 mb-8">이제 시작 덱에서 유물 1개를 선택할 수 있습니다!</p><button onClick={() => setGameState('MENU')} className="py-4 px-12 bg-indigo-600 rounded-full text-2xl font-bold">메인으로</button></div>}
       </div>
