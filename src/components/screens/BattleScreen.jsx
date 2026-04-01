@@ -223,22 +223,49 @@ export default function BattleScreen({
 
             // ✨ 적의 실제 공격력 계산 (근력, 적 약화, 플레이어 취약 반영)
             let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
-            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97); // gameLogic 기준 적용
-            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30); // gameLogic 기준 적용
+            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
+            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
 
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${!isPlayerTurn ? 'scale-105 z-30' : isTarget ? 'scale-100 opacity-90' : 'scale-90 opacity-40'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
                 <div className="mb-4 relative z-10">
-                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
+                  {/* ✨ 테두리 색상도 디버프/버프 여부에 따라 조금 더 다양하게 적용 */}
+                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
                     <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
-                    <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
-                      {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
-                      {/* ✨ 계산된 데미지 표시 및 색상 변경 (증가=빨강, 감소=초록) */}
-                      <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
-                        {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : '?'}
-                      </span>
+                    
+                    {/* ✨ 데미지, 디버프, 버프를 각각의 배지로 나누어 모두 렌더링 */}
+                    <div className="flex flex-wrap justify-center items-center gap-1">
+                      
+                      {/* 1. 공격 / 방어 / 힐 수치 */}
+                      {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                          {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
+                          <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
+                            {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : eCard.type === 'defend' ? 'DEF' : ''}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* 2. 디버프 부여 수치 (취약, 약화 등) */}
+                      {eCard.debuff && (
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                          <span className={`text-[9px] md:text-[10px] font-black ${eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : eCard.debuff === 'weak' ? 'text-blue-300' : 'text-green-400'}`}>
+                            {eCard.debuff === 'vulnerable' ? '취약' : eCard.debuff === 'weak' ? '약화' : '중독'} {eCard.turns}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* 3. 버프 부여 수치 (근력 등) */}
+                      {eCard.buff && (
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                          <span className="text-[9px] md:text-[10px] font-black text-amber-400">
+                            {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
+                          </span>
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 </div>
@@ -254,8 +281,9 @@ export default function BattleScreen({
                   <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
                   <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
                 </div>
+                
                 <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
-                  {/* ✨ 패시브 아이콘 추가 (노란색 번개 모양으로 표시) */}
+                  {/* ✨ 패시브 아이콘 */}
                   {enemy.passives && enemy.passives.map((p, pIdx) => (
                     <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
                       <Zap className="w-3 h-3 text-amber-400" />
