@@ -36,8 +36,17 @@ export default function Encyclopedia({
           </span>
         </h2>
         <div className="flex gap-2">
-          <button onClick={() => setTab('cards')} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>카드 도감</button>
-          <button onClick={() => setTab('relics')} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>유물 도감</button>
+          // 수정 후
+<button 
+  onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); }} 
+  className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>
+  카드 도감
+</button>
+<button 
+  onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); }} 
+  className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>
+  유물 도감
+</button>
           <button onClick={() => setGameState('MENU')} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl font-bold shadow-md ml-2">메인으로</button>
         </div>
       </div>
