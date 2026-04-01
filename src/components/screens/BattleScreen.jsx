@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; // ✨ Heart 추가!
+import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react';
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 import CommonEffects from '../effects/CommonEffects';
@@ -156,7 +156,7 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* ✨ 상단 유물 바 (전투화면 원래대로 원상복구 완료!) */}
+      {/* ✨ 상단 유물 바 */}
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-10 w-full px-2">
           {playerRelics.map((r, i) => (
@@ -204,13 +204,26 @@ export default function BattleScreen({
             <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
             <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
           </div>
+          
+          {/* ✨ 플레이어 버프/디버프 아이콘 렌더링 영역 (신규 상태 추가) */}
           <div className="flex gap-1 mt-2 flex-wrap justify-center max-w-[200px] scale-90">
             <StatusIcon type="strength" value={player.buffs?.strength} />
             <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
             <StatusIcon type="thorns" value={player.buffs?.thorns} />
+            
+            <StatusIcon type="intangible" value={player.buffs?.intangible} />
+            <StatusIcon type="regen" value={player.buffs?.regen} />
+            <StatusIcon type="rage" value={player.buffs?.rage} />
+            <StatusIcon type="insight" value={player.buffs?.insight} />
+            
             <StatusIcon type="poison" value={player.debuffs?.poison} />
             <StatusIcon type="weak" value={player.debuffs?.weak} />
             <StatusIcon type="vulnerable" value={player.debuffs?.vulnerable} />
+            
+            <StatusIcon type="mark" value={player.debuffs?.mark} />
+            <StatusIcon type="frail" value={player.debuffs?.frail} />
+            <StatusIcon type="silence" value={player.debuffs?.silence} />
+            <StatusIcon type="bind" value={player.debuffs?.bind} />
           </div>
         </div>
 
@@ -221,7 +234,6 @@ export default function BattleScreen({
             const eCard = enemy.intentCard;
             const isTarget = idx === 0;
 
-            // ✨ 적의 실제 공격력 계산 (근력, 적 약화, 플레이어 취약 반영)
             let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
             if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
             if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
@@ -231,14 +243,10 @@ export default function BattleScreen({
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
                 <div className="mb-4 relative z-10">
-                  {/* ✨ 테두리 색상도 디버프/버프 여부에 따라 조금 더 다양하게 적용 */}
                   <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
                     <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
                     
-                    {/* ✨ 데미지, 디버프, 버프를 각각의 배지로 나누어 모두 렌더링 */}
                     <div className="flex flex-wrap justify-center items-center gap-1">
-                      
-                      {/* 1. 공격 / 방어 / 힐 수치 */}
                       {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
@@ -248,7 +256,6 @@ export default function BattleScreen({
                         </div>
                       )}
 
-                      {/* 2. 디버프 부여 수치 (취약, 약화 등) */}
                       {eCard.debuff && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           <span className={`text-[9px] md:text-[10px] font-black ${eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : eCard.debuff === 'weak' ? 'text-blue-300' : 'text-green-400'}`}>
@@ -257,7 +264,6 @@ export default function BattleScreen({
                         </div>
                       )}
 
-                      {/* 3. 버프 부여 수치 (근력 등) */}
                       {eCard.buff && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           <span className="text-[9px] md:text-[10px] font-black text-amber-400">
@@ -265,7 +271,6 @@ export default function BattleScreen({
                           </span>
                         </div>
                       )}
-
                     </div>
                   </div>
                 </div>
@@ -282,8 +287,8 @@ export default function BattleScreen({
                   <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
                 </div>
                 
+                {/* ✨ 적 버프/디버프 아이콘 렌더링 영역 (신규 상태 추가) */}
                 <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
-                  {/* ✨ 패시브 아이콘 */}
                   {enemy.passives && enemy.passives.map((p, pIdx) => (
                     <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
                       <Zap className="w-3 h-3 text-amber-400" />
@@ -296,9 +301,20 @@ export default function BattleScreen({
                   <StatusIcon type="strength" value={enemy.buffs?.strength} isEnemy={true} />
                   <StatusIcon type="dexterity" value={enemy.buffs?.dexterity} isEnemy={true} />
                   <StatusIcon type="thorns" value={enemy.buffs?.thorns} isEnemy={true} />
+                  
+                  <StatusIcon type="intangible" value={enemy.buffs?.intangible} isEnemy={true} />
+                  <StatusIcon type="regen" value={enemy.buffs?.regen} isEnemy={true} />
+                  <StatusIcon type="rage" value={enemy.buffs?.rage} isEnemy={true} />
+                  <StatusIcon type="insight" value={enemy.buffs?.insight} isEnemy={true} />
+                  
                   <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
                   <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
                   <StatusIcon type="vulnerable" value={enemy.debuffs?.vulnerable} isEnemy={true} />
+                  
+                  <StatusIcon type="mark" value={enemy.debuffs?.mark} isEnemy={true} />
+                  <StatusIcon type="frail" value={enemy.debuffs?.frail} isEnemy={true} />
+                  <StatusIcon type="silence" value={enemy.debuffs?.silence} isEnemy={true} />
+                  <StatusIcon type="bind" value={enemy.debuffs?.bind} isEnemy={true} />
                 </div>
               </div>
             );
@@ -338,10 +354,9 @@ export default function BattleScreen({
                      className="relative transition-all duration-300 ease-out origin-bottom -ml-8 md:-ml-12 first:ml-0" 
                      style={{ zIndex: isHovered ? 100 : 10 + idx, transform: isHovered ? `translateY(-60px) scale(1.15) rotate(0deg)` : `translateY(${translateY}px) rotate(${rotation}deg)` }}>
                   
-                  {/* 👇 bg-slate-900을 추가하고, rounded-2xl을 rounded-xl로 변경했습니다 */}
-      <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
-        <Card card={card} isLocked={false} />
-      </div>
+                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
+                    <Card card={card} isLocked={false} />
+                  </div>
                 </div>
               );
             })}
