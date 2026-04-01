@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react';
+// Skull 아이콘은 제거하고 기존에 쓰던 아이콘들은 유지합니다.
+import { Shield, RefreshCw, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; 
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 import CommonEffects from '../effects/CommonEffects';
 import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
 import UniqueEffects from '../effects/UniqueEffects';
+
+// ✨ 프로젝트 내의 SVG 캐릭터/몬스터 이미지 임포트
+import heroImg from '../../assets/images/characters/hero.svg';
+import slimeImg from '../../assets/images/monsters/slime.svg';
+import skeletonImg from '../../assets/images/monsters/skeleton.svg';
 
 export default function BattleScreen({
   combatState, isPlayerTurn, setViewingPile, viewingPile, setGameState, hoveredCard, setHoveredCard,
@@ -54,6 +60,13 @@ export default function BattleScreen({
   };
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
+
+  // ✨ 적 이름에 따라 이미지를 매핑해주는 헬퍼 함수
+  const getEnemyImage = (name) => {
+    if (!name) return slimeImg;
+    if (name.includes('스켈레톤') || name.includes('리치')) return skeletonImg;
+    return slimeImg; // 그 외의 몬스터들은 기본적으로 슬라임 이미지 사용
+  };
 
   return (
     <div className={`flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden ${isShaking ? 'animate-shake' : ''}`}>
@@ -156,7 +169,7 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* ✨ 상단 유물 바 */}
+      {/* 상단 유물 바 */}
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-10 w-full px-2">
           {playerRelics.map((r, i) => (
@@ -187,9 +200,12 @@ export default function BattleScreen({
       </div>
 
       <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
+        
+        {/* 플레이어 캐릭터 영역 */}
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
-            <Skull className="w-10 h-10 md:w-16 md:h-16 text-indigo-500/80" />
+            {/* ✨ Skull 아이콘 대신 hero.svg 적용 */}
+            <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
             
             {player.block > 0 && (
               <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
@@ -205,21 +221,17 @@ export default function BattleScreen({
             <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
           </div>
           
-          {/* ✨ 플레이어 버프/디버프 아이콘 렌더링 영역 (신규 상태 추가) */}
           <div className="flex gap-1 mt-2 flex-wrap justify-center max-w-[200px] scale-90">
             <StatusIcon type="strength" value={player.buffs?.strength} />
             <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
             <StatusIcon type="thorns" value={player.buffs?.thorns} />
-            
             <StatusIcon type="intangible" value={player.buffs?.intangible} />
             <StatusIcon type="regen" value={player.buffs?.regen} />
             <StatusIcon type="rage" value={player.buffs?.rage} />
             <StatusIcon type="insight" value={player.buffs?.insight} />
-            
             <StatusIcon type="poison" value={player.debuffs?.poison} />
             <StatusIcon type="weak" value={player.debuffs?.weak} />
             <StatusIcon type="vulnerable" value={player.debuffs?.vulnerable} />
-            
             <StatusIcon type="mark" value={player.debuffs?.mark} />
             <StatusIcon type="frail" value={player.debuffs?.frail} />
             <StatusIcon type="silence" value={player.debuffs?.silence} />
@@ -229,6 +241,7 @@ export default function BattleScreen({
 
         <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
+        {/* 몬스터 캐릭터 영역 */}
         <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
             const eCard = enemy.intentCard;
@@ -276,7 +289,9 @@ export default function BattleScreen({
                 </div>
 
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
-                  <Skull className={`${enemy.isBoss ? 'w-12 h-12 md:w-20 md:h-20 text-red-500' : 'w-8 h-8 md:w-12 md:h-12 text-red-700/80'}`} />
+                  {/* ✨ Skull 아이콘 대신 몬스터(slime.svg / skeleton.svg) 이미지 적용 */}
+                  <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
+                  
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
                   {isTarget && playEffect && playEffect.name !== 'mana_potion' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                 </div>
@@ -287,7 +302,6 @@ export default function BattleScreen({
                   <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
                 </div>
                 
-                {/* ✨ 적 버프/디버프 아이콘 렌더링 영역 (신규 상태 추가) */}
                 <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
                   {enemy.passives && enemy.passives.map((p, pIdx) => (
                     <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
@@ -301,16 +315,13 @@ export default function BattleScreen({
                   <StatusIcon type="strength" value={enemy.buffs?.strength} isEnemy={true} />
                   <StatusIcon type="dexterity" value={enemy.buffs?.dexterity} isEnemy={true} />
                   <StatusIcon type="thorns" value={enemy.buffs?.thorns} isEnemy={true} />
-                  
                   <StatusIcon type="intangible" value={enemy.buffs?.intangible} isEnemy={true} />
                   <StatusIcon type="regen" value={enemy.buffs?.regen} isEnemy={true} />
                   <StatusIcon type="rage" value={enemy.buffs?.rage} isEnemy={true} />
                   <StatusIcon type="insight" value={enemy.buffs?.insight} isEnemy={true} />
-                  
                   <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
                   <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
                   <StatusIcon type="vulnerable" value={enemy.debuffs?.vulnerable} isEnemy={true} />
-                  
                   <StatusIcon type="mark" value={enemy.debuffs?.mark} isEnemy={true} />
                   <StatusIcon type="frail" value={enemy.debuffs?.frail} isEnemy={true} />
                   <StatusIcon type="silence" value={enemy.debuffs?.silence} isEnemy={true} />
