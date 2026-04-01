@@ -38,11 +38,47 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
 
+  // 강화 시 우측 상단 뱃지와 아이콘 색상 기본값
+  let upBadgeBg = 'bg-yellow-400';
+  let upBadgeText = 'text-yellow-900';
+  let upBadgeShadow = 'shadow-[0_0_10px_rgba(250,204,21,0.8)]';
+  let upIconColor = 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]';
+
   if (card.isUpgraded) {
-    borderStyle = 'border-yellow-400 ring-2 ring-yellow-400/50'; 
-    rarityShadow = 'shadow-[0_0_25px_rgba(250,204,21,0.6)] animate-pulse'; 
-    nameColor = 'text-yellow-300 drop-shadow-[0_0_8px_rgba(250,204,21,0.9)]'; 
-    if (rarity !== 'mythic' && rarity !== 'special' && rarity !== 'rare') bgStyle = 'bg-gradient-to-br from-slate-900 to-yellow-900/30';
+    if (rarity === 'uncommon') {
+      borderStyle = 'border-cyan-400 ring-2 ring-cyan-400/50';
+      rarityShadow = 'shadow-[0_0_30px_rgba(34,211,238,0.6)]';
+      nameColor = 'text-cyan-100 drop-shadow-[0_0_8px_rgba(34,211,238,0.9)]';
+      bgStyle = 'bg-gradient-to-br from-slate-900 to-cyan-900/40';
+      upBadgeBg = 'bg-cyan-400'; upBadgeText = 'text-cyan-950'; upBadgeShadow = 'shadow-[0_0_10px_rgba(34,211,238,0.8)]';
+      upIconColor = 'text-cyan-300 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]';
+    } else if (rarity === 'rare') {
+      borderStyle = 'border-yellow-400 ring-2 ring-yellow-400/60';
+      rarityShadow = 'shadow-[0_0_35px_rgba(250,204,21,0.7)]';
+      nameColor = 'text-yellow-100 drop-shadow-[0_0_10px_rgba(250,204,21,1)]';
+      upBadgeBg = 'bg-yellow-400'; upBadgeText = 'text-yellow-950'; upBadgeShadow = 'shadow-[0_0_15px_rgba(250,204,21,1)]';
+      upIconColor = 'text-yellow-300 drop-shadow-[0_0_5px_rgba(250,204,21,1)]';
+    } else if (rarity === 'mythic') {
+      borderStyle = 'border-red-500 ring-2 ring-red-500/60';
+      rarityShadow = 'shadow-[0_0_40px_rgba(239,68,68,0.8)]';
+      nameColor = 'text-red-100 drop-shadow-[0_0_12px_rgba(239,68,68,1)]';
+      upBadgeBg = 'bg-red-500'; upBadgeText = 'text-white'; upBadgeShadow = 'shadow-[0_0_15px_rgba(239,68,68,1)]';
+      upIconColor = 'text-red-400 drop-shadow-[0_0_8px_rgba(239,68,68,1)]';
+    } else if (rarity === 'special') {
+      borderStyle = 'border-fuchsia-400 ring-2 ring-fuchsia-400/60';
+      rarityShadow = 'shadow-[0_0_35px_rgba(217,70,239,0.8)]';
+      nameColor = 'text-fuchsia-100 drop-shadow-[0_0_10px_rgba(217,70,239,1)]';
+      upBadgeBg = 'bg-fuchsia-400'; upBadgeText = 'text-fuchsia-950'; upBadgeShadow = 'shadow-[0_0_15px_rgba(217,70,239,1)]';
+      upIconColor = 'text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,1)]';
+    } else {
+      // 일반 등급 (은빛/백금색)
+      borderStyle = 'border-slate-300 ring-2 ring-slate-300/60';
+      rarityShadow = 'shadow-[0_0_25px_rgba(203,213,225,0.5)]';
+      nameColor = 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]';
+      bgStyle = 'bg-gradient-to-br from-slate-900 to-slate-700/50';
+      upBadgeBg = 'bg-slate-200'; upBadgeText = 'text-slate-900'; upBadgeShadow = 'shadow-[0_0_10px_rgba(203,213,225,0.8)]';
+      upIconColor = 'text-slate-200 drop-shadow-[0_0_5px_rgba(203,213,225,0.8)]';
+    }
   }
 
   const cardStatusStyle = isLocked 

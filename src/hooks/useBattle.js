@@ -1,3 +1,4 @@
+// src/hooks/useBattle.js
 import { useEffect, useCallback } from 'react';
 import { shuffle, decayStack, calculateDamage, calculateBlock, clampStack } from '../utils/gameLogic';
 import { GAME_RULES, CARD_LIBRARY } from '../constants/gameData';
@@ -27,7 +28,6 @@ export function useBattle({
     }
   }, [setToastMsg]);
 
-  // 승리 보상 처리 로직 분리
   const handleVictory = useCallback((prevCombat, p) => {
     try {
         const isSpecialBoss = [25, 50, 75, 100].includes(prevCombat.stage);
@@ -57,7 +57,7 @@ export function useBattle({
         
         if (Math.random() < relicDropChance) {
           const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
-          if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+          if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
         }
 
         const determineReward = (st) => {
@@ -97,7 +97,6 @@ export function useBattle({
       }
   }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared]);
 
-  // 비동기 루프로 변경되어 데미지 순차 적용 구현
   const playCard = useCallback(async (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
     const card = combatState.hand[cardIndex];
@@ -110,7 +109,6 @@ export function useBattle({
     const hits = (card.damage && isWin) ? (card.multiHit || 1) : 1;
     const delay = fastMode ? 100 : 200;
 
-    // 1. 카드 비용 지불, 버프 및 드로우 로직 선행 처리 (1회)
     setCombatState(prev => {
       let p = { ...prev.player };
       let newHand = [...prev.hand];
@@ -123,35 +121,32 @@ export function useBattle({
         if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) p.block += calculateBlock(card.block, p.buffs.dexterity);
         if (card.doubleBlock) p.block *= 2;
         if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
-        if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + card.heal);
-        if (card.manaGain && !card.gamble) p.mana = clampStack(p.mana + card.manaGain, p.maxMana + 99);
-        if (card.winManaGain) p.mana += card.winManaGain;
+        
+        // ✨ 수정: Number() 래핑으로 안전한 계산 보장
+        if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + (Number(card.heal) || 0));
+        if (card.manaGain && !card.gamble) p.mana = clampStack(p.mana + (Number(card.manaGain) || 0), p.maxMana + 99);
+        if (card.winManaGain) p.mana += (Number(card.winManaGain) || 0);
+        
         if (card.selfStrength) p.buffs.strength = clampStack(p.buffs.strength + card.selfStrength);
         if (card.selfDex) p.buffs.dexterity = clampStack(p.buffs.dexterity + card.selfDex);
         if (card.selfThorns) p.buffs.thorns = clampStack(p.buffs.thorns + card.selfThorns);
-        
-        // ✨ 자해(selfDamage) 적용 로직 추가! (방어도 무시하고 직접 체력 감소)
-        if (card.selfDamage) p.hp -= card.selfDamage;
+        if (card.selfDamage) p.hp -= (Number(card.selfDamage) || 0);
       }
 
-      // 1. 카드를 손패에서 먼저 제거 (아직 버린 패로 보내진 않음)
       newHand.splice(cardIndex, 1); 
 
-      // 2. 카드 드로우 (- 1 조건 제거하여 10장까지 꽉 채우도록 허용)
       for(let i=0; i<(card.draw || 0); i++) {
         if(newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
         if(newDraw.length === 0) { if(newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
         if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
       }
       
-      // 3. 드로우 처리가 모두 끝난 후 사용한 카드를 버린 패로 이동
       newDiscard.push(card);
 
       return { ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw };
     });
 
-    // 2. 다단 히트 루프 (시각 효과 시간인 delay 만큼 대기하며 1대씩 대미지 깎기)
-    let currentDamage = card.damage || 0;
+    let currentDamage = Number(card.damage) || 0;
 
     for (let i = 0; i < hits; i++) {
       if (i > 0) {
@@ -164,6 +159,7 @@ export function useBattle({
         let p = { ...prev.player };
         let newEnemies = prev.enemies.map(e => ({...e, buffs: {...e.buffs}, debuffs: {...e.debuffs}}));
 
+        // ✨ 수정: 데미지 계산 및 HP 차감 시 정수 보장 (NaN 방지 핵심)
         const deal = (amt) => {
           if (newEnemies.length === 0) return;
           let target = newEnemies[0];
@@ -172,38 +168,39 @@ export function useBattle({
           if (target.block >= dmg) {
             target.block -= dmg; 
           } else { 
-            target.hp -= (dmg - target.block); 
+            const remainingDmg = dmg - target.block;
+            target.hp = Math.max(0, Math.floor(target.hp - remainingDmg)); 
             target.block = 0; 
           }
           checkRevive(target, newEnemies);
         };
 
         if (isWin) {
-          // 특수 딜 및 디버프는 첫 타에 일괄 적용
           if (i === 0) {
             if (card.winDamage) deal(newEnemies[0]?.isBoss ? card.winDamageBoss : card.winDamage);
-            if (card.missingHpDamage) deal((card.damage || 0) + Math.floor((p.maxHp - p.hp) * card.missingHpDamage));
-            else if (card.consumeAllMana) { deal((card.damage || 0) + prev.player.mana * card.manaMultiplier); p.mana = 0; }
+            // ✨ 수정: 특수 피해 계산 시 Math.floor 적용
+            if (card.missingHpDamage) deal((Number(card.damage) || 0) + Math.floor((p.maxHp - p.hp) * card.missingHpDamage));
+            else if (card.consumeAllMana) { 
+                deal((Number(card.damage) || 0) + Math.floor(prev.player.mana * (card.manaMultiplier || 0))); 
+                p.mana = 0; 
+            }
             
             if (card.enemyWeak) newEnemies[0].debuffs.weak += card.enemyWeak;
             if (card.enemyVuln) newEnemies[0].debuffs.vulnerable += card.enemyVuln;
             if (card.enemyPoison) newEnemies[0].debuffs.poison += card.enemyPoison;
           }
 
-          // 기본 타격 및 증가하는 딜은 타수마다 순차 적용
           if (card.damage && !card.missingHpDamage && !card.consumeAllMana) { 
             deal(currentDamage); 
-            if (card.increasingDamage) currentDamage += card.increasingDamage; 
+            if (card.increasingDamage) currentDamage += (Number(card.increasingDamage) || 0); 
           }
         } else if (i === 0) {
-          // 겜블 실패 페널티도 첫 타 판정에만 1회 적용
           setToastMsg("실패...");
           if (card.loseDamage) deal(card.loseDamage);
-          if (card.loseSelfDamage) p.hp -= card.loseSelfDamage;
+          if (card.loseSelfDamage) p.hp -= (Number(card.loseSelfDamage) || 0);
           if (card.losePercentMaxHpDamage) p.hp -= Math.floor(p.maxHp * card.losePercentMaxHpDamage);
         }
 
-        // 몬스터 전멸 시 승리 처리
         if (newEnemies.length === 0) {
           handleVictory(prev, p);
           return { ...prev, player: p, enemies: [] };
