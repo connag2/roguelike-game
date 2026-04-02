@@ -90,7 +90,7 @@ export default function MainMenu({
           disabled={!normalCleared || getTotalCards() !== 20} 
           className={`py-2 px-6 rounded-lg text-base font-bold transition-all flex flex-col items-center ${normalCleared && getTotalCards() === 20 ? 'bg-red-700 hover:bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)] text-white' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
         >
-          하드 모드 (무한)
+          하드 모드 (300층)
           {!normalCleared && <span className="text-[10px] text-red-400 mt-1">일반 100층 클리어 시 개방</span>}
         </button>
         

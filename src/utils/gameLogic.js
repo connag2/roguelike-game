@@ -104,7 +104,6 @@ export const getCardDef = (id, shopUpgrades) => {
     upgraded.selfRegen = flat(base.selfRegen, 4);
     upgraded.selfRage = flat(base.selfRage, 4);
     upgraded.selfInsight = flat(base.selfInsight, 4);
-    // 참고: 침묵(enemySilence), 속박(enemyBind), 무형(selfIntangible)은 밸런스와 버그 방지를 위해 스케일링하지 않음
 
     // 텍스트(설명) 업데이트 로직
     let upDesc = base.desc || '';
@@ -170,18 +169,34 @@ export const generateEnemyIntent = (template, stage) => {
   return newIntent;
 };
 
-export const generateEnemies = (stage) => {
+export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
   let enemyTemplates = [];
   try {
-    if (s === 100) {
-      enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
-    } else if ([25, 50, 75].includes(s)) {
-      enemyTemplates = [SPECIAL_BOSSES[s]];
-    } else if (s % 5 === 0) {
-      enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
+    if (mode === 'HARD') {
+      // 하드 모드: 300층 최종 보스, 50층마다 특수 보스, 10층마다 일반 보스
+      if (s === 300) {
+        enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]]; // 스스스슬라임 3마리
+      } else if (s % 50 === 0) {
+        const specialKeys = [25, 50, 75, 100];
+        const randomKey = specialKeys[Math.floor(Math.random() * specialKeys.length)];
+        enemyTemplates = [SPECIAL_BOSSES[randomKey]]; // 특수 보스 랜덤 출현
+      } else if (s % 10 === 0) {
+        enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
+      } else {
+        enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+      }
     } else {
-      enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+      // 일반 모드
+      if (s === 100) {
+        enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
+      } else if ([25, 50, 75].includes(s)) {
+        enemyTemplates = [SPECIAL_BOSSES[s]];
+      } else if (s % 5 === 0) {
+        enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
+      } else {
+        enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+      }
     }
   } catch (error) {
     console.error("적 생성 중 오류 발생:", error);
@@ -192,8 +207,8 @@ export const generateEnemies = (stage) => {
   if (enemyTemplates.length === 0) enemyTemplates = [ENEMIES[0]];
 
   return enemyTemplates.map((template, idx) => {
-    const isNamedBoss = [25, 50, 75, 100].includes(s);
-    const isNormalBoss = s % 5 === 0 && !isNamedBoss;
+    const isNamedBoss = mode === 'HARD' ? (s % 50 === 0) : [25, 50, 75, 100].includes(s);
+    const isNormalBoss = mode === 'HARD' ? (s % 10 === 0 && !isNamedBoss) : (s % 5 === 0 && !isNamedBoss);
     
     let hpBase = Number(template.baseHp) || 50;
     let hpFinal = Math.floor(hpBase + (s * 12));
@@ -202,7 +217,7 @@ export const generateEnemies = (stage) => {
     else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.6);
     
     let name = template.name || '알 수 없는 적';
-    if (s === 100) name += ` (${String.fromCharCode(65 + idx)})`; 
+    if ((mode === 'NORMAL' && s === 100) || (mode === 'HARD' && s === 300)) name += ` (${String.fromCharCode(65 + idx)})`; 
 
     return {
       uid: Math.random().toString() + idx,

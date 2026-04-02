@@ -160,7 +160,7 @@ export default function App() {
       for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
     });
     const basePlayerHp = 100 + (shopUpgrades.maxHp * 15);
-    const enemies = generateEnemies(stage);
+    const enemies = generateEnemies(stage, mode);
     updateSeenEnemies(enemies);
 
     let initialRelics = [];
@@ -199,7 +199,7 @@ export default function App() {
 
   const startNextStage = (newPlayer, newBaseDeck) => {
     const nextStage = combatState.stage + 1;
-    const enemies = generateEnemies(nextStage);
+    const enemies = generateEnemies(nextStage, combatState.mode);
     updateSeenEnemies(enemies);
     const newDraw = shuffle([...newBaseDeck]);
     const newHand = [];

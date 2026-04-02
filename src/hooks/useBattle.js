@@ -30,8 +30,9 @@ export function useBattle({
 
   const handleVictory = useCallback((prevCombat, p) => {
     try {
-        const isSpecialBoss = [25, 50, 75, 100].includes(prevCombat.stage);
-        const isNormalBoss = prevCombat.stage % 5 === 0 && !isSpecialBoss;
+        // 모드에 맞춰 보스 여부 판정 업데이트
+        const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : [25, 50, 75, 100].includes(prevCombat.stage);
+        const isNormalBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 10 === 0 && !isSpecialBoss) : (prevCombat.stage % 5 === 0 && !isSpecialBoss);
         
         let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
         if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
@@ -63,29 +64,26 @@ export function useBattle({
         const determineReward = (st) => {
           const roll = Math.random();
           
-          // ✨ 25, 50, 75층 (특수 보스) 확정 보상 처리
-          if ([25, 50, 75].includes(st)) {
+          if (isSpecialBoss) {
             // 1% 확률로는 대박 카드 '퓨리오소' 지급
             if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
             
-            // 나머지 99% 확률로는 무조건 각 층의 전용 보스 카드를 확정 지급!
-            if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
-            if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
-            if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura'); // 수라의 힘 확정
+            // 100층(일반), 300층(하드) 보상
+            if ((prevCombat.mode === 'NORMAL' && st === 100) || (prevCombat.mode === 'HARD' && st === 300)) {
+              return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+            }
+            
+            // 그 외 특수 보스는 보스 테마 카드 중 랜덤 지급
+            const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
+            return CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)]);
           }
           
-          // 100층 특수 보스 보상 (25% 퓨리오소, 75% 슬라임 콧물)
-          if (st === 100) {
-            return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
-          }
-          
-          // 일반 보스(5, 10, 15층...) 클리어 시 10% 확률로 희귀 카드 지급
+          // 일반 보스 클리어 시 10% 확률로 희귀 카드 지급
           if (isNormalBoss && roll < 0.10) {
             const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
             return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
           }
           
-          // 그 외의 일반 전투는 보스 카드를 주지 않음
           return null;
         };
 
@@ -98,9 +96,18 @@ export function useBattle({
           setPendingRelicReward(droppedRelic);
           setTimeout(() => setGameState('RELIC_REWARD'), 600);
         } else {
-          if (spReward) setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-          else if (prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); }
-          else setTimeout(() => setGameState('REWARDS'), 600);
+          if (spReward) {
+            setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
+          } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
+            // 일반 모드 100층 또는 하드 모드 300층 클리어 시
+            if (prevCombat.mode === 'NORMAL') {
+              setNormalCleared(true);
+              saveGame({ normalCleared: true });
+            }
+            setGameState('GAME_CLEAR'); 
+          } else {
+            setTimeout(() => setGameState('REWARDS'), 600);
+          }
         }
       } catch (err) {
         console.error("보상 처리 중 에러 발생:", err);
@@ -166,7 +173,7 @@ export function useBattle({
         if (card.selfDamage) p.hp -= (Number(card.selfDamage) || 0);
 
         // ✨ 신규 버프 플레이어에게 적용
-        if (card.selfIntangible) p.buffs.intangible = clampStack((p.buffs.intangible || 0) + card.selfIntangible, 999, true); // 하드 CC 취급으로 중첩 버그 방지
+        if (card.selfIntangible) p.buffs.intangible = clampStack((p.buffs.intangible || 0) + card.selfIntangible, 999, true); 
         if (card.selfRegen) p.buffs.regen = clampStack((p.buffs.regen || 0) + card.selfRegen);
         if (card.selfRage) p.buffs.rage = clampStack((p.buffs.rage || 0) + card.selfRage);
         if (card.selfInsight) p.buffs.insight = clampStack((p.buffs.insight || 0) + card.selfInsight);
