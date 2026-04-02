@@ -430,6 +430,7 @@ export default function App() {
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
         <AdminPanel
+          gameState={gameState} // 👈 이 줄을 추가하세요!
           credits={credits}
           setCredits={setCredits}
           unlockedCards={unlockedCards}
