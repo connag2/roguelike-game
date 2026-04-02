@@ -170,11 +170,15 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   try {
     if (mode === 'HARD') {
       if (s === 300) {
-        enemyTemplates = [SPECIAL_BOSSES['H300']]; 
+        enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       } else if (s === 250) {
-        enemyTemplates = [SPECIAL_BOSSES['H250_A'], SPECIAL_BOSSES['H250_B']]; 
+        enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
+      } else if (s === 100) {
+        // ✨ 추가된 부분: 100층일 때 일반 모드와 동일하게 스스스슬라임 3마리 소환
+        enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
       } else if (s % 50 === 0) {
-        enemyTemplates = [SPECIAL_BOSSES[`H${s}`]]; 
+        // ✨ 수정된 부분: H50 같은 키가 없으면 기존 숫자 키(s) 보스를 가져오도록 폴백(fallback) 추가
+        enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
       } else if (s % 10 === 0) {
         const hardBossIndex = Math.min(Math.floor(s / 10) - 1, HARD_MODE_BOSSES.length - 1);
         enemyTemplates = [HARD_MODE_BOSSES[hardBossIndex]]; 
@@ -182,6 +186,7 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
         enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
       }
     } else {
+      // 일반 모드 로직 유지
       if (s === 100) {
         enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
       } else if ([25, 50, 75].includes(s)) {
@@ -196,6 +201,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     console.error("적 생성 중 오류 발생:", error);
     enemyTemplates = [ENEMIES[0]]; 
   }
+  
+  // 이하 생략... 
 
   enemyTemplates = enemyTemplates.filter(Boolean);
   if (enemyTemplates.length === 0) enemyTemplates = [ENEMIES[0]];
