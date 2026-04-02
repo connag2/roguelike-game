@@ -170,7 +170,8 @@ export default function App() {
     }
     setPlayerRelics(initialRelics);
 
-    let initialPlayer = { hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: { strength: 0, dexterity: 0, thorns: 0 } };
+    let initialPlayer = { hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
+buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0, insight: 0 } };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
 
     const newStats = { ...gameStats, totalRuns: (gameStats?.totalRuns || 0) + 1 };
@@ -200,7 +201,7 @@ export default function App() {
     const newHand = [];
     for(let i=0; i<5; i++) if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
 
-    let refreshedPlayer = { ...newPlayer, block: 0, mana: newPlayer.maxMana, debuffs: { weak: 0, vulnerable: 0, poison: 0 }, buffs: newPlayer.buffs };
+    let refreshedPlayer = { ...newPlayer, block: 0, mana: newPlayer.maxMana, debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, buffs: newPlayer.buffs };
     refreshedPlayer = applyStartCombatRelics(refreshedPlayer, playerRelics); 
 
     setCombatState({
