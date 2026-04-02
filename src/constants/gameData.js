@@ -357,7 +357,7 @@ export const SPECIAL_BOSSES = {
   50: { name: '김삠삐', baseHp: 1500, rewardCards: ['twerking'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }] },
   75: { name: '수라의 왕', baseHp: 2500, rewardCards: ['asuras_wrath', 'power_of_asura', 'supreme_blade_storm'], passives: [{ id: 'scaling_strength', name: '끝없는 분노', desc: '매 턴 시작 시 근력이 3 증가합니다.' }], deck: [{ name: '육도윤회', type: 'attack', value: 15, multi: 6, desc: '15의 피해를 6번 줍니다.' }, { name: '금강불괴', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }, { name: '파괴의 눈', type: 'debuff', debuff: 'vulnerable', turns: 5, desc: '취약 5를 부여합니다.' }] },
   100: { name: '스스스슬라임', baseHp: 800, rewardCards: ['slime_snot', 'slimes_greed'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트리플 어택', type: 'attack', value: 20, multi: 3, desc: '20의 피해를 3번 줍니다.' }, { name: '산성비', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3, desc: '40의 피해를 주고 약화 3을 부여합니다.' }, { name: '단단한 결속', type: 'defend_buff', value: 100, buff: 'strength', buffValue: 5, desc: '100의 방어도를 얻고 근력을 5 얻습니다.' }] },
-
+ 
   H50: {  
     name: '초월한 슬라임', 
     baseHp: 3000, 
