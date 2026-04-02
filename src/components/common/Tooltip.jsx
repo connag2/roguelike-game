@@ -7,13 +7,25 @@ const EFFECT_RULES = {
   '중독': '턴 시작 시 수치만큼 체력이 감소하고 수치가 1 줄어듭니다.',
   '근력': '공격 시 수치만큼 추가 피해를 입힙니다.',
   '민첩': '방어 시 수치만큼 추가 방어도를 얻습니다.',
-  '가시': '피격 시 공격자에게 수치만큼 피해를 반사합니다.'
+  '가시': '피격 시 공격자에게 수치만큼 피해를 반사합니다.',
+  '무형': '받는 모든 타격 피해가 1로 고정됩니다.',
+  '재생': '턴 종료 시 수치만큼 체력을 회복하고 수치가 1 줄어듭니다.',
+  '격노': '공격 카드를 사용할 때마다 수치만큼 방어도를 획득합니다.',
+  '통찰': '다음 턴 시작 시 수치만큼 카드를 추가로 뽑습니다.',
+  '표식': '타격 당할 때마다 수치만큼 추가 고정 피해를 받습니다.',
+  '허약': '방어도 획득량이 25% 감소합니다.',
+  '침묵': '스킬 카드를 사용할 수 없습니다.',
+  '속박': '공격 카드를 사용할 수 없습니다.'
 };
 
-export default function Tooltip({ desc }) {
+export default function Tooltip({ desc, direction = 'up' }) {
   if (!desc) return null;
   const targetKeyword = Object.keys(EFFECT_RULES).find(key => desc.includes(key));
   if (!targetKeyword) return null;
+
+  // 방향에 따른 클래스 설정
+  const positionClass = direction === 'down' ? 'top-full mt-3' : 'bottom-full mb-3';
+  const arrowClass = direction === 'down' ? 'bottom-full left-1/2 -translate-x-1/2 border-b-slate-900' : 'top-full left-1/2 -translate-x-1/2 border-t-slate-900';
 
   return (
     <div className="relative group inline-block align-middle ml-1 leading-none">
@@ -22,11 +34,10 @@ export default function Tooltip({ desc }) {
         style={{ WebkitAppRegion: 'no-drag', pointerEvents: 'auto' }}
       />
       <div 
-        className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 invisible opacity-0 group-hover:visible group-hover:opacity-100 w-48 p-2.5 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[99999] pointer-events-auto transition-all duration-200 transform scale-95 group-hover:scale-100"
+        className={`absolute ${positionClass} left-1/2 -translate-x-1/2 invisible opacity-0 group-hover:visible group-hover:opacity-100 w-48 p-2.5 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[99999] pointer-events-auto transition-all duration-200 transform scale-95 group-hover:scale-100`}
         style={{ WebkitAppRegion: 'no-drag' }}
       >
         <div className="text-xs">
-          {/* ✨ 제목을 "약화"와 같이 정확하게 표기 */}
           <span className="text-amber-400 font-bold block mb-1 border-b border-slate-800 pb-1 text-left">
             {targetKeyword}
           </span>
@@ -34,7 +45,7 @@ export default function Tooltip({ desc }) {
             {EFFECT_RULES[targetKeyword]}
           </span>
         </div>
-        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+        <div className={`absolute border-8 border-transparent ${arrowClass}`}></div>
       </div>
     </div>
   );

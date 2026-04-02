@@ -13,14 +13,48 @@ export default function Encyclopedia({
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
   
+  // 보유/미보유 상태 필터 추가 ('all', 'unlocked', 'locked')
+  const [filterUnlock, setFilterUnlock] = useState('all');
+
+  // 카드 필터링 로직에 보유/미보유 적용
+  let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
+  if (filterUnlock === 'unlocked') {
+    filteredCards = filteredCards.filter(c => unlockedCards.includes(c.id));
+  } else if (filterUnlock === 'locked') {
+    filteredCards = filteredCards.filter(c => !unlockedCards.includes(c.id));
+  }
+  
+  // 유물 필터링 로직에 보유/미보유 적용
   const filteredRelics = RELIC_LIBRARY.filter(r => {
     if (filterRarity !== 'all' && r.rarity !== filterRarity) return false;
     if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterUnlock === 'unlocked' && !unlockedRelics.includes(r.id)) return false;
+    if (filterUnlock === 'locked' && unlockedRelics.includes(r.id)) return false;
     return true;
   });
+
+  // 보유/미보유 버튼 렌더링 함수
+  const renderUnlockFilter = (activeColor) => (
+    <div className="flex gap-2">
+      {['all', 'unlocked', 'locked'].map((status) => {
+        const labels = { all: '전체', unlocked: '보유', locked: '미보유' };
+        return (
+          <button
+            key={status}
+            onClick={() => setFilterUnlock(status)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+              filterUnlock === status 
+                ? `${activeColor} text-white` 
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+            }`}
+          >
+            {labels[status]}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white pt-16 md:pt-4 p-4 md:p-10 relative">
@@ -36,13 +70,54 @@ export default function Encyclopedia({
           </span>
         </h2>
         <div className="flex gap-2">
-          <button onClick={() => setTab('cards')} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>카드 도감</button>
-          <button onClick={() => setTab('relics')} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>유물 도감</button>
+          {/* 탭 변경 시 필터, 검색어 및 보유상태 초기화 */}
+          <button onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>카드 도감</button>
+          <button onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>유물 도감</button>
           <button onClick={() => setGameState('MENU')} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl font-bold shadow-md ml-2">메인으로</button>
         </div>
       </div>
 
-      {tab === 'cards' && <FilterBar type={filterType} setType={setFilterType} effect={filterEffect} setEffect={setFilterEffect} rarity={filterRarity} setRarity={setFilterRarity} search={searchQuery} setSearch={setSearchQuery} />}
+      {tab === 'cards' ? (
+        <div className="flex flex-col gap-3 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
+          <FilterBar type={filterType} setType={setFilterType} effect={filterEffect} setEffect={setFilterEffect} rarity={filterRarity} setRarity={setFilterRarity} search={searchQuery} setSearch={setSearchQuery} />
+          {/* 카드 전용 보유/미보유 필터 버튼 */}
+          <div className="flex justify-start">
+            {renderUnlockFilter('bg-indigo-600')}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center gap-3 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
+          <div className="flex flex-wrap items-center gap-2">
+            {['all', 'common', 'uncommon', 'rare', 'special', 'mythic'].map((r) => {
+              const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화' };
+              return (
+                <button
+                  key={r}
+                  onClick={() => setFilterRarity(r)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-colors ${
+                    filterRarity === r 
+                      ? 'bg-amber-600 text-white' 
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700'
+                  }`}
+                >
+                  {labels[r]}
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* 유물 전용 보유/미보유 필터 버튼 */}
+          {renderUnlockFilter('bg-amber-600')}
+
+          <input
+            type="text"
+            placeholder="유물 이름 검색..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="md:ml-auto px-4 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-sm text-white focus:outline-none focus:border-amber-500 w-full md:w-auto"
+          />
+        </div>
+      )}
       
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-2 md:px-4 mt-4">
         {tab === 'cards' ? (

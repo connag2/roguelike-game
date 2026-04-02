@@ -28,6 +28,10 @@ export default function GameGuide({ isOpen, onClose }) {
           <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 <span className="text-white font-bold">3%</span> 감소합니다. (중첩 가능)</p>
           <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 <span className="text-white font-bold">30%</span> 증가합니다.</p>
           <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.</p>
+          <p><span className="text-pink-400 font-bold">표식:</span> 타격받을 때마다 수치만큼 추가 고정 피해를 입습니다.</p>
+          <p><span className="text-yellow-600 font-bold">허약:</span> 방어도 획득량이 <span className="text-white font-bold">25%</span> 감소합니다.</p>
+          <p><span className="text-slate-400 font-bold">침묵:</span> 1턴 동안 스킬 카드를 사용할 수 없습니다.</p>
+          <p><span className="text-stone-400 font-bold">속박:</span> 1턴 동안 공격 카드를 사용할 수 없습니다.</p>
         </div>
       )
     },
@@ -40,6 +44,10 @@ export default function GameGuide({ isOpen, onClose }) {
           <p><span className="text-red-400 font-bold">근력:</span> 공격 시 대미지가 수치만큼 영구적으로 증가합니다.</p>
           <p><span className="text-blue-400 font-bold">민첩:</span> 방어 시 방어도가 수치만큼 영구적으로 증가합니다.</p>
           <p><span className="text-emerald-400 font-bold">가시:</span> 적에게 공격받을 때 수치만큼 대미지를 반사합니다.</p>
+          <p><span className="text-cyan-400 font-bold">재생:</span> 턴 종료 시 수치만큼 체력을 회복하고 수치가 1 감소합니다.</p>
+          <p><span className="text-orange-500 font-bold">격노:</span> 공격 카드를 사용할 때마다 수치만큼 방어도를 획득합니다.</p>
+          <p><span className="text-indigo-300 font-bold">통찰:</span> 다음 턴 시작 시 수치만큼 카드를 추가로 뽑습니다.</p>
+          <p><span className="text-gray-300 font-bold">무형:</span> 받는 모든 타격 피해가 1로 고정됩니다. (1턴 후 해제)</p>
         </div>
       )
     }

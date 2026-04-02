@@ -1,7 +1,12 @@
 import React from 'react';
-import { PlusCircle, Heart, Trash2, AlertTriangle, Star } from 'lucide-react';
+import { Trash2, AlertTriangle, Star } from 'lucide-react';
 import Card from '../common/Card';
 import { CARD_LIBRARY } from '../../constants/gameData';
+
+// ✨ 프로젝트 내의 SVG 이미지 임포트
+import scrollImg from '../../assets/images/items/scroll.svg';
+import potionImg from '../../assets/images/items/potion.svg';
+import shieldImg from '../../assets/images/items/shield.svg';
 
 export default function Rewards({
   gameState,
@@ -45,10 +50,13 @@ export default function Rewards({
         {/* 유물 클릭 시 바로 획득! (취소 불가) */}
         <div 
           onClick={handleRelicRewardClaim} 
-          className={`z-10 bg-slate-800/80 backdrop-blur-md p-8 md:p-10 rounded-3xl border-4 ${rBorder} shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-sm w-full text-center transform transition-all duration-300 hover:scale-110 cursor-pointer animate-[scale-in_0.5s_ease-out]`}
+          className={`z-10 bg-slate-800/80 backdrop-blur-md p-8 md:p-10 rounded-3xl border-4 ${rBorder} shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-sm w-full text-center transform transition-all duration-300 hover:scale-110 cursor-pointer animate-[scale-in_0.5s_ease-out] flex flex-col items-center`}
         >
+          {/* ✨ 멋진 방패 이미지를 유물 아이콘처럼 활용 */}
+          <img src={shieldImg} alt="Relic" className="w-20 h-20 mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse" />
+          
           <h2 className={`text-3xl md:text-4xl mb-6 ${rColor} drop-shadow-lg`}>{pendingRelicReward.name}</h2>
-          <p className="text-slate-200 text-base md:text-lg bg-black/50 p-6 rounded-xl border border-white/10 shadow-inner break-keep leading-relaxed">
+          <p className="text-slate-200 text-base md:text-lg bg-black/50 p-6 rounded-xl border border-white/10 shadow-inner break-keep leading-relaxed w-full">
             {pendingRelicReward.desc}
           </p>
           <div className="mt-8 text-amber-400 font-bold animate-pulse text-sm">
@@ -66,6 +74,7 @@ export default function Rewards({
         <h2 className="text-4xl md:text-5xl font-black mb-4 text-yellow-400 tracking-wider text-center drop-shadow-2xl">스테이지 클리어!</h2>
         <p className="text-lg md:text-xl mb-10 text-slate-300">원하는 보상을 하나 선택하세요.</p>
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-4xl justify-center items-center">
+          
           <button onClick={() => {
             const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
             const pool = CARD_LIBRARY.filter(c => {
@@ -89,8 +98,9 @@ export default function Rewards({
             }
             setRewardCards(selected);
             setGameState('REWARD_CARD');
-          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1">
-            <PlusCircle className="w-12 h-12 md:w-16 md:h-16 mb-4 text-indigo-400"/>
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+            {/* ✨ 스크롤 이미지 적용 */}
+            <img src={scrollImg} alt="Add Card" className="w-12 h-12 md:w-16 md:h-16 mb-4 drop-shadow-[0_0_10px_rgba(129,140,248,0.5)] group-hover:scale-110 transition-transform" />
             <span className="text-xl md:text-2xl font-bold">카드 추가</span>
           </button>
 
@@ -99,13 +109,14 @@ export default function Rewards({
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
             startNextStage(p, combatState.baseDeck);
-          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1">
-            <Heart className="w-12 h-12 md:w-16 md:h-16 mb-4 text-green-400"/>
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+            {/* ✨ 물약 이미지 적용 */}
+            <img src={potionImg} alt="Heal" className="w-12 h-12 md:w-16 md:h-16 mb-4 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] group-hover:scale-110 transition-transform" />
             <span className="text-xl md:text-2xl font-bold">회복 & 정화</span>
           </button>
 
-          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1">
-            <Trash2 className="w-12 h-12 md:w-16 md:h-16 mb-4 text-red-400"/>
+          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+            <Trash2 className="w-12 h-12 md:w-16 md:h-16 mb-4 text-red-400 group-hover:scale-110 transition-transform"/>
             <span className="text-xl md:text-2xl font-bold">카드 삭제</span>
           </button>
         </div>

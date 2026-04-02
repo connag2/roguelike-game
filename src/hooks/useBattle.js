@@ -30,8 +30,9 @@ export function useBattle({
 
   const handleVictory = useCallback((prevCombat, p) => {
     try {
-        const isSpecialBoss = [25, 50, 75, 100].includes(prevCombat.stage);
-        const isNormalBoss = prevCombat.stage % 5 === 0 && !isSpecialBoss;
+        // 모드에 맞춰 보스 여부 판정 업데이트
+        const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : [25, 50, 75, 100].includes(prevCombat.stage);
+        const isNormalBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 10 === 0 && !isSpecialBoss) : (prevCombat.stage % 5 === 0 && !isSpecialBoss);
         
         let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
         if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
@@ -62,19 +63,27 @@ export function useBattle({
 
         const determineReward = (st) => {
           const roll = Math.random();
-          if ([25, 50, 75].includes(st)) {
+          
+          if (isSpecialBoss) {
+            // 1% 확률로는 대박 카드 '퓨리오소' 지급
             if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
-            if (roll < 0.11) {
-              if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
-              if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
-              if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura');
+            
+            // 100층(일반), 300층(하드) 보상
+            if ((prevCombat.mode === 'NORMAL' && st === 100) || (prevCombat.mode === 'HARD' && st === 300)) {
+              return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
             }
+            
+            // 그 외 특수 보스는 보스 테마 카드 중 랜덤 지급
+            const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
+            return CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)]);
           }
-          if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+          
+          // 일반 보스 클리어 시 10% 확률로 희귀 카드 지급
           if (isNormalBoss && roll < 0.10) {
             const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
             return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
           }
+          
           return null;
         };
 
@@ -87,9 +96,18 @@ export function useBattle({
           setPendingRelicReward(droppedRelic);
           setTimeout(() => setGameState('RELIC_REWARD'), 600);
         } else {
-          if (spReward) setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-          else if (prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); }
-          else setTimeout(() => setGameState('REWARDS'), 600);
+          if (spReward) {
+            setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
+          } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
+            // 일반 모드 100층 또는 하드 모드 300층 클리어 시
+            if (prevCombat.mode === 'NORMAL') {
+              setNormalCleared(true);
+              saveGame({ normalCleared: true });
+            }
+            setGameState('GAME_CLEAR'); 
+          } else {
+            setTimeout(() => setGameState('REWARDS'), 600);
+          }
         }
       } catch (err) {
         console.error("보상 처리 중 에러 발생:", err);
@@ -100,6 +118,18 @@ export function useBattle({
   const playCard = useCallback(async (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
     const card = combatState.hand[cardIndex];
+    const pDebuffs = combatState.player.debuffs || {};
+
+    // ✨ 하드 CC(침묵, 속박) 확인: 조건에 걸리면 카드 사용 완전 차단 및 종료
+    if (card.type === 'attack' && (pDebuffs.bind || 0) > 0) {
+      setToastMsg("속박되어 공격 카드를 사용할 수 없습니다!");
+      return;
+    }
+    if (card.type === 'skill' && (pDebuffs.silence || 0) > 0) {
+      setToastMsg("침묵 상태라 스킬 카드를 사용할 수 없습니다!");
+      return;
+    }
+
     if (combatState.player.mana < card.cost) {
       setToastMsg("마나가 부족합니다!");
       return;
@@ -111,26 +141,42 @@ export function useBattle({
 
     setCombatState(prev => {
       let p = { ...prev.player };
+      p.buffs = p.buffs || {};
+      p.debuffs = p.debuffs || {};
+
       let newHand = [...prev.hand];
       let newDiscard = [...prev.discardPile];
       let newDraw = [...prev.drawPile];
 
       p.mana -= card.cost;
+
+      // ✨ 격노(Rage) 효과: 공격 카드 사용 시 방어도 즉시 획득
+      if (card.type === 'attack' && (p.buffs.rage || 0) > 0) {
+        p.block += p.buffs.rage;
+      }
       
       if (isWin) {
-        if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) p.block += calculateBlock(card.block, p.buffs.dexterity);
+        // ✨ 허약(frail) 수치를 calculateBlock에 전달
+        if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) {
+            p.block += calculateBlock(card.block, p.buffs.dexterity, p.debuffs.frail || 0);
+        }
         if (card.doubleBlock) p.block *= 2;
         if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
         
-        // ✨ 수정: Number() 래핑으로 안전한 계산 보장
         if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + (Number(card.heal) || 0));
         if (card.manaGain && !card.gamble) p.mana = clampStack(p.mana + (Number(card.manaGain) || 0), p.maxMana + 99);
         if (card.winManaGain) p.mana += (Number(card.winManaGain) || 0);
         
-        if (card.selfStrength) p.buffs.strength = clampStack(p.buffs.strength + card.selfStrength);
-        if (card.selfDex) p.buffs.dexterity = clampStack(p.buffs.dexterity + card.selfDex);
-        if (card.selfThorns) p.buffs.thorns = clampStack(p.buffs.thorns + card.selfThorns);
+        if (card.selfStrength) p.buffs.strength = clampStack((p.buffs.strength || 0) + card.selfStrength);
+        if (card.selfDex) p.buffs.dexterity = clampStack((p.buffs.dexterity || 0) + card.selfDex);
+        if (card.selfThorns) p.buffs.thorns = clampStack((p.buffs.thorns || 0) + card.selfThorns);
         if (card.selfDamage) p.hp -= (Number(card.selfDamage) || 0);
+
+        // ✨ 신규 버프 플레이어에게 적용
+        if (card.selfIntangible) p.buffs.intangible = clampStack((p.buffs.intangible || 0) + card.selfIntangible, 999, true); 
+        if (card.selfRegen) p.buffs.regen = clampStack((p.buffs.regen || 0) + card.selfRegen);
+        if (card.selfRage) p.buffs.rage = clampStack((p.buffs.rage || 0) + card.selfRage);
+        if (card.selfInsight) p.buffs.insight = clampStack((p.buffs.insight || 0) + card.selfInsight);
       }
 
       newHand.splice(cardIndex, 1); 
@@ -141,7 +187,10 @@ export function useBattle({
         if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
       }
       
-      newDiscard.push(card);
+      // ✨ 소멸(exhaust) 키워드 적용: 소멸 카드가 아니면 버린 패로 이동
+      if (!card.exhaust) {
+        newDiscard.push(card);
+      }
 
       return { ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw };
     });
@@ -159,11 +208,21 @@ export function useBattle({
         let p = { ...prev.player };
         let newEnemies = prev.enemies.map(e => ({...e, buffs: {...e.buffs}, debuffs: {...e.debuffs}}));
 
-        // ✨ 수정: 데미지 계산 및 HP 차감 시 정수 보장 (NaN 방지 핵심)
         const deal = (amt) => {
           if (newEnemies.length === 0) return;
           let target = newEnemies[0];
-          let dmg = calculateDamage(amt, p.buffs.strength, p.debuffs.weak, target.debuffs.vulnerable);
+          target.buffs = target.buffs || {};
+          target.debuffs = target.debuffs || {};
+
+          // ✨ 표식(mark) 및 무형(intangible)을 반영한 대미지 계산 적용
+          let dmg = calculateDamage(
+              amt, 
+              p.buffs?.strength || 0, 
+              p.debuffs?.weak || 0, 
+              target.debuffs?.vulnerable || 0,
+              target.debuffs?.mark || 0,
+              target.buffs?.intangible || 0
+          );
           
           if (target.block >= dmg) {
             target.block -= dmg; 
@@ -178,16 +237,22 @@ export function useBattle({
         if (isWin) {
           if (i === 0) {
             if (card.winDamage) deal(newEnemies[0]?.isBoss ? card.winDamageBoss : card.winDamage);
-            // ✨ 수정: 특수 피해 계산 시 Math.floor 적용
             if (card.missingHpDamage) deal((Number(card.damage) || 0) + Math.floor((p.maxHp - p.hp) * card.missingHpDamage));
             else if (card.consumeAllMana) { 
                 deal((Number(card.damage) || 0) + Math.floor(prev.player.mana * (card.manaMultiplier || 0))); 
                 p.mana = 0; 
             }
             
-            if (card.enemyWeak) newEnemies[0].debuffs.weak += card.enemyWeak;
-            if (card.enemyVuln) newEnemies[0].debuffs.vulnerable += card.enemyVuln;
-            if (card.enemyPoison) newEnemies[0].debuffs.poison += card.enemyPoison;
+            // 기존 디버프
+            if (card.enemyWeak) newEnemies[0].debuffs.weak = (newEnemies[0].debuffs.weak || 0) + card.enemyWeak;
+            if (card.enemyVuln) newEnemies[0].debuffs.vulnerable = (newEnemies[0].debuffs.vulnerable || 0) + card.enemyVuln;
+            if (card.enemyPoison) newEnemies[0].debuffs.poison = (newEnemies[0].debuffs.poison || 0) + card.enemyPoison;
+            
+            // ✨ 신규 디버프 적에게 적용
+            if (card.enemyMark) newEnemies[0].debuffs.mark = (newEnemies[0].debuffs.mark || 0) + card.enemyMark;
+            if (card.enemyFrail) newEnemies[0].debuffs.frail = (newEnemies[0].debuffs.frail || 0) + card.enemyFrail;
+            if (card.enemySilence) newEnemies[0].debuffs.silence = clampStack((newEnemies[0].debuffs.silence || 0) + card.enemySilence, 999, true);
+            if (card.enemyBind) newEnemies[0].debuffs.bind = clampStack((newEnemies[0].debuffs.bind || 0) + card.enemyBind, 999, true);
           }
 
           if (card.damage && !card.missingHpDamage && !card.consumeAllMana) { 
