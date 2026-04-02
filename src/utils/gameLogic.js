@@ -174,13 +174,20 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   let enemyTemplates = [];
   try {
     if (mode === 'HARD') {
-      // 하드 모드: 300층 최종 보스, 50층마다 특수 보스, 10층마다 일반 보스
+      // 하드 모드: 300층 최종 보스, 250층 자매 보스, 50층마다 특수 보스, 10층마다 일반 보스
       if (s === 300) {
-        enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]]; // 스스스슬라임 3마리
+        enemyTemplates = [SPECIAL_BOSSES['H300']]; // 태초의 아케인: 에이온 출현
+      } else if (s === 250) {
+        enemyTemplates = [SPECIAL_BOSSES['H250_A'], SPECIAL_BOSSES['H250_B']]; // 서큐버스 자매 동시 출현
       } else if (s % 50 === 0) {
-        const specialKeys = [25, 50, 75, 100];
-        const randomKey = specialKeys[Math.floor(Math.random() * specialKeys.length)];
-        enemyTemplates = [SPECIAL_BOSSES[randomKey]]; // 특수 보스 랜덤 출현
+        // H50, H100, H150, H200 등 층수에 맞는 보스 호출
+        const hardBossKey = `H${s}`;
+        if (SPECIAL_BOSSES[hardBossKey]) {
+          enemyTemplates = [SPECIAL_BOSSES[hardBossKey]];
+        } else {
+          // 예외 처리 (정의되지 않은 층수일 경우)
+          enemyTemplates = [SPECIAL_BOSSES[100]];
+        }
       } else if (s % 10 === 0) {
         enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
       } else {
@@ -217,7 +224,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.6);
     
     let name = template.name || '알 수 없는 적';
-    if ((mode === 'NORMAL' && s === 100) || (mode === 'HARD' && s === 300)) name += ` (${String.fromCharCode(65 + idx)})`; 
+    // 서큐버스 등 다수 출현하는 하드 모드 보스를 위해 조건 완화
+    if ((mode === 'NORMAL' && s === 100) || (mode === 'HARD' && s === 250)) name += ` (${String.fromCharCode(65 + idx)})`; 
 
     return {
       uid: Math.random().toString() + idx,
@@ -228,7 +236,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       isBoss: isNamedBoss || isNormalBoss,
       template,
       intentCard: generateEnemyIntent(template, s),
-      // ✨ 신규 디버프/버프 관리 객체 확장
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 },
       buffs: { strength: 0, intangible: 0, regen: 0, rage: 0 },
       passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : []
