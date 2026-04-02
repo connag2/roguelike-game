@@ -6,7 +6,7 @@ import CommonEffects from '../effects/CommonEffects';
 import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
 import UniqueEffects from '../effects/UniqueEffects';
-import Tooltip from '../common/Tooltip'; // ✨ Tooltip 임포트 추가
+import Tooltip from '../common/Tooltip'; 
 
 import heroImg from '../../assets/images/characters/hero.svg';
 import slimeImg from '../../assets/images/monsters/slime.svg';
@@ -37,21 +37,30 @@ export default function BattleScreen({
     if (playEffect && playEffect.name !== 'enemy_attack') return;
 
     const card = hand[idx];
+    const isAttack = card.type === 'attack';
     const hits = card.multiHit || 1;
     const tier = card.rarity || 'common';
-    const delay = fastMode ? 100 : 200;
+    // ✨ 모션 및 대기 시간 세분화 (공격/마나/정화 외의 일반 카드는 딜레이 짧게 처리)
+    const delay = fastMode ? 100 : (isAttack ? 300 : 150);
 
     playCard(idx);
 
-    for (let i = 0; i < hits; i++) {
-      let effectName = null;
-      if (card.id === 'mana_potion') effectName = 'mana_potion'; 
-      else if (card.id === 'furioso') effectName = 'furioso';
-      else if (card.id === 'meteor_fall') effectName = 'meteor';
-      else if (card.id === 'snipe') effectName = 'snipe';
-      else effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`;
+    // ✨ 공격 카드이거나 이펙트가 필수인 카드일 때만 이펙트 처리
+    if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
+      for (let i = 0; i < hits; i++) {
+        let effectName = null;
+        if (card.id === 'mana_potion') effectName = 'mana_potion'; 
+        else if (card.id === 'purify') effectName = 'purify_effect';
+        else if (card.id === 'furioso') effectName = 'furioso';
+        else if (card.id === 'meteor_fall') effectName = 'meteor';
+        else if (card.id === 'snipe') effectName = 'snipe';
+        else effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`;
 
-      setPlayEffect({ id: Date.now() + i, name: effectName, tier, cardId: card.id, hits });
+        setPlayEffect({ id: Date.now() + i, name: effectName, tier, cardId: card.id, hits });
+        await new Promise(r => setTimeout(r, delay));
+      }
+    } else {
+      // 그 외 일반 드로우/방어 카드는 별도 이펙트 없이 짧은 대기 시간만 거침
       await new Promise(r => setTimeout(r, delay));
     }
     
@@ -87,7 +96,8 @@ export default function BattleScreen({
         .mana-sooth { animation: manaSooth 0.6s ease-out forwards; }
       `}</style>
 
-      {playEffect?.name !== 'mana_potion' && <TierEffects playEffect={playEffect} />}
+      {/* ✨ 마나물약/정화 일때는 일반 티어 이펙트를 가리지 않도록 함 */}
+      {playEffect?.name !== 'mana_potion' && playEffect?.name !== 'purify_effect' && <TierEffects playEffect={playEffect} />}
       <StatusEffects playEffect={playEffect} />
       <UniqueEffects playEffect={playEffect} />
 
@@ -95,6 +105,14 @@ export default function BattleScreen({
         <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
           <div className="absolute w-64 h-64 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
           <Zap className="w-32 h-32 text-cyan-300 mana-sooth" />
+        </div>
+      )}
+
+      {/* ✨ 정화 효과 연출 */}
+      {playEffect?.name === 'purify_effect' && (
+        <div className="fixed inset-0 z-[9999] pointer-events-none flex items-center justify-center">
+          <div className="absolute w-64 h-64 bg-green-500/20 rounded-full blur-3xl animate-pulse" />
+          <Shield className="w-32 h-32 text-green-300 mana-sooth" />
         </div>
       )}
 
@@ -167,7 +185,6 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* ✨ 상단 유물 바: z-index 수정(z-10 -> z-50) */}
       {playerRelics && playerRelics.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2 z-50 w-full px-2">
           {playerRelics.map((r, i) => (
@@ -175,7 +192,6 @@ export default function BattleScreen({
               <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter cursor-help">
                 {r.name}
               </span>
-              {/* ✨ 툴팁을 추가하고 아래로 열리도록 설정 */}
               <Tooltip desc={r.desc} direction="down" />
               
               <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
@@ -187,7 +203,6 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* 상단 스테이지 바 */}
       <div className="flex justify-between items-center bg-slate-800/90 p-2 md:p-3 rounded-xl border border-slate-700 shadow-lg z-10 shrink-0 mb-4">
         <div className="font-black text-sm md:text-xl flex items-center gap-2 text-indigo-400 tracking-tighter italic">
           <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin-slow" /> {mode === 'HARD' ? 'INF MODE' : 'NORMAL'} STAGE {stage} 
@@ -204,7 +219,6 @@ export default function BattleScreen({
 
       <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
         
-        {/* 플레이어 캐릭터 영역 */}
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
             <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
@@ -243,19 +257,14 @@ export default function BattleScreen({
 
         <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
-        {/* 몬스터 캐릭터 영역 */}
         <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
             const eCard = enemy.intentCard;
             const isTarget = idx === 0;
 
-            let finalDmg = eCard.value || 0;
-// 행동 타입에 'attack'이 포함될 때(attack, attack_debuff, attack_heal 등)만 증감 효과를 적용합니다.
-if (eCard.type.includes('attack')) {
-  finalDmg += (enemy.buffs?.strength || 0);
-  if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
-  if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
-}
+            let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
+            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
+            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
 
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${!isPlayerTurn ? 'scale-105 z-30' : isTarget ? 'scale-100 opacity-90' : 'scale-90 opacity-40'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
@@ -308,7 +317,7 @@ if (eCard.type.includes('attack')) {
                   <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
                   
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
-                  {isTarget && playEffect && playEffect.name !== 'mana_potion' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
+                  {isTarget && playEffect && playEffect.name !== 'mana_potion' && playEffect.name !== 'purify_effect' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                 </div>
 
                 <h3 className={`text-[10px] md:text-base font-black mb-1 ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>{enemy.name}</h3>
@@ -373,14 +382,23 @@ if (eCard.type.includes('attack')) {
               const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
               const isHovered = hoveredCard === idx;
               const offset = idx - (hand.length - 1) / 2;
-              const rotation = offset * 4.5;
-              const translateY = Math.abs(offset) * 8; 
+              
+              // ✨ 카드 간 간격 조정 및 pointer-events 버그 수정
+              const rotation = isHovered ? 0 : offset * 4.5;
+              const translateY = isHovered ? -60 : Math.abs(offset) * 8; 
+
               return (
-                <div key={card.uid} onMouseEnter={() => setHoveredCard(idx)} onMouseLeave={() => setHoveredCard(null)} 
-                     className="relative transition-all duration-300 ease-out origin-bottom -ml-8 md:-ml-12 first:ml-0" 
-                     style={{ zIndex: isHovered ? 100 : 10 + idx, transform: isHovered ? `translateY(-60px) scale(1.15) rotate(0deg)` : `translateY(${translateY}px) rotate(${rotation}deg)` }}>
+                <div key={card.uid} 
+                     onMouseEnter={() => setHoveredCard(idx)} 
+                     onMouseLeave={() => setHoveredCard(null)} 
+                     className="relative transition-all duration-300 ease-out origin-bottom -ml-6 md:-ml-10 first:ml-0 px-2" 
+                     style={{ 
+                       zIndex: isHovered ? 100 : 10 + idx, 
+                       transform: `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.15 : 1})`,
+                       pointerEvents: 'auto'
+                     }}>
                   
-                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
+                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400' : 'cursor-not-allowed brightness-75'}`}>
                     <Card card={card} isLocked={false} />
                   </div>
                 </div>
@@ -390,7 +408,9 @@ if (eCard.type.includes('attack')) {
 
           <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
             <button 
-              onClick={() => setCombatState(prev => ({ ...prev, turn: 'ENEMY' }))} 
+              onClick={() => {
+                setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+              }} 
               disabled={!isPlayerTurn} 
               className={`py-3 px-5 md:py-4 md:px-8 rounded-2xl font-black text-xs md:text-lg flex items-center gap-2 transition-all border-b-[6px] active:border-b-0 active:translate-y-1 ${isPlayerTurn ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800 shadow-[0_10px_20px_rgba(245,158,11,0.3)]' : 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed'}`}
             >
