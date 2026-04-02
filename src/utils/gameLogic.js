@@ -180,16 +180,13 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       } else if (s === 250) {
         enemyTemplates = [SPECIAL_BOSSES['H250_A'], SPECIAL_BOSSES['H250_B']]; // 서큐버스 자매 동시 출현
       } else if (s % 50 === 0) {
-        // H50, H100, H150, H200 등 층수에 맞는 보스 호출
-        const hardBossKey = `H${s}`;
-        if (SPECIAL_BOSSES[hardBossKey]) {
-          enemyTemplates = [SPECIAL_BOSSES[hardBossKey]];
-        } else {
-          // 예외 처리 (정의되지 않은 층수일 경우)
-          enemyTemplates = [SPECIAL_BOSSES[100]];
-        }
+        const specialKeys = [25, 50, 75, 100];
+        const randomKey = specialKeys[Math.floor(Math.random() * specialKeys.length)];
+        enemyTemplates = [SPECIAL_BOSSES[randomKey]]; // 특수 보스 랜덤 출현
       } else if (s % 10 === 0) {
-        enemyTemplates = [NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)]];
+        // ✨ 수정된 부분: 하드 모드에서는 층수 진행도에 맞춰서 HARD_MODE_BOSSES 배열에서 순차적 또는 랜덤하게 등장
+        const hardBossIndex = Math.min(Math.floor(s / 10) - 1, HARD_MODE_BOSSES.length - 1);
+        enemyTemplates = [HARD_MODE_BOSSES[hardBossIndex]]; 
       } else {
         enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
       }
