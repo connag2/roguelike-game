@@ -591,7 +591,7 @@ export default function App() {
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
         
-        {/* 🐛 [버그 수정 5] 보스 클리어 보상 수령 시 최신 상태 세이브 연동 */}
+        {/* 🐛 [버그 수정 5] 보스 클리어 보상 수령 시 최신 상태 세이브 연동 및 100층 클리어 체크 */}
         {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards} combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection} setConfirmSelection={setConfirmSelection} startNextStage={startNextStage} getCardDef={getCardDef} shopUpgrades={shopUpgrades} specialBossRewardCard={specialBossRewardCard} 
           handleSpecialBossRewardClaim={() => { 
             if(specialBossRewardCard) { 
@@ -602,8 +602,16 @@ export default function App() {
               }
               setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
               setSpecialBossRewardCard(null); 
-              setGameState('REWARDS'); 
-              saveGame({ unlockedCards: newUnlocked }); 
+              
+              // ✨ [수정된 부분] 특별 보스 보상 획득 후 100층 이상이면 게임 클리어 화면으로 이동
+              if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
+                setNormalCleared(true);
+                saveGame({ unlockedCards: newUnlocked, normalCleared: true });
+                setGameState('GAME_CLEAR');
+              } else {
+                setGameState('REWARDS'); 
+                saveGame({ unlockedCards: newUnlocked }); 
+              }
             } 
           }} 
           pendingRelicReward={pendingRelicReward} handleRelicRewardClaim={handleRelicRewardClaim} />}
