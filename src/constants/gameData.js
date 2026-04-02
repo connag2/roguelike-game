@@ -262,4 +262,118 @@ export const SPECIAL_BOSSES = {
   50: { name: '김삠삐', baseHp: 1500, rewardCards: ['twerking'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }] },
   75: { name: '수라의 왕', baseHp: 2500, rewardCards: ['asuras_wrath', 'power_of_asura', 'supreme_blade_storm'], passives: [{ id: 'scaling_strength', name: '끝없는 분노', desc: '매 턴 시작 시 근력이 3 증가합니다.' }], deck: [{ name: '육도윤회', type: 'attack', value: 15, multi: 6, desc: '15의 피해를 6번 줍니다.' }, { name: '금강불괴', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }, { name: '파괴의 눈', type: 'debuff', debuff: 'vulnerable', turns: 5, desc: '취약 5를 부여합니다.' }] },
   100: { name: '스스스슬라임', baseHp: 800, rewardCards: ['slime_snot', 'slimes_greed'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트리플 어택', type: 'attack', value: 20, multi: 3, desc: '20의 피해를 3번 줍니다.' }, { name: '산성비', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3, desc: '40의 피해를 주고 약화 3을 부여합니다.' }, { name: '단단한 결속', type: 'defend_buff', value: 100, buff: 'strength', buffValue: 5, desc: '100의 방어도를 얻고 근력을 5 얻습니다.' }] }
+
+  // src/constants/gameData.js 내 SPECIAL_BOSSES 수정 (하드 모드 부분만 교체)
+
+  // --- 하드 모드 전용 보스 ---
+  H50: { 
+    name: '초월한 슬라임', 
+    baseHp: 3000, 
+    passives: [{ id: 'scaling_strength', name: '분열하는 마력', desc: '매 턴 근력이 2씩 상승합니다.' }], 
+    deck: [
+      { name: '초월 낙하', type: 'attack', value: 30 },
+      { name: '마력 재생', type: 'heal', heal: 250 },
+      { name: '강산성 점액', type: 'attack_debuff', value: 15, debuff: 'frail', turns: 2 },
+      { name: '분열 타격', type: 'attack', value: 10, multi: 4 },
+      { name: '끈적한 늪', type: 'debuff', debuff: 'bind', turns: 1 },
+      { name: '탄성 강화', type: 'defend', value: 150 },
+      { name: '슬라임 웨이브', type: 'attack_debuff', value: 20, debuff: 'weak', turns: 2 },
+      { name: '맹독 뱉기', type: 'attack_debuff', value: 10, debuff: 'poison', turns: 5 }
+    ] 
+  },
+  H100: { 
+    name: '기계화된 골렘', 
+    baseHp: 5000, 
+    passives: [{ id: 'iron_skin', name: '강철 장갑', desc: '받는 모든 피해가 25% 감소합니다.' }], 
+    deck: [
+      { name: '섬멸 레이저', type: 'attack', value: 25, multi: 3 },
+      { name: '철벽 가동', type: 'defend', value: 300 },
+      { name: '동력 충전', type: 'buff', buff: 'strength', amount: 5 },
+      { name: '지진 일으키기', type: 'attack_debuff', value: 40, debuff: 'vulnerable', turns: 3 },
+      { name: '오토 리페어', type: 'heal', heal: 400 },
+      { name: '로켓 펀치', type: 'attack', value: 70 },
+      { name: '방출', type: 'attack', value: 15, multi: 5 },
+      { name: '타겟 록온', type: 'debuff', debuff: 'mark', turns: 10 }
+    ] 
+  },
+  H150: { 
+    name: '@#!%#', 
+    baseHp: 7000, 
+    passives: [{ id: 'glitch', name: '데이터 변조', desc: '매 턴 무작위 디버프를 부여합니다.' }], 
+    deck: [
+      { name: 'Fatal Error', type: 'attack_debuff', value: 60, debuff: 'vulnerable', turns: 5 },
+      { name: 'Null Pointer', type: 'debuff', debuff: 'silence', turns: 1 },
+      { name: 'Memory Leak', type: 'attack_debuff', value: 20, debuff: 'poison', turns: 10 },
+      { name: 'Overflow', type: 'attack', value: 80 },
+      { name: '0x00000000', type: 'attack', value: 0, multi: 15 },
+      { name: 'System Restoring', type: 'heal', heal: 500 },
+      { name: 'Corrupted File', type: 'attack_debuff', value: 30, debuff: 'bind', turns: 1 },
+      { name: 'Blue Screen', type: 'attack_debuff', value: 50, debuff: 'frail', turns: 3 }
+    ] 
+  },
+  H200: { 
+    name: '종말의 정적', 
+    baseHp: 9000, 
+    passives: [{ id: 'silence_aura', name: '침묵의 오라', desc: '항상 플레이어의 스킬을 방해합니다.' }], 
+    deck: [
+      { name: '무의 세계', type: 'debuff', debuff: 'silence', turns: 2 },
+      { name: '종말의 일격', type: 'attack', value: 120 },
+      { name: '고요한 외침', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3 },
+      { name: '생명력 흡수', type: 'attack_heal', value: 50, heal: 500 },
+      { name: '정신 붕괴', type: 'attack_debuff', value: 30, multi: 3, debuff: 'vulnerable', turns: 3 },
+      { name: '공허의 방패', type: 'defend', value: 500 },
+      { name: '잊혀진 기억', type: 'debuff', debuff: 'mark', turns: 20 },
+      { name: '사라지는 시간', type: 'attack', value: 25, multi: 4 }
+    ] 
+  },
+  // ✨ 서큐버스 자매: 언니(물리/출혈 위주)
+  H250_A: { 
+    name: '릴리스 (서큐버스 언니)', 
+    baseHp: 8000, 
+    passives: [{ id: 'blood_thirst', name: '피의 갈증', desc: '공격 시 체력을 회복합니다.' }], 
+    deck: [
+      { name: '채찍질', type: 'attack', value: 30, multi: 3 },
+      { name: '피의 향연', type: 'attack_heal', value: 60, heal: 300 },
+      { name: '치명적인 발톱', type: 'attack_debuff', value: 45, debuff: 'frail', turns: 3 },
+      { name: '가학적 쾌감', type: 'buff', buff: 'strength', amount: 8 },
+      { name: '광란의 춤', type: 'attack', value: 20, multi: 5 },
+      { name: '언니의 보호', type: 'defend', value: 400 },
+      { name: '선혈 베기', type: 'attack', value: 90 }
+    ] 
+  },
+  // ✨ 서큐버스 자매: 동생(마법/디버프 위주)
+  H250_B: { 
+    name: '모리건 (서큐버스 동생)', 
+    baseHp: 7000, 
+    passives: [{ id: 'charm_aura', name: '매혹의 오라', desc: '매 턴 플레이어에게 약화를 부여합니다.' }], 
+    deck: [
+      { name: '유혹의 입맞춤', type: 'attack_debuff', value: 20, debuff: 'weak', turns: 3 },
+      { name: '악몽 주입', type: 'attack_debuff', value: 30, debuff: 'silence', turns: 1 },
+      { name: '그림자 늪', type: 'debuff', debuff: 'bind', turns: 1 },
+      { name: '환락의 저주', type: 'attack_debuff', value: 40, debuff: 'vulnerable', turns: 3 },
+      { name: '동생의 응원', type: 'heal', heal: 400 }, // 언니도 회복시킬 수 있음
+      { name: '영혼 흡취', type: 'attack_heal', value: 50, heal: 200 },
+      { name: '어둠의 장막', type: 'defend', value: 300 }
+    ] 
+  },
+  H300: { 
+    name: '태초의 아케인: 에이온', 
+    baseHp: 25000, 
+    passives: [
+      { id: 'arcane_mastery', name: '아케인의 지배자', desc: '방어도를 지속 획득합니다.' }, 
+      { id: 'eternal_loop', name: '영원한 회귀', desc: '사망 시 1회 부활합니다.' }
+    ], 
+    deck: [
+      { name: '빅뱅', type: 'attack', value: 25, multi: 8 },
+      { name: '세계선 붕괴', type: 'attack_debuff', value: 80, debuff: 'vulnerable', turns: 5 },
+      { name: '공허의 시선', type: 'debuff', debuff: 'silence', turns: 1 },
+      { name: '별의 탄생', type: 'heal', heal: 999 },
+      { name: '차원 단절', type: 'defend', value: 999 },
+      { name: '은하 분쇄', type: 'attack', value: 200 },
+      { name: '인과율 조작', type: 'debuff', debuff: 'bind', turns: 2 },
+      { name: '태초의 빛', type: 'attack', value: 50, multi: 3 },
+      { name: '절대 권력', type: 'buff', buff: 'strength', amount: 10 },
+      { name: '종말 카운트다운', type: 'attack_debuff', value: 99, debuff: 'mark', turns: 10 }
+    ] 
+  }
 };
