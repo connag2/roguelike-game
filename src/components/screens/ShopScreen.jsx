@@ -201,8 +201,15 @@ export default function ShopScreen({
         <div className="bg-gray-950/90 p-6 rounded-xl border-2 border-yellow-600/80 lg:col-span-4 flex flex-col shadow-[0_0_30px_rgba(202,138,4,0.15)] mt-4 backdrop-blur-md">
           <h3 className="text-2xl font-bold mb-2 text-yellow-400">전설 카드 암시장</h3>
           <p className="text-slate-400 mb-6 text-sm border-b border-slate-800 pb-4">특수 전설 카드를 확정 구매합니다. (3,000 크레딧)</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {['super_tiger_slash', 'true_dragon_slayer', 'absolute_zero', 'heavenly_judgment'].map(id => {
+          
+          {/* ✨ 스크롤이 가능하게 설정하여 카드 개수가 많아도 레이아웃이 깨지지 않도록 방지합니다 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-h-[60vh] overflow-y-auto hide-scrollbar">
+            {/* 보스 보상을 제외한 나머지 스페셜 카드들의 리스트입니다. */}
+            {[
+              'gods_eye', 'dragon_blood', 'infinite_mana_reactor', 'time_stop', 
+              'chaos_magic', 'abyssal_gaze', 'super_tiger_slash', 'true_dragon_slayer', 
+              'absolute_zero', 'heavenly_judgment', 'blood_of_phoenix', 'descent_of_demon_lord'
+            ].map(id => {
               const cardDef = getCardDef(id, shopUpgrades);
               if (!cardDef) return null;
               const isOwned = unlockedCards.includes(id);

@@ -200,7 +200,9 @@ export const CARD_LIBRARY = [
 ];
 
 // --- 적 및 보스 라이브러리 ---
+// --- 적 및 보스 라이브러리 ---
 export const ENEMIES = [
+  // 기존 15종
   { name: '슬라임', baseHp: 30, deck: [{ name: '몸통 박치기', type: 'attack', value: 8, desc: '8의 피해를 줍니다.' }, { name: '점액 세례', type: 'attack', value: 4, multi: 2, desc: '4의 피해를 2번 줍니다.' }, { name: '끈적임', type: 'debuff', debuff: 'weak', turns: 2, desc: '약화 2를 부여합니다.' }] },
   { name: '박쥐', baseHp: 25, deck: [{ name: '흡혈 송곳니', type: 'attack_heal', value: 7, heal: 5, desc: '7의 피해를 주고 체력을 5 회복합니다.' }, { name: '초음파', type: 'debuff', debuff: 'vulnerable', turns: 1, desc: '취약 1을 부여합니다.' }] },
   { name: '고블린', baseHp: 35, deck: [{ name: '단검 찌르기', type: 'attack', value: 10, desc: '10의 피해를 줍니다.' }, { name: '방어 태세', type: 'defend', value: 10, desc: '10의 방어도를 얻습니다.' }, { name: '모래 뿌리기', type: 'debuff', debuff: 'weak', turns: 2, desc: '약화 2를 부여합니다.' }] },
@@ -213,25 +215,51 @@ export const ENEMIES = [
   { name: '가고일', baseHp: 70, deck: [{ name: '석화', type: 'defend', value: 25, desc: '25의 방어도를 얻습니다.' }, { name: '강하', type: 'attack', value: 18, desc: '18의 피해를 줍니다.' }] },
   { name: '머드맨', baseHp: 50, deck: [{ name: '진흙 던지기', type: 'attack_debuff', value: 10, debuff: 'weak', turns: 1, desc: '10의 피해를 주고 약화 1을 부여합니다.' }, { name: '재생', type: 'heal', heal: 10, desc: '체력을 10 회복합니다.' }] },
   { name: '미믹', baseHp: 65, deck: [{ name: '깜짝 물기', type: 'attack', value: 18, desc: '18의 피해를 줍니다.' }, { name: '굳게 닫기', type: 'defend', value: 20, desc: '20의 방어도를 얻습니다.' }] },
-{ name: '밴시', baseHp: 45, deck: [{ name: '침묵의 비명', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다. (다음 턴 스킬 불가)' }, { name: '영혼 흡수', type: 'attack_heal', value: 12, heal: 10, desc: '12의 피해를 주고 체력을 10 회복합니다.' }] },
+  { name: '밴시', baseHp: 45, deck: [{ name: '침묵의 비명', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다. (다음 턴 스킬 불가)' }, { name: '영혼 흡수', type: 'attack_heal', value: 12, heal: 10, desc: '12의 피해를 주고 체력을 10 회복합니다.' }] },
   { name: '골렘', baseHp: 80, deck: [{ name: '바위 주먹', type: 'attack', value: 25, desc: '25의 피해를 줍니다.' }, { name: '묵직한 가드', type: 'defend_debuff', value: 30, debuff: 'weak', turns: 1, desc: '30의 방어도를 얻고 약화 1을 부여합니다.' }] },
   { name: '켄타우로스', baseHp: 60, deck: [{ name: '돌격', type: 'attack', value: 20, desc: '20의 피해를 줍니다.' }, { name: '연속 화살', type: 'attack', value: 8, multi: 3, desc: '8의 피해를 3번 줍니다.' }] },
+  
+  // 신규 추가 15종 (총 30마리)
+  { name: '불의 정령', baseHp: 45, deck: [{ name: '화염구', type: 'attack', value: 12, desc: '12의 피해를 줍니다.' }, { name: '화상', type: 'debuff', debuff: 'vulnerable', turns: 2, desc: '취약 2를 부여합니다.' }, { name: '불꽃 장벽', type: 'defend', value: 15, desc: '15의 방어도를 얻습니다.' }] },
+  { name: '물의 정령', baseHp: 55, deck: [{ name: '물대포', type: 'attack', value: 10, desc: '10의 피해를 줍니다.' }, { name: '치유의 물결', type: 'heal', heal: 15, desc: '체력을 15 회복합니다.' }, { name: '동결', type: 'debuff', debuff: 'weak', turns: 2, desc: '약화 2를 부여합니다.' }] },
+  { name: '서큐버스', baseHp: 65, deck: [{ name: '생기 흡수', type: 'attack_heal', value: 15, heal: 15, desc: '15의 피해를 주고 체력을 15 회복합니다.' }, { name: '매혹', type: 'debuff', debuff: 'weak', turns: 3, desc: '약화 3을 부여합니다.' }] },
+  { name: '듀라한', baseHp: 85, deck: [{ name: '참수', type: 'attack', value: 25, desc: '25의 피해를 줍니다.' }, { name: '공포', type: 'debuff', debuff: 'vulnerable', turns: 3, desc: '취약 3을 부여합니다.' }, { name: '강철 갑옷', type: 'defend', value: 20, desc: '20의 방어도를 얻습니다.' }] },
+  { name: '뱀파이어 헌터', baseHp: 75, deck: [{ name: '은탄환', type: 'attack', value: 18, desc: '18의 피해를 줍니다.' }, { name: '성수', type: 'debuff', debuff: 'weak', turns: 2, desc: '약화 2를 부여합니다.' }, { name: '난사', type: 'attack', value: 6, multi: 3, desc: '6의 피해를 3번 줍니다.' }] },
+  { name: '리자드맨', baseHp: 60, deck: [{ name: '꼬리치기', type: 'attack', value: 14, desc: '14의 피해를 줍니다.' }, { name: '비늘 강화', type: 'defend', value: 15, desc: '15의 방어도를 얻습니다.' }, { name: '재생력', type: 'heal', heal: 12, desc: '체력을 12 회복합니다.' }] },
+  { name: '하피', baseHp: 40, deck: [{ name: '발톱 베기', type: 'attack', value: 8, multi: 2, desc: '8의 피해를 2번 연속 줍니다.' }, { name: '귀청 찢기', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다.' }] },
+  { name: '만드라고라', baseHp: 50, deck: [{ name: '비명소리', type: 'attack_debuff', value: 5, debuff: 'vulnerable', turns: 2, desc: '5의 피해를 주고 취약 2를 부여합니다.' }, { name: '뿌리 묶기', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다.' }] },
+  { name: '트롤', baseHp: 90, deck: [{ name: '몽둥이 찜질', type: 'attack', value: 22, desc: '22의 피해를 줍니다.' }, { name: '트롤의 피', type: 'heal', heal: 25, desc: '체력을 25 회복합니다.' }] },
+  { name: '그림 리퍼', baseHp: 70, deck: [{ name: '영혼 수확', type: 'attack_heal', value: 20, heal: 10, desc: '20의 피해를 주고 체력을 10 회복합니다.' }, { name: '죽음의 선고', type: 'debuff', debuff: 'vulnerable', turns: 3, desc: '취약 3을 부여합니다.' }, { name: '망령화', type: 'defend', value: 30, desc: '30의 방어도를 얻습니다.' }] },
+  { name: '코카트리스', baseHp: 55, deck: [{ name: '부리 쪼기', type: 'attack', value: 12, desc: '12의 피해를 줍니다.' }, { name: '석화의 눈', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다.' }, { name: '날개 치기', type: 'attack', value: 15, desc: '15의 피해를 줍니다.' }] },
+  { name: '다크 나이트', baseHp: 85, deck: [{ name: '암흑 검격', type: 'attack', value: 18, desc: '18의 피해를 줍니다.' }, { name: '어둠의 방패', type: 'defend', value: 25, desc: '25의 방어도를 얻습니다.' }, { name: '칠흑의 기운', type: 'buff', buff: 'strength', buffValue: 2, turns: 1, desc: '근력을 2 얻습니다.' }] },
+  { name: '환영술사', baseHp: 45, deck: [{ name: '정신 파괴', type: 'attack_debuff', value: 10, debuff: 'weak', turns: 3, desc: '10의 피해를 주고 약화 3을 부여합니다.' }, { name: '환영 분신', type: 'defend', value: 40, desc: '40의 방어도를 얻습니다.' }] },
+  { name: '데몬 쥐', baseHp: 35, deck: [{ name: '갉아먹기', type: 'attack', value: 5, multi: 3, desc: '5의 피해를 3번 줍니다.' }, { name: '역병 전파', type: 'debuff', debuff: 'vulnerable', turns: 2, desc: '취약 2를 부여합니다.' }] },
+  { name: '폭탄 고블린', baseHp: 40, deck: [{ name: '자폭 투척', type: 'attack', value: 25, desc: '25의 피해를 줍니다.' }, { name: '불안정한 화약', type: 'buff', buff: 'strength', buffValue: 3, turns: 1, desc: '근력을 3 얻습니다.' }] }
 ];
 
 export const NORMAL_BOSSES = [
+  // 기존 8종
   { name: '킹 슬라임', baseHp: 150, deck: [{ name: '대지진', type: 'attack', value: 25, desc: '25의 피해를 줍니다.' }, { name: '굳어지기', type: 'defend', value: 30, desc: '30의 방어도를 얻습니다.' }, { name: '강산성 점액', type: 'attack_debuff', value: 15, debuff: 'weak', turns: 3, desc: '15의 피해를 주고 약화 3을 부여합니다.' }] }, 
   { name: '고블린 족장', baseHp: 250, deck: [{ name: '연속 찌르기', type: 'attack', value: 10, multi: 3, desc: '10의 피해를 3번 줍니다.' }, { name: '총공격 지시', type: 'debuff', debuff: 'vulnerable', turns: 3, desc: '취약 3을 부여합니다.' }, { name: '철벽 방어', type: 'defend', value: 40, desc: '40의 방어도를 얻습니다.' }] }, 
   { name: '오크 대장군', baseHp: 400, deck: [{ name: '참수', type: 'attack', value: 40, desc: '40의 피해를 줍니다.' }, { name: '피의 굶주림', type: 'attack_debuff', value: 25, debuff: 'vulnerable', turns: 2, desc: '25의 피해를 주고 취약 2를 부여합니다.' }, { name: '대장군의 기백', type: 'defend', value: 50, desc: '50의 방어도를 얻습니다.' }] }, 
   { name: '뱀파이어 로드', baseHp: 650, deck: [{ name: '생명 흡수', type: 'attack_heal', value: 35, heal: 20, desc: '35의 피해를 주고 체력을 20 회복합니다.' }, { name: '피의 안개', type: 'debuff', debuff: 'weak', turns: 4, desc: '약화 4를 부여합니다.' }, { name: '절망의 시선', type: 'debuff', debuff: 'vulnerable', turns: 4, desc: '취약 4를 부여합니다.' }] }, 
   { name: '고대 드래곤', baseHp: 1000, deck: [{ name: '드래곤 브레스', type: 'attack', value: 60, desc: '60의 피해를 줍니다.' }, { name: '비늘 강화', type: 'defend', value: 80, desc: '80의 방어도를 얻습니다.' }, { name: '압도적 공포', type: 'debuff', debuff: 'weak', turns: 5, desc: '약화 5를 부여합니다.' }] },
   { name: '미노타우로스', baseHp: 300, deck: [{ name: '뿔 들이받기', type: 'attack', value: 45, desc: '45의 피해를 줍니다.' }, { name: '광폭화', type: 'buff', buff: 'strength', buffValue: 3, turns: 1, desc: '근력을 3 얻습니다.' }, { name: '도끼 휩쓸기', type: 'attack', value: 30, desc: '30의 피해를 줍니다.' }] },
- { name: '마스터 리치', baseHp: 500, deck: [{ name: '죽음의 광선', type: 'attack', value: 50, desc: '50의 피해를 줍니다.' }, { name: '저주받은 구속', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다. (다음 턴 공격 불가)' }, { name: '생명력 착취', type: 'attack_heal', value: 30, heal: 30, desc: '30의 피해를 주고 30 회복합니다.' }] },
+  { name: '마스터 리치', baseHp: 500, deck: [{ name: '죽음의 광선', type: 'attack', value: 50, desc: '50의 피해를 줍니다.' }, { name: '저주받은 구속', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다. (다음 턴 공격 불가)' }, { name: '생명력 착취', type: 'attack_heal', value: 30, heal: 30, desc: '30의 피해를 주고 30 회복합니다.' }] },
   { name: '돌연변이 키메라', baseHp: 800, deck: [{ name: '독사 꼬리', type: 'attack_debuff', value: 20, debuff: 'weak', turns: 3, desc: '20의 피해를 주고 약화 3을 부여합니다.' }, { name: '사자후', type: 'debuff', debuff: 'vulnerable', turns: 3, desc: '취약 3을 부여합니다.' }, { name: '무자비한 찢기', type: 'attack', value: 40, desc: '40의 피해를 줍니다.' }] },
+  
+  // 신규 추가 보스 5종
+  { name: '타락한 성기사', baseHp: 450, deck: [{ name: '신성한 심판', type: 'attack', value: 35, desc: '35의 피해를 줍니다.' }, { name: '타락한 축복', type: 'buff', buff: 'strength', buffValue: 3, turns: 1, desc: '근력을 3 얻습니다.' }, { name: '절대 방어', type: 'defend', value: 50, desc: '50의 방어도를 얻습니다.' }] },
+  { name: '지옥의 파수견', baseHp: 550, deck: [{ name: '물어뜯기', type: 'attack', value: 20, multi: 2, desc: '20의 피해를 2번 줍니다.' }, { name: '지옥의 불꽃', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 3, desc: '30의 피해를 주고 취약 3을 부여합니다.' }, { name: '포효', type: 'debuff', debuff: 'weak', turns: 3, desc: '약화 3을 부여합니다.' }] },
+  { name: '고대 골렘 마스터', baseHp: 700, deck: [{ name: '대지 분쇄', type: 'attack', value: 45, desc: '45의 피해를 줍니다.' }, { name: '바위 방패', type: 'defend', value: 60, desc: '60의 방어도를 얻습니다.' }, { name: '압도', type: 'debuff', debuff: 'weak', turns: 4, desc: '약화 4를 부여합니다.' }] },
+  { name: '맹독의 여왕', baseHp: 600, deck: [{ name: '맹독 가시', type: 'attack', value: 15, multi: 3, desc: '15의 피해를 3번 줍니다.' }, { name: '마비 독', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다.' }, { name: '산성 늪', type: 'attack_debuff', value: 25, debuff: 'vulnerable', turns: 4, desc: '25의 피해를 주고 취약 4를 부여합니다.' }] },
+  { name: '심연의 주시자', baseHp: 850, deck: [{ name: '파멸의 광선', type: 'attack', value: 55, desc: '55의 피해를 줍니다.' }, { name: '정신 붕괴', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다.' }, { name: '공허의 장막', type: 'defend', value: 70, desc: '70의 방어도를 얻습니다.' }] }
 ];
 
 export const SPECIAL_BOSSES = {
-  25: { name: '거미 여왕', baseHp: 500, passives: [], deck: [{ name: '맹독 샤워', type: 'attack_debuff', value: 15, multi: 2, debuff: 'weak', turns: 2, desc: '15의 피해를 2번 주고 약화 2를 부여합니다.' }, { name: '여왕의 명령', type: 'defend_debuff', value: 50, debuff: 'vulnerable', turns: 2, desc: '50의 방어도를 얻고 취약 2를 부여합니다.' }] },
-  50: { name: '김삠삐', baseHp: 1500, passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }] },
-  75: { name: '수라의 왕', baseHp: 2500, passives: [{ id: 'scaling_strength', name: '끝없는 분노', desc: '매 턴 시작 시 근력이 3 증가합니다.' }], deck: [{ name: '육도윤회', type: 'attack', value: 15, multi: 6, desc: '15의 피해를 6번 줍니다.' }, { name: '금강불괴', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }, { name: '파괴의 눈', type: 'debuff', debuff: 'vulnerable', turns: 5, desc: '취약 5를 부여합니다.' }] },
-  100: { name: '스스스슬라임', baseHp: 800, passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트리플 어택', type: 'attack', value: 20, multi: 3, desc: '20의 피해를 3번 줍니다.' }, { name: '산성비', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3, desc: '40의 피해를 주고 약화 3을 부여합니다.' }, { name: '단단한 결속', type: 'defend_buff', value: 100, buff: 'strength', buffValue: 5, desc: '100의 방어도를 얻고 근력을 5 얻습니다.' }] }
+  // rewardCards 속성을 추가하여 해당 보스를 클리어했을 때 전용 카드를 얻게 설정합니다.
+  25: { name: '거미 여왕', baseHp: 500, rewardCards: ['spider_queens_web', 'spider_queen_poison'], passives: [], deck: [{ name: '맹독 샤워', type: 'attack_debuff', value: 15, multi: 2, debuff: 'weak', turns: 2, desc: '15의 피해를 2번 주고 약화 2를 부여합니다.' }, { name: '여왕의 명령', type: 'defend_debuff', value: 50, debuff: 'vulnerable', turns: 2, desc: '50의 방어도를 얻고 취약 2를 부여합니다.' }] },
+  50: { name: '김삠삐', baseHp: 1500, rewardCards: ['twerking'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }] },
+  75: { name: '수라의 왕', baseHp: 2500, rewardCards: ['asuras_wrath', 'power_of_asura', 'supreme_blade_storm'], passives: [{ id: 'scaling_strength', name: '끝없는 분노', desc: '매 턴 시작 시 근력이 3 증가합니다.' }], deck: [{ name: '육도윤회', type: 'attack', value: 15, multi: 6, desc: '15의 피해를 6번 줍니다.' }, { name: '금강불괴', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }, { name: '파괴의 눈', type: 'debuff', debuff: 'vulnerable', turns: 5, desc: '취약 5를 부여합니다.' }] },
+  100: { name: '스스스슬라임', baseHp: 800, rewardCards: ['slime_snot', 'slimes_greed'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트리플 어택', type: 'attack', value: 20, multi: 3, desc: '20의 피해를 3번 줍니다.' }, { name: '산성비', type: 'attack_debuff', value: 40, debuff: 'weak', turns: 3, desc: '40의 피해를 주고 약화 3을 부여합니다.' }, { name: '단단한 결속', type: 'defend_buff', value: 100, buff: 'strength', buffValue: 5, desc: '100의 방어도를 얻고 근력을 5 얻습니다.' }] }
 };
