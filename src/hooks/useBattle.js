@@ -62,19 +62,30 @@ export function useBattle({
 
         const determineReward = (st) => {
           const roll = Math.random();
+          
+          // ✨ 25, 50, 75층 (특수 보스) 확정 보상 처리
           if ([25, 50, 75].includes(st)) {
-            if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso'); // 1% 확률로 퓨리오소
+            // 1% 확률로는 대박 카드 '퓨리오소' 지급
+            if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
             
-            // 👇 11% 확률 조건을 없애고, 나머지 99% 상황에서는 무조건 보스 카드를 주도록 변경
+            // 나머지 99% 확률로는 무조건 각 층의 전용 보스 카드를 확정 지급!
             if (st === 25) return CARD_LIBRARY.find(c => c.id === 'spider_queen_poison');
             if (st === 50) return CARD_LIBRARY.find(c => c.id === 'twerking');
-            if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura'); // 75층 수라의 힘 확정 지급
+            if (st === 75) return CARD_LIBRARY.find(c => c.id === 'power_of_asura'); // 수라의 힘 확정
           }
-          if (st === 100) return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+          
+          // 100층 특수 보스 보상 (25% 퓨리오소, 75% 슬라임 콧물)
+          if (st === 100) {
+            return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+          }
+          
+          // 일반 보스(5, 10, 15층...) 클리어 시 10% 확률로 희귀 카드 지급
           if (isNormalBoss && roll < 0.10) {
             const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
             return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
           }
+          
+          // 그 외의 일반 전투는 보스 카드를 주지 않음
           return null;
         };
 
