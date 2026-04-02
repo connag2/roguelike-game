@@ -170,8 +170,12 @@ export default function App() {
     }
     setPlayerRelics(initialRelics);
 
-    let initialPlayer = { hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
-buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0, insight: 0 } };
+    // ✨ 신규 버프/디버프 초기화 확장 적용
+    let initialPlayer = { 
+      hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, 
+      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
+      buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0, insight: 0 } 
+    };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
 
     const newStats = { ...gameStats, totalRuns: (gameStats?.totalRuns || 0) + 1 };
@@ -201,7 +205,12 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
     const newHand = [];
     for(let i=0; i<5; i++) if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
 
-    let refreshedPlayer = { ...newPlayer, block: 0, mana: newPlayer.maxMana, debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, buffs: newPlayer.buffs };
+    // ✨ 신규 버프/디버프 초기화 확장 적용
+    let refreshedPlayer = { 
+      ...newPlayer, block: 0, mana: newPlayer.maxMana, 
+      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
+      buffs: newPlayer.buffs 
+    };
     refreshedPlayer = applyStartCombatRelics(refreshedPlayer, playerRelics); 
 
     setCombatState({
@@ -244,43 +253,87 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
     else { setGameState('REWARDS'); }
   };
 
+  // -------------------------------------------------------------
+  // ✨ 적 턴 AI 행동 및 턴 사이클 제어 핵심 (상태이상 로직 추가됨)
+  // -------------------------------------------------------------
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
       setCombatState(prev => {
         let p = { ...prev.player };
         let newEnemies = prev.enemies.map(e => ({ ...e, block: 0 }));
+        
         newEnemies.forEach(e => {
           if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
           if (e.hp <= 0) return;
+          
+          // ✨ 적 재생(Regen) 회복 로직 추가
+          if ((e.buffs?.regen || 0) > 0) {
+            e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen);
+          }
+
           if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
           let intent = e.intentCard;
-          if (intent.type.includes('attack')) {
-            let dmg = intent.value + (e.buffs.strength || 0);
-            if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-            if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-            for(let i=0; i<(intent.multi || 1); i++) {
-              if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
-              if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+          
+          // ✨ 하드 CC (침묵 / 속박) 판정 로직 추가
+          const isAttack = intent.type.includes('attack');
+          const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
+          
+          let canAct = true;
+          if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
+          if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
+
+          // CC에 걸리지 않았을 때만 행동 수행
+          if (canAct) {
+            if (intent.type.includes('attack')) {
+              let dmg = intent.value + (e.buffs.strength || 0);
+              if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+              if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+              for(let i=0; i<(intent.multi || 1); i++) {
+                if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
+                if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+              }
             }
+            if (e.hp <= 0) return;
+            if (intent.type.includes('debuff')) {
+              if (intent.debuff === 'weak') p.debuffs.weak += intent.turns;
+              if (intent.debuff === 'vulnerable') p.debuffs.vulnerable += intent.turns;
+            }
+            if (intent.type.includes('defend')) e.block += intent.value;
+            if (intent.type.includes('buff') && intent.buff === 'strength') e.buffs.strength += intent.buffValue;
+            if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
           }
-          if (e.hp <= 0) return;
-          if (intent.type.includes('debuff')) {
-            if (intent.debuff === 'weak') p.debuffs.weak += intent.turns;
-            if (intent.debuff === 'vulnerable') p.debuffs.vulnerable += intent.turns;
-          }
-          if (intent.type.includes('defend')) e.block += intent.value;
-          if (intent.type.includes('buff') && intent.buff === 'strength') e.buffs.strength += intent.buffValue;
-          if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
-          e.debuffs.weak = decayStack(e.debuffs.weak); e.debuffs.vulnerable = decayStack(e.debuffs.vulnerable); e.buffs.strength = decayStack(e.buffs.strength);
+
+          // ✨ 적의 상태 이상 턴 감소 (침묵, 속박 등 하드 CC는 1턴 후 무조건 즉시 해제 적용)
+          ['weak', 'vulnerable', 'poison', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
+            e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k));
+          });
+          ['strength', 'intangible', 'regen', 'rage'].forEach(k => {
+            e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible');
+          });
+
           e.intentCard = generateEnemyIntent(e.template, prev.stage);
         });
+
         newEnemies = newEnemies.filter(e => e.hp > 0);
         if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
         if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] }; }
+        
         p.block = 0; p.mana = p.maxMana;
-        ['weak', 'vulnerable', 'poison'].forEach(k => p.debuffs[k] = decayStack(p.debuffs[k]));
-        ['strength', 'dexterity', 'thorns'].forEach(k => p.buffs[k] = decayStack(p.buffs[k]));
+        
+        // ✨ 플레이어 재생(Regen) 회복 로직 추가
+        if ((p.buffs?.regen || 0) > 0) {
+          p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen);
+        }
+
+        // ✨ 플레이어의 상태 이상 턴 감소 확장 적용
+        ['weak', 'vulnerable', 'poison', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
+          p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k));
+        });
+        ['strength', 'dexterity', 'thorns', 'intangible', 'regen', 'rage', 'insight'].forEach(k => {
+          p.buffs[k] = decayStack(p.buffs[k] || 0, k === 'intangible');
+        });
+
         let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
         (playerRelics || []).forEach(r => {
           if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
@@ -289,9 +342,14 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
           if (r.effect?.type === 'START_TURN_MYTHIC') { turnMana += r.effect.mana; turnDraw += r.effect.draw; turnStrength += r.effect.strength; }
           if (r.effect?.type === 'START_COMBAT_AND_TURN') { if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
         });
+        
         p.hp -= selfDamage;
         if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; } 
         p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
+        
+        // ✨ 플레이어 통찰(Insight) 추가 드로우 반영
+        turnDraw += (p.buffs?.insight || 0);
+
         let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
         let drawAmount = 5 + turnDraw;
         for (let i = 0; i < drawAmount; i++) {
@@ -324,14 +382,12 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
   const openShop = () => { setGameState('SHOP'); };
   const getTotalCards = (counts = deckCounts) => Object.values(counts || {}).reduce((a, b) => a + b, 0);
 
-  // 🐛 [버그 수정 1] 가챠에서 카드 뽑을 때 로컬스토리지 저장이 꼬이는 현상 완전 수정
   const handleGacha = () => {
     if (credits < 50) return;
     const result = [];
     const pool = CARD_LIBRARY.filter(c => ['common', 'uncommon', 'rare'].includes(c.rarity));
     let duplicateRefund = 0;
     
-    // 현재 보유 카드 배열의 복사본을 만들어 루프 내에서 실시간 동기화
     let currentUnlocked = [...unlockedCards]; 
 
     for (let i = 0; i < 3; i++) {
@@ -347,20 +403,18 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
         duplicateRefund += 10; 
       } else { 
         result.push({ ...card, isDuplicate: false }); 
-        currentUnlocked.push(card.id); // 복사본에 즉시 추가
+        currentUnlocked.push(card.id); 
       }
     }
     const newCredits = credits - 50 + duplicateRefund;
     setCredits(newCredits);
-    setUnlockedCards(currentUnlocked); // 업데이트된 복사본 통째로 반영
+    setUnlockedCards(currentUnlocked); 
     if (duplicateRefund > 0) setToastMsg(`${duplicateRefund} 크레딧 환급됨!`);
     setGachaResult(result); 
     
-    // 세이브 데이터에도 확실히 최신 복사본을 전달
     saveGame({ credits: newCredits, unlockedCards: currentUnlocked }); 
   };
 
-  // 🐛 [버그 수정 2] 쿠폰 기능에서 unlockedCards 배열에 배열이 중첩되는 치명적 오타 수정
   const handleCoupon = () => {
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
@@ -375,7 +429,6 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
     if (!valid) { setToastMsg('유효하지 않은 쿠폰 코드입니다.'); return; }
     const updatedCoupons = [...usedCoupons, code];
     
-    // 여기가 문제였습니다. [...unlockedCards, unlockedCards] -> [...unlockedCards, unlockedToAdd] 로 수정
     const updatedUnlocked = unlockedToAdd && !unlockedCards.includes(unlockedToAdd) ? [...unlockedCards, unlockedToAdd] : unlockedCards;
     
     if (creditsToAdd > 0) setCredits(prev => prev + creditsToAdd);
@@ -431,7 +484,7 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
         <AdminPanel
-          gameState={gameState} // 👈 이 줄을 추가하세요!
+          gameState={gameState}
           credits={credits}
           setCredits={setCredits}
           unlockedCards={unlockedCards}
@@ -550,7 +603,6 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
         )}
         {gameState === 'STATISTICS' && <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />}
         
-        {/* 🐛 [버그 수정 3] Settings의 관리자 버튼 클릭 시 세이브가 안 되던 현상 수정 */}
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} 
           adminUnlockAllCards={() => {
             const all = CARD_LIBRARY.map(c=>c.id); 
@@ -574,7 +626,6 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
         
         {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => {navigator.clipboard.writeText(btoa(encodeURIComponent(JSON.stringify(tempDeckCounts)))); setToastMsg('복사!');}} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} getCardDef={getCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id]||0)-1)})} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
         
-        {/* 🐛 [버그 수정 4] 프리미엄 가챠 보상 수령 시 최신 상태 세이브 연동 */}
         {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={getCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} 
           selectPremiumCard={(card) => { 
             let newUnlocked = unlockedCards;
@@ -592,7 +643,6 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} getCardDef={getCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
         
-        {/* 🐛 [버그 수정 5] 보스 클리어 보상 수령 시 최신 상태 세이브 연동 및 100층 클리어 체크 */}
         {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards} combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection} setConfirmSelection={setConfirmSelection} startNextStage={startNextStage} getCardDef={getCardDef} shopUpgrades={shopUpgrades} specialBossRewardCard={specialBossRewardCard} 
           handleSpecialBossRewardClaim={() => { 
             if(specialBossRewardCard) { 
@@ -604,7 +654,6 @@ buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0,
               setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
               setSpecialBossRewardCard(null); 
               
-              // ✨ [수정된 부분] 특별 보스 보상 획득 후 100층 이상이면 게임 클리어 화면으로 이동
               if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
                 setNormalCleared(true);
                 saveGame({ unlockedCards: newUnlocked, normalCleared: true });
