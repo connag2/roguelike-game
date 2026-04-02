@@ -19,6 +19,19 @@ export default function BattleScreen({
 }) {
   const [playEffect, setPlayEffect] = useState(null);
   const prevHpRef = useRef(combatState?.player?.hp);
+  
+  // ✨ 새로 추가된 상태: 카드 사용 애니메이션, 턴 배너
+  const [animatingCardIndex, setAnimatingCardIndex] = useState(null);
+  const [turnBanner, setTurnBanner] = useState(null);
+
+  // ✨ 턴 전환 감지 및 배너 표시
+  useEffect(() => {
+    if (combatState?.turn) {
+      setTurnBanner(combatState.turn === 'PLAYER' ? 'YOUR TURN' : 'ENEMY TURN');
+      const timer = setTimeout(() => setTurnBanner(null), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [combatState?.turn]);
 
   useEffect(() => {
     if (combatState?.player?.hp < prevHpRef.current) {
@@ -35,17 +48,24 @@ export default function BattleScreen({
 
   const handlePlayCard = async (idx) => {
     if (playEffect && playEffect.name !== 'enemy_attack') return;
+    if (animatingCardIndex !== null) return; // ✨ 애니메이션 중복 실행 방지
 
     const card = hand[idx];
     const isAttack = card.type === 'attack';
     const hits = card.multiHit || 1;
     const tier = card.rarity || 'common';
-    // ✨ 모션 및 대기 시간 세분화 (공격/마나/정화 외의 일반 카드는 딜레이 짧게 처리)
+    // ✨ 모션 및 대기 시간 세분화
     const delay = fastMode ? 100 : (isAttack ? 300 : 150);
 
+    // ✨ 1. 카드 사용 모션 (위로 솟구치며 날아감) 시작
+    setAnimatingCardIndex(idx);
+    await new Promise(r => setTimeout(r, fastMode ? 150 : 250)); 
+    setAnimatingCardIndex(null);
+
+    // ✨ 2. 실제 카드 효과 발동 (핸드에서 제거)
     playCard(idx);
 
-    // ✨ 공격 카드이거나 이펙트가 필수인 카드일 때만 이펙트 처리
+    // ✨ 3. 공격 카드이거나 이펙트가 필수인 카드일 때만 이펙트 처리
     if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
       for (let i = 0; i < hits; i++) {
         let effectName = null;
@@ -94,7 +114,42 @@ export default function BattleScreen({
           100% { transform: scale(2) translateY(-40px); opacity: 0; }
         }
         .mana-sooth { animation: manaSooth 0.6s ease-out forwards; }
+
+        /* ✨ 카드 드로우 모션 */
+        @keyframes drawCardAnim {
+          0% { opacity: 0; transform: translate(-30vw, 30vh) scale(0.1) rotate(-30deg); }
+          100% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+        }
+        .animate-draw-card { 
+          animation: drawCardAnim 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        }
+        
+        /* ✨ 턴 전환 배너 모션 */
+        @keyframes bannerSlide {
+          0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+          20% { transform: translateX(0) skewX(-15deg); opacity: 1; }
+          80% { transform: translateX(0) skewX(-15deg); opacity: 1; }
+          100% { transform: translateX(100%) skewX(-15deg); opacity: 0; }
+        }
+        .animate-turn-banner { 
+          animation: bannerSlide 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
+        }
       `}</style>
+
+      {/* ✨ 턴 전환 배너 연출 */}
+      {turnBanner && (
+        <div className="fixed inset-0 z-[10005] pointer-events-none flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="w-full bg-gradient-to-r from-transparent via-slate-900/90 to-transparent py-8 flex justify-center animate-turn-banner shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+            <h1 className={`text-6xl md:text-8xl font-black italic tracking-widest ${
+              turnBanner.includes('ENEMY') 
+                ? 'text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,1)]' 
+                : 'text-indigo-400 drop-shadow-[0_0_20px_rgba(99,102,241,1)]'
+            }`}>
+              {turnBanner}
+            </h1>
+          </div>
+        </div>
+      )}
 
       {/* ✨ 마나물약/정화 일때는 일반 티어 이펙트를 가리지 않도록 함 */}
       {playEffect?.name !== 'mana_potion' && playEffect?.name !== 'purify_effect' && <TierEffects playEffect={playEffect} />}
@@ -383,7 +438,6 @@ export default function BattleScreen({
               const isHovered = hoveredCard === idx;
               const offset = idx - (hand.length - 1) / 2;
               
-              // ✨ 카드 간 간격 조정 및 pointer-events 버그 수정
               const rotation = isHovered ? 0 : offset * 4.5;
               const translateY = isHovered ? -60 : Math.abs(offset) * 8; 
 
@@ -394,13 +448,22 @@ export default function BattleScreen({
                      className="relative transition-all duration-300 ease-out origin-bottom -ml-6 md:-ml-10 first:ml-0 px-2" 
                      style={{ 
                        zIndex: isHovered ? 100 : 10 + idx, 
-                       transform: `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.15 : 1})`,
+                       // ✨ 카드를 내면(animatingCardIndex === idx) 화면 중앙/상단 쪽으로 솟구치며 작아지는 모션 적용
+                       transform: animatingCardIndex === idx 
+                          ? 'translateY(-40vh) scale(0.5)' 
+                          : `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.15 : 1})`,
+                       // ✨ 카드를 낼 때 투명해지도록 처리
+                       opacity: animatingCardIndex === idx ? 0 : 1,
                        pointerEvents: 'auto'
                      }}>
                   
-                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400' : 'cursor-not-allowed brightness-75'}`}>
-                    <Card card={card} isLocked={false} />
+                  {/* ✨ 드로우 될 때 덱(좌측)에서 날아오는 애니메이션 래퍼 추가 */}
+                  <div className="animate-draw-card w-full h-full">
+                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400' : 'cursor-not-allowed brightness-75'}`}>
+                      <Card card={card} isLocked={false} />
+                    </div>
                   </div>
+
                 </div>
               );
             })}
