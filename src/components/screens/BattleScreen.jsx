@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-// Skull 아이콘은 제거하고 기존에 쓰던 아이콘들은 유지합니다.
 import { Shield, RefreshCw, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; 
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
@@ -7,8 +6,8 @@ import CommonEffects from '../effects/CommonEffects';
 import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
 import UniqueEffects from '../effects/UniqueEffects';
+import Tooltip from '../common/Tooltip'; // ✨ Tooltip 임포트 추가
 
-// ✨ 프로젝트 내의 SVG 캐릭터/몬스터 이미지 임포트
 import heroImg from '../../assets/images/characters/hero.svg';
 import slimeImg from '../../assets/images/monsters/slime.svg';
 import skeletonImg from '../../assets/images/monsters/skeleton.svg';
@@ -61,11 +60,10 @@ export default function BattleScreen({
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
 
-  // ✨ 적 이름에 따라 이미지를 매핑해주는 헬퍼 함수
   const getEnemyImage = (name) => {
     if (!name) return slimeImg;
     if (name.includes('스켈레톤') || name.includes('리치')) return skeletonImg;
-    return slimeImg; // 그 외의 몬스터들은 기본적으로 슬라임 이미지 사용
+    return slimeImg;
   };
 
   return (
@@ -169,12 +167,17 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* 상단 유물 바 */}
+      {/* ✨ 상단 유물 바: z-index 수정(z-10 -> z-50) */}
       {playerRelics && playerRelics.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2 z-10 w-full px-2">
+        <div className="flex flex-wrap gap-2 mb-2 z-50 w-full px-2">
           {playerRelics.map((r, i) => (
-            <div key={i} className="relative group cursor-help bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors">
-              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter">{r.name}</span>
+            <div key={i} className="relative group bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors flex items-center">
+              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter cursor-help">
+                {r.name}
+              </span>
+              {/* ✨ 툴팁을 추가하고 아래로 열리도록 설정 */}
+              <Tooltip desc={r.desc} direction="down" />
+              
               <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
                 <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-800 pb-1">{r.name}</div>
                 <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
@@ -204,7 +207,6 @@ export default function BattleScreen({
         {/* 플레이어 캐릭터 영역 */}
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
-            {/* ✨ Skull 아이콘 대신 hero.svg 적용 */}
             <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
             
             {player.block > 0 && (
@@ -289,7 +291,6 @@ export default function BattleScreen({
                 </div>
 
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
-                  {/* ✨ Skull 아이콘 대신 몬스터(slime.svg / skeleton.svg) 이미지 적용 */}
                   <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
                   
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
