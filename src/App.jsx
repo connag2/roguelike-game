@@ -170,7 +170,6 @@ export default function App() {
     }
     setPlayerRelics(initialRelics);
 
-    // ✨ 신규 버프/디버프 초기화 확장 적용
     let initialPlayer = { 
       hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, 
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
@@ -205,7 +204,6 @@ export default function App() {
     const newHand = [];
     for(let i=0; i<5; i++) if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
 
-    // ✨ 신규 버프/디버프 초기화 확장 적용
     let refreshedPlayer = { 
       ...newPlayer, block: 0, mana: newPlayer.maxMana, 
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
@@ -248,21 +246,17 @@ export default function App() {
     saveGame({ unlockedRelics: newUnlocked });
     setToastMsg(`🌟 ${pendingRelicReward.name} 장착 완료!`);
     setPendingRelicReward(null);
-    if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
+    if (specialBossRewardCard && specialBossRewardCard.length > 0) { setGameState('BOSS_CLEAR_REWARD'); } 
     else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); } 
     else { setGameState('REWARDS'); }
   };
 
-  // -------------------------------------------------------------
-  // ✨ 적 턴 AI 행동 및 턴 사이클 제어 핵심 (상태이상 로직 추가됨)
-  // -------------------------------------------------------------
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
       setCombatState(prev => {
         let p = { ...prev.player };
 
-        // [수정1] 플레이어의 상태 이상 감소를 적 턴 시작 전으로 이동시켰습니다.
         ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
           p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k));
         });
@@ -270,7 +264,6 @@ export default function App() {
           p.buffs[k] = decayStack(p.buffs[k] || 0, k === 'intangible');
         });
 
-        // [수정2] 플레이어 중독 피해 처리
         if ((p.debuffs?.poison || 0) > 0) {
           p.hp -= p.debuffs.poison;
           p.debuffs.poison = Math.max(0, p.debuffs.poison - 1);
@@ -279,7 +272,6 @@ export default function App() {
         let newEnemies = prev.enemies.map(e => ({ ...e, block: 0 }));
         
         newEnemies.forEach(e => {
-          // [수정3] 적 중독 피해 처리 (이중 감소가 되지 않도록 별도로 분리)
           if (e.debuffs?.poison > 0) { 
             e.hp -= e.debuffs.poison; 
             e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); 
@@ -287,7 +279,6 @@ export default function App() {
           }
           if (e.hp <= 0) return;
           
-          // ✨ 적 재생(Regen) 회복 로직 추가
           if ((e.buffs?.regen || 0) > 0) {
             e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen);
           }
@@ -295,7 +286,6 @@ export default function App() {
           if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
           let intent = e.intentCard;
           
-          // ✨ 하드 CC (침묵 / 속박) 판정 로직 추가
           const isAttack = intent.type.includes('attack');
           const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
           
@@ -303,16 +293,13 @@ export default function App() {
           if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
           if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
 
-          // CC에 걸리지 않았을 때만 행동 수행
           if (canAct) {
             if (intent.type.includes('attack')) {
               let dmg = intent.value + (e.buffs.strength || 0);
               
-              // 취약, 약화 데미지 연산
               if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
               if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
               
-              // ✨ 무형(Intangible) 로직 추가: 플레이어에게 무형이 있으면 최종 데미지를 1로 고정
               if ((p.buffs?.intangible || 0) > 0) {
                 dmg = 1;
               }
@@ -324,7 +311,6 @@ export default function App() {
             }
             if (e.hp <= 0) return;
             
-            // [수정4] 적이 플레이어에게 거는 디버프 (침묵, 속박 등 누락된 속성 추가 적용)
             if (intent.type.includes('debuff')) {
               ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison'].forEach(dbf => {
                 if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
@@ -336,8 +322,6 @@ export default function App() {
             if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
           }
 
-          // ✨ 적의 상태 이상 턴 감소 (침묵, 속박 등 하드 CC는 1턴 후 무조건 즉시 해제 적용)
-          // poison은 위쪽의 데미지 처리부에서 차감하였으므로 제외하였습니다.
           ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
             e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k));
           });
@@ -354,7 +338,6 @@ export default function App() {
         
         p.block = 0; p.mana = p.maxMana;
         
-        // ✨ 플레이어 재생(Regen) 회복 로직 추가
         if ((p.buffs?.regen || 0) > 0) {
           p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen);
         }
@@ -372,7 +355,6 @@ export default function App() {
         if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; } 
         p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
         
-        // ✨ 플레이어 통찰(Insight) 추가 드로우 반영
         turnDraw += (p.buffs?.insight || 0);
 
         let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
@@ -669,14 +651,21 @@ export default function App() {
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
         
         {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards} combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection} setConfirmSelection={setConfirmSelection} startNextStage={startNextStage} getCardDef={getCardDef} shopUpgrades={shopUpgrades} specialBossRewardCard={specialBossRewardCard} 
+          // ✨ 배열 형태의 specialBossRewardCard 처리 로직
           handleSpecialBossRewardClaim={() => { 
-            if(specialBossRewardCard) { 
-              let newUnlocked = unlockedCards;
-              if(!unlockedCards.includes(specialBossRewardCard.id)) {
-                newUnlocked = [...unlockedCards, specialBossRewardCard.id];
-                setUnlockedCards(newUnlocked);
-              }
-              setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
+            if(specialBossRewardCard && specialBossRewardCard.length > 0) { 
+              let newUnlocked = [...unlockedCards];
+              let newCardsToAdd = [];
+              
+              specialBossRewardCard.forEach(card => {
+                if(!newUnlocked.includes(card.id)) {
+                  newUnlocked.push(card.id);
+                }
+                newCardsToAdd.push(card);
+              });
+              
+              setUnlockedCards(newUnlocked);
+              setCombatState(prev => ({...prev, baseDeck: [...prev.baseDeck, ...newCardsToAdd]})); 
               setSpecialBossRewardCard(null); 
               
               if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {

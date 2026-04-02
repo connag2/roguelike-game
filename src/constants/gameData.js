@@ -53,6 +53,7 @@ export const CARD_LIBRARY = [
   { id: 'poison_flask', name: '맹독 플라스크', type: 'skill', cost: 1, rarity: 'common', enemyPoison: 4, desc: '적에게 중독 4를 부여합니다.' },
   { id: 'spiked_shield', name: '가시 방패', type: 'skill', cost: 1, rarity: 'common', block: 5, selfThorns: 2, desc: '5의 방어도를 얻고 가시 2를 얻습니다.' },
   { id: 'twin_strike', name: '쌍발 타격', type: 'attack', cost: 1, rarity: 'common', damage: 4, multiHit: 2, desc: '4의 피해를 2번 연속 줍니다.' },
+  
   { id: 'heal', name: '치유', type: 'skill', cost: 2, rarity: 'uncommon', heal: 12, desc: '체력을 12 회복합니다.' },
   { id: 'mana_potion', name: '마나 물약', type: 'skill', cost: 1, rarity: 'uncommon', manaGain: 3, desc: '마나를 1 소모하여 마나 3을 얻습니다.' },
   { id: 'wind_slash', name: '순풍 베기', type: 'attack', cost: 1, rarity: 'uncommon', damage: 7, draw: 1, desc: '7의 피해를 주고 카드를 1장 뽑습니다.' },
@@ -193,6 +194,15 @@ export const CARD_LIBRARY = [
   { id: 'omniscience', name: '전지전능', type: 'skill', cost: 3, rarity: 'mythic', draw: 5, manaGain: 5, selfInsight: 5, enemyWeak: 5, enemyVuln: 5, desc: '카드를 5장 뽑고 마나 5, 통찰 5를 얻습니다. 적에게 약화 5, 취약 5를 부여합니다.' },
   { id: 'phantom_walk', name: '환영 보법', type: 'skill', cost: 3, rarity: 'mythic', selfIntangible: 1, exhaust: true, desc: '1턴 동안 무형 상태가 됩니다. (받는 모든 타격 피해가 1로 고정, 사용 후 소멸)' },
   { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'mythic', damage: 12, multiHit: 9, increasingDamage: 7, desc: '12의 피해를 9번 연속 줍니다. (타격 시마다 피해량이 7씩 증가합니다.)' },
+
+  // ✨ 하드 보스 전용 '명의' 등급 카드 추가
+  { id: 'transcendental_fall', name: '초월 낙하', type: 'attack', cost: 3, rarity: '명의', damage: 40, heal: 20, desc: '[초월한 슬라임] 40의 피해를 주고 체력을 20 회복합니다.' },
+  { id: 'annihilation_laser', name: '섬멸 레이저', type: 'attack', cost: 3, rarity: '명의', damage: 25, multiHit: 3, enemyVuln: 2, desc: '[기계화된 골렘] 25의 피해를 3번 연속 주고 취약 2를 부여합니다.' },
+  { id: 'fatal_error', name: 'Fatal Error', type: 'attack', cost: 3, rarity: '명의', damage: 60, enemyVuln: 5, enemyWeak: 5, desc: '[@#!%#] 60의 피해를 주고 취약 5, 약화 5를 부여합니다.' },
+  { id: 'world_of_nothing', name: '무의 세계', type: 'skill', cost: 3, rarity: '명의', enemySilence: 2, enemyBind: 2, desc: '[종말의 정적] 적에게 침묵 2와 속박 2를 부여합니다.' },
+  { id: 'blood_slash', name: '선혈 베기', type: 'attack', cost: 3, rarity: '명의', damage: 90, heal: 40, desc: '[릴리스] 90의 피해를 주고 체력을 40 회복합니다.' },
+  { id: 'curse_of_pleasure', name: '환락의 저주', type: 'skill', cost: 2, rarity: '명의', enemyVuln: 3, enemyWeak: 3, enemyPoison: 5, desc: '[모리건] 적에게 취약 3, 약화 3, 중독 5를 부여합니다.' },
+  { id: 'big_bang', name: '빅뱅', type: 'attack', cost: 4, rarity: '명의', damage: 25, multiHit: 8, desc: '[태초의 아케인: 에이온] 25의 피해를 8번 연속 줍니다.' }
 ];
 
 export const ENEMIES = [
@@ -352,6 +362,7 @@ export const HARD_MODE_BOSSES = [
   ]}
 ];
 
+// ✨ 하드 모드 보스들에게 전용 보상(명의 카드) 배열 추가
 export const SPECIAL_BOSSES = {
   25: { name: '거미 여왕', baseHp: 500, rewardCards: ['spider_queens_web', 'spider_queen_poison'], passives: [], deck: [{ name: '맹독 샤워', type: 'attack_debuff', value: 15, multi: 2, debuff: 'weak', turns: 2, desc: '15의 피해를 2번 주고 약화 2를 부여합니다.' }, { name: '여왕의 명령', type: 'defend_debuff', value: 50, debuff: 'vulnerable', turns: 2, desc: '50의 방어도를 얻고 취약 2를 부여합니다.' }] },
   50: { name: '김삠삐', baseHp: 1500, rewardCards: ['twerking'], passives: [{ id: 'revive', name: '1회 부활', desc: '사망 시 체력을 50% 회복하고 1회 부활합니다.' }], deck: [{ name: '트월킹', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 2, desc: '30의 피해를 주고 취약 2를 부여합니다.' }, { name: '도발', type: 'defend_buff', value: 50, buff: 'strength', buffValue: 6, desc: '50의 방어도를 얻고 근력을 6 얻습니다.' }, { name: '회보오옥!', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }] },

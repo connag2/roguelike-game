@@ -1,7 +1,7 @@
 // src/hooks/useBattle.js
 import { useEffect, useCallback } from 'react';
 import { shuffle, decayStack, calculateDamage, calculateBlock, clampStack } from '../utils/gameLogic';
-import { GAME_RULES, CARD_LIBRARY } from '../constants/gameData';
+import { GAME_RULES, CARD_LIBRARY, SPECIAL_BOSSES } from '../constants/gameData'; // ✨ SPECIAL_BOSSES 임포트 추가
 import { RELIC_LIBRARY } from '../constants/relicData';
 
 export function useBattle({
@@ -60,29 +60,58 @@ export function useBattle({
           if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
         }
 
+        // ✨ 보상 지급 로직 수정 (보스 전용 카드 + 신화 카드 조합 반환)
         const determineReward = (st) => {
-          const roll = Math.random();
-          
           if (isSpecialBoss) {
-            if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
-            
-            if ((prevCombat.mode === 'NORMAL' && st === 100) || (prevCombat.mode === 'HARD' && st === 300)) {
-              return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+            // 처치한 보스 정보를 찾아냄
+            const deadBoss = prevCombat.enemies.find(e => e.isBoss) || prevCombat.enemies[0];
+            const sBossInfo = Object.values(SPECIAL_BOSSES).find(b => b.name === deadBoss?.name);
+
+            if (prevCombat.mode === 'HARD') {
+              let rewards = [];
+              // 1. 하드 보스의 전용 카드 ('명의' 등급 등) 추가
+              if (sBossInfo && sBossInfo.rewardCards) {
+                 rewards.push(CARD_LIBRARY.find(c => c.id === sBossInfo.rewardCards[0]));
+              }
+              // 2. 신화(mythic) 카드 중 랜덤 1개 추가
+              const mythicPool = CARD_LIBRARY.filter(c => c.rarity === 'mythic');
+              if (mythicPool.length > 0) {
+                rewards.push(mythicPool[Math.floor(Math.random() * mythicPool.length)]);
+              }
+              return rewards.filter(Boolean); // null 값 필터링 후 배열로 반환
+            } else {
+              // 일반 모드의 스페셜 보스
+              if (sBossInfo && sBossInfo.rewardCards) {
+                 const pickedId = sBossInfo.rewardCards[Math.floor(Math.random() * sBossInfo.rewardCards.length)];
+                 return [CARD_LIBRARY.find(c => c.id === pickedId)].filter(Boolean);
+              }
+              
+              // 매칭 실패 시 폴백
+              const roll = Math.random();
+              if (roll < 0.01) return [CARD_LIBRARY.find(c => c.id === 'furioso')];
+              if (st === 100) return [roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot')];
+              const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
+              return [CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)])];
             }
-            
-            const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
-            return CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)]);
           }
           
-          if (isNormalBoss && roll < 0.10) {
-            const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
-            return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
+          if (isNormalBoss) {
+            const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe', 'meteor_fall', 'soul_shield', 'time_reverse'];
+            return [CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)])].filter(Boolean);
           }
           
           return null;
         };
 
-        const spReward = determineReward(prevCombat.stage);
+        let spReward = determineReward(prevCombat.stage);
+
+        // ✨ 획득 생략 로직: 이미 베이스 덱에 가지고 있는 카드는 보상에서 뺌
+        if (spReward && spReward.length > 0) {
+          spReward = spReward.filter(rewardCard => !prevCombat.baseDeck.some(deckCard => deckCard.id === rewardCard.id));
+          // 보상 배열이 비어버리면 (이미 카드를 다 가지고 있다면) 창을 띄우지 않도록 null 처리
+          if (spReward.length === 0) spReward = null; 
+        }
+
         if (spReward) setSpecialBossRewardCard(spReward);
 
         saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
@@ -130,7 +159,6 @@ export function useBattle({
 
     const isWin = !card.gamble || Math.random() < card.gambleWinChance;
     const hits = (card.damage && isWin) ? (card.multiHit || 1) : 1;
-    // 여기 있는 delay는 더 이상 안 씁니다 (BattleScreen에서 제어하도록 수정됨).
 
     setCombatState(prev => {
       let p = { ...prev.player };
@@ -154,7 +182,6 @@ export function useBattle({
         if (card.doubleBlock) p.block *= 2;
         if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
         
-        // ✨ 정화 카드 로직 추가
         if (card.cleanse) {
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 };
             setToastMsg("모든 상태 이상이 해제되었습니다!");
@@ -193,8 +220,6 @@ export function useBattle({
     let currentDamage = Number(card.damage) || 0;
 
     for (let i = 0; i < hits; i++) {
-      // 딜레이는 BattleScreen에서 적용되므로 여기선 0밀리초 또는 생략
-      // (렌더링 동기화를 위해 약간의 틱만 넘김)
       if (i > 0) await new Promise(r => setTimeout(r, 0));
 
       setCombatState(prev => {
@@ -230,7 +255,6 @@ export function useBattle({
 
         if (isWin) {
           if (i === 0) {
-            // ✨ 도박 성공 메시지 추가
             if (card.gamble) setToastMsg("도박 성공!");
 
             if (card.winDamage) deal(newEnemies[0]?.isBoss ? card.winDamageBoss : card.winDamage);

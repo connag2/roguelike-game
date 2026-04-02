@@ -24,8 +24,8 @@ export default function Rewards({
   shopUpgrades,
   specialBossRewardCard,
   handleSpecialBossRewardClaim,
-  pendingRelicReward,         // ✨ 유물 관련 상태 추가
-  handleRelicRewardClaim      // ✨ 유물 획득 핸들러 추가
+  pendingRelicReward,
+  handleRelicRewardClaim
 }) {
   if (!combatState) return null;
 
@@ -52,7 +52,6 @@ export default function Rewards({
           onClick={handleRelicRewardClaim} 
           className={`z-10 bg-slate-800/80 backdrop-blur-md p-8 md:p-10 rounded-3xl border-4 ${rBorder} shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-sm w-full text-center transform transition-all duration-300 hover:scale-110 cursor-pointer animate-[scale-in_0.5s_ease-out] flex flex-col items-center`}
         >
-          {/* ✨ 멋진 방패 이미지를 유물 아이콘처럼 활용 */}
           <img src={shieldImg} alt="Relic" className="w-20 h-20 mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse" />
           
           <h2 className={`text-3xl md:text-4xl mb-6 ${rColor} drop-shadow-lg`}>{pendingRelicReward.name}</h2>
@@ -99,7 +98,6 @@ export default function Rewards({
             setRewardCards(selected);
             setGameState('REWARD_CARD');
           }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
-            {/* ✨ 스크롤 이미지 적용 */}
             <img src={scrollImg} alt="Add Card" className="w-12 h-12 md:w-16 md:h-16 mb-4 drop-shadow-[0_0_10px_rgba(129,140,248,0.5)] group-hover:scale-110 transition-transform" />
             <span className="text-xl md:text-2xl font-bold">카드 추가</span>
           </button>
@@ -110,7 +108,6 @@ export default function Rewards({
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
             startNextStage(p, combatState.baseDeck);
           }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
-            {/* ✨ 물약 이미지 적용 */}
             <img src={potionImg} alt="Heal" className="w-12 h-12 md:w-16 md:h-16 mb-4 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] group-hover:scale-110 transition-transform" />
             <span className="text-xl md:text-2xl font-bold">회복 & 정화</span>
           </button>
@@ -205,20 +202,26 @@ export default function Rewards({
     );
   }
 
-  // 4. 보스 클리어 특수 보상 화면
-  if (gameState === 'BOSS_CLEAR_REWARD' && specialBossRewardCard) {
+  // ✨ 4. 보스 클리어 특수 보상 화면 (배열을 받아 여러 장의 카드를 나란히 렌더링)
+  if (gameState === 'BOSS_CLEAR_REWARD' && specialBossRewardCard && specialBossRewardCard.length > 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative z-50 overflow-hidden">
         <div className="absolute inset-0 bg-fuchsia-600/10 animate-pulse pointer-events-none" />
         <h2 className="text-4xl md:text-5xl font-black mb-4 text-fuchsia-400 tracking-wider text-center drop-shadow-lg animate-bounce">특수 보스 처치 보상!</h2>
         <p className="text-lg md:text-xl mb-10 text-slate-300 text-center">압도적인 적을 물리친 증표로<br/>새로운 특수 카드를 획득했습니다.</p>
-        <div className="relative group w-48 h-64 md:w-64 md:h-80 mb-10 animate-draw">
-          <div className="scale-125 md:scale-150 origin-top h-full w-full">
-            <Card card={specialBossRewardCard} />
-          </div>
-          <div className="absolute inset-0 border-4 border-fuchsia-500/50 rounded-xl animate-pulse" />
+        
+        <div className="flex gap-4 md:gap-8 justify-center items-center mb-10 animate-draw flex-wrap">
+          {specialBossRewardCard.map((card, idx) => (
+            <div key={idx} className="relative group w-48 h-64 md:w-64 md:h-80 mt-8 md:mt-12">
+              <div className="scale-125 md:scale-150 origin-top h-full w-full">
+                <Card card={card} />
+              </div>
+              <div className="absolute inset-0 border-4 border-fuchsia-500/50 rounded-xl animate-pulse" />
+            </div>
+          ))}
         </div>
-        <button onClick={handleSpecialBossRewardClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-24 transition-transform hover:scale-105">수락하기</button>
+
+        <button onClick={handleSpecialBossRewardClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-12 transition-transform hover:scale-105">수락하기</button>
       </div>
     );
   }
