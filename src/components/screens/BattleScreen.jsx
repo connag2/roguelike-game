@@ -22,11 +22,20 @@ export default function BattleScreen({
   
   const [animatingCardIndex, setAnimatingCardIndex] = useState(null);
   const [turnBanner, setTurnBanner] = useState(null);
+  
+  // ✨ 새로 추가된 상태: 턴 종료 시 남은 카드를 버리는 애니메이션 상태
+  const [discardingHand, setDiscardingHand] = useState(false);
 
-  // ✨ 턴 전환 감지 및 배너 표시 (표시 시간 1500ms -> 800ms로 단축)
+  // 턴 전환 감지 및 배너 표시
   useEffect(() => {
     if (combatState?.turn) {
       setTurnBanner(combatState.turn === 'PLAYER' ? 'YOUR TURN' : 'ENEMY TURN');
+      
+      // 내 턴이 다시 돌아오면 카드 버리는 상태 초기화
+      if (combatState.turn === 'PLAYER') {
+        setDiscardingHand(false);
+      }
+
       const timer = setTimeout(() => setTurnBanner(null), 800); 
       return () => clearTimeout(timer);
     }
@@ -44,10 +53,25 @@ export default function BattleScreen({
 
   if (!combatState) return null;
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
+  const isEnemyTurn = combatState.turn === 'ENEMY';
+
+  // ✨ 턴 종료 버튼 클릭 핸들러
+  const handleTurnEndClick = async () => {
+    if (!isPlayerTurn || discardingHand) return;
+    
+    // 1. 남은 손패 버리는 애니메이션 시작
+    setDiscardingHand(true);
+    
+    // 카드가 묘지로 모두 날아갈 때까지 대기 (카드 장수에 비례해 딜레이)
+    await new Promise(r => setTimeout(r, 300 + hand.length * 50)); 
+    
+    // 2. 애니메이션 완료 후 적 턴으로 변경 -> 배너 출력 -> 적 행동 시작
+    setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+  };
 
   const handlePlayCard = async (idx) => {
     if (playEffect && playEffect.name !== 'enemy_attack') return;
-    if (animatingCardIndex !== null) return; 
+    if (animatingCardIndex !== null || discardingHand) return; 
 
     const card = hand[idx];
     const isAttack = card.type === 'attack';
@@ -117,7 +141,6 @@ export default function BattleScreen({
           animation: drawCardAnim 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
         }
         
-        /* ✨ 턴 배너 애니메이션 속도 단축 (1.5s -> 0.8s) */
         @keyframes bannerSlide {
           0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
           20% { transform: translateX(0) skewX(-15deg); opacity: 1; }
@@ -126,6 +149,15 @@ export default function BattleScreen({
         }
         .animate-turn-banner { 
           animation: bannerSlide 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
+        }
+
+        /* ✨ 적 턴 진행 시 붉은 글로우와 함께 고동치는 애니메이션 */
+        @keyframes enemyActionPulse {
+          0%, 100% { filter: drop-shadow(0 0 15px rgba(220,38,38,0.4)); transform: scale(1.1); }
+          50% { filter: drop-shadow(0 0 40px rgba(239,68,68,0.9)); transform: scale(1.15); }
+        }
+        .animate-pulse-enemy {
+          animation: enemyActionPulse 1.5s infinite ease-in-out;
         }
       `}</style>
 
@@ -264,7 +296,7 @@ export default function BattleScreen({
 
       <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
         
-        <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
+        <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn && !discardingHand ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
             <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
             
@@ -312,11 +344,13 @@ export default function BattleScreen({
             if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
 
             return (
-              <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${!isPlayerTurn ? 'scale-105 z-30' : isTarget ? 'scale-100 opacity-90' : 'scale-90 opacity-40'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
+              // ✨ 적 턴일 때 강하게 부각(스케일업 + 펄스 애니메이션) 시키는 클래스 적용
+              <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
-                <div className="mb-4 relative z-10">
-                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
+                {/* ✨ 적 턴일 때 공격 의도 아이콘을 위로 띄우며 크게 강조 */}
+                <div className={`mb-4 relative z-10 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
+                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 transition-colors ${isEnemyTurn ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
                     <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
                     
                     <div className="flex flex-wrap justify-center items-center gap-1">
@@ -425,27 +459,43 @@ export default function BattleScreen({
           <div className="flex justify-center items-end w-full px-20 md:px-40 h-full pb-4 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
-              const isHovered = hoveredCard === idx;
+              // 카드 버리기 중에는 호버 불가
+              const isHovered = hoveredCard === idx && !discardingHand; 
               const offset = idx - (hand.length - 1) / 2;
               
               const rotation = isHovered ? 0 : offset * 4.5;
               const translateY = isHovered ? -60 : Math.abs(offset) * 8; 
 
+              // ✨ 버리기 연출, 사용 연출, 일반 상태 분기 처리
+              let cardTransform = '';
+              let cardOpacity = 1;
+
+              if (discardingHand) {
+                cardTransform = `translate(35vw, 20vh) scale(0.1) rotate(180deg)`;
+                cardOpacity = 0;
+              } else if (animatingCardIndex === idx) {
+                cardTransform = 'translateY(-40vh) scale(0.5)';
+                cardOpacity = 0;
+              } else {
+                cardTransform = `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.15 : 1})`;
+              }
+
               return (
                 <div key={card.uid} 
-                     onMouseEnter={() => setHoveredCard(idx)} 
-                     onMouseLeave={() => setHoveredCard(null)} 
-                     className="relative transition-all duration-300 ease-out origin-bottom -ml-6 md:-ml-10 first:ml-0 px-2" 
+                     onMouseEnter={() => !discardingHand && setHoveredCard(idx)} 
+                     onMouseLeave={() => !discardingHand && setHoveredCard(null)} 
+                     className="relative origin-bottom -ml-6 md:-ml-10 first:ml-0 px-2" 
                      style={{ 
                        zIndex: isHovered ? 100 : 10 + idx, 
-                       transform: animatingCardIndex === idx 
-                          ? 'translateY(-40vh) scale(0.5)' 
-                          : `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.15 : 1})`,
-                       opacity: animatingCardIndex === idx ? 0 : 1,
-                       pointerEvents: 'auto'
+                       transform: cardTransform,
+                       opacity: cardOpacity,
+                       // 버릴 때는 카드마다 살짝 시차를 두고 빨려들어가는 transition 적용
+                       transition: discardingHand 
+                          ? `all 0.5s cubic-bezier(0.55, 0.085, 0.68, 0.53) ${idx * 0.05}s` 
+                          : 'all 0.3s ease-out',
+                       pointerEvents: discardingHand ? 'none' : 'auto'
                      }}>
                   
-                  {/* ✨ 드로우 시 턴 배너가 넘어간 뒤에 카드가 순차적으로 들어오게 설정 */}
                   <div className="animate-draw-card w-full h-full" 
                        style={{ 
                          animationDelay: `${0.3 + (idx * 0.08)}s`, 
@@ -462,14 +512,13 @@ export default function BattleScreen({
           </div>
 
           <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
+            {/* ✨ 턴 종료 버튼 (클릭 시 애니메이션 발동) */}
             <button 
-              onClick={() => {
-                setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
-              }} 
-              disabled={!isPlayerTurn} 
-              className={`py-3 px-5 md:py-4 md:px-8 rounded-2xl font-black text-xs md:text-lg flex items-center gap-2 transition-all border-b-[6px] active:border-b-0 active:translate-y-1 ${isPlayerTurn ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800 shadow-[0_10px_20px_rgba(245,158,11,0.3)]' : 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed'}`}
+              onClick={handleTurnEndClick} 
+              disabled={!isPlayerTurn || discardingHand} 
+              className={`py-3 px-5 md:py-4 md:px-8 rounded-2xl font-black text-xs md:text-lg flex items-center gap-2 transition-all border-b-[6px] active:border-b-0 active:translate-y-1 ${isPlayerTurn && !discardingHand ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800 shadow-[0_10px_20px_rgba(245,158,11,0.3)]' : 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed'}`}
             >
-              {isPlayerTurn ? 'TURN END' : 'WAITING...'} <ArrowRightCircle className="w-4 h-4 md:w-6 md:h-6"/>
+              {isPlayerTurn && !discardingHand ? 'TURN END' : 'WAITING...'} <ArrowRightCircle className="w-4 h-4 md:w-6 md:h-6"/>
             </button>
             <div className="flex flex-col items-center cursor-pointer group" onClick={() => setViewingPile('discardPile')}>
               <div className="w-12 h-16 md:w-16 md:h-24 bg-slate-950 border-2 border-slate-800 rounded-xl flex items-center justify-center font-black text-xl md:text-3xl shadow-lg group-hover:-translate-y-2 group-hover:border-red-600 transition-all duration-300 text-slate-500">{discardPile.length}</div>
