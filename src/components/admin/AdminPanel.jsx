@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { hashPassword } from '../../utils/crypto';
+// 🐛 경로 버그 수정: ../../utils/crypto -> ../utils/crypto
+import { hashPassword } from '../utils/crypto';
 
 // 나중에 혼자 계실 때 브라우저 콘솔(F12)에 아래 코드를 쳐서 나온 긴 영어+숫자 조합을 여기에 넣으세요.
 const ADMIN_PASSWORD_HASH = ""; // <-- 여기에 복사한 해시값 붙여넣기
