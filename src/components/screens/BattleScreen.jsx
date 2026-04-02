@@ -249,9 +249,13 @@ export default function BattleScreen({
             const eCard = enemy.intentCard;
             const isTarget = idx === 0;
 
-            let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
-            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
-            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
+            let finalDmg = eCard.value || 0;
+// 행동 타입에 'attack'이 포함될 때(attack, attack_debuff, attack_heal 등)만 증감 효과를 적용합니다.
+if (eCard.type.includes('attack')) {
+  finalDmg += (enemy.buffs?.strength || 0);
+  if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
+  if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
+}
 
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${!isPlayerTurn ? 'scale-105 z-30' : isTarget ? 'scale-100 opacity-90' : 'scale-90 opacity-40'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
