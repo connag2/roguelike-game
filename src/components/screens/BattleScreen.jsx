@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Shield, RefreshCw, Skull, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; // ✨ Heart 추가!
+import { Shield, RefreshCw, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; 
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 import CommonEffects from '../effects/CommonEffects';
 import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
 import UniqueEffects from '../effects/UniqueEffects';
+import Tooltip from '../common/Tooltip'; // ✨ Tooltip 임포트 추가
+
+import heroImg from '../../assets/images/characters/hero.svg';
+import slimeImg from '../../assets/images/monsters/slime.svg';
+import skeletonImg from '../../assets/images/monsters/skeleton.svg';
 
 export default function BattleScreen({
   combatState, isPlayerTurn, setViewingPile, viewingPile, setGameState, hoveredCard, setHoveredCard,
@@ -54,6 +59,12 @@ export default function BattleScreen({
   };
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
+
+  const getEnemyImage = (name) => {
+    if (!name) return slimeImg;
+    if (name.includes('스켈레톤') || name.includes('리치')) return skeletonImg;
+    return slimeImg;
+  };
 
   return (
     <div className={`flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden ${isShaking ? 'animate-shake' : ''}`}>
@@ -156,12 +167,17 @@ export default function BattleScreen({
         </div>
       )}
 
-      {/* ✨ 상단 유물 바 (전투화면 원래대로 원상복구 완료!) */}
+      {/* ✨ 상단 유물 바: z-index 수정(z-10 -> z-50) */}
       {playerRelics && playerRelics.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2 z-10 w-full px-2">
+        <div className="flex flex-wrap gap-2 mb-2 z-50 w-full px-2">
           {playerRelics.map((r, i) => (
-            <div key={i} className="relative group cursor-help bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors">
-              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter">{r.name}</span>
+            <div key={i} className="relative group bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors flex items-center">
+              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter cursor-help">
+                {r.name}
+              </span>
+              {/* ✨ 툴팁을 추가하고 아래로 열리도록 설정 */}
+              <Tooltip desc={r.desc} direction="down" />
+              
               <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
                 <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-800 pb-1">{r.name}</div>
                 <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
@@ -187,9 +203,11 @@ export default function BattleScreen({
       </div>
 
       <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
+        
+        {/* 플레이어 캐릭터 영역 */}
         <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
           <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
-            <Skull className="w-10 h-10 md:w-16 md:h-16 text-indigo-500/80" />
+            <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
             
             {player.block > 0 && (
               <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
@@ -204,40 +222,87 @@ export default function BattleScreen({
             <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
             <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
           </div>
+          
           <div className="flex gap-1 mt-2 flex-wrap justify-center max-w-[200px] scale-90">
             <StatusIcon type="strength" value={player.buffs?.strength} />
             <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
             <StatusIcon type="thorns" value={player.buffs?.thorns} />
+            <StatusIcon type="intangible" value={player.buffs?.intangible} />
+            <StatusIcon type="regen" value={player.buffs?.regen} />
+            <StatusIcon type="rage" value={player.buffs?.rage} />
+            <StatusIcon type="insight" value={player.buffs?.insight} />
             <StatusIcon type="poison" value={player.debuffs?.poison} />
             <StatusIcon type="weak" value={player.debuffs?.weak} />
             <StatusIcon type="vulnerable" value={player.debuffs?.vulnerable} />
+            <StatusIcon type="mark" value={player.debuffs?.mark} />
+            <StatusIcon type="frail" value={player.debuffs?.frail} />
+            <StatusIcon type="silence" value={player.debuffs?.silence} />
+            <StatusIcon type="bind" value={player.debuffs?.bind} />
           </div>
         </div>
 
         <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
+        {/* 몬스터 캐릭터 영역 */}
         <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
             const eCard = enemy.intentCard;
             const isTarget = idx === 0;
+
+            let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
+            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
+            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
+
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${!isPlayerTurn ? 'scale-105 z-30' : isTarget ? 'scale-100 opacity-90' : 'scale-90 opacity-40'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
                 <div className="mb-4 relative z-10">
-                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
-  <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
-  <div className="flex items-center gap-1.5 bg-slate-900 px-2.5 py-0.5 rounded-full border border-slate-800">
-    {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
-    <span className="text-[10px] md:text-xs font-black text-white">
-      {eCard.value ? (eCard.multi ? `${eCard.value + (enemy.buffs?.strength || 0)}x${eCard.multi}` : (eCard.value + (enemy.buffs?.strength || 0))) : eCard.heal ? `+${eCard.heal}` : '?'}
-    </span>
-  </div>
-</div>
+                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 ${eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
+                    <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
+                    
+                    <div className="flex flex-wrap justify-center items-center gap-1">
+                      {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                          {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
+                          <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
+                            {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : eCard.type === 'defend' ? 'DEF' : ''}
+                          </span>
+                        </div>
+                      )}
+
+                      {eCard.debuff && (
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                          <span className={`text-[9px] md:text-[10px] font-black ${
+                            eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : 
+                            eCard.debuff === 'weak' ? 'text-blue-300' : 
+                            eCard.debuff === 'bind' ? 'text-yellow-400' :
+                            eCard.debuff === 'silence' ? 'text-slate-400' :
+                            'text-green-400'
+                          }`}>
+                            {eCard.debuff === 'vulnerable' ? '취약' : 
+                             eCard.debuff === 'weak' ? '약화' : 
+                             eCard.debuff === 'bind' ? '속박' : 
+                             eCard.debuff === 'silence' ? '침묵' : 
+                             '중독'} {eCard.turns}
+                          </span>
+                        </div>
+                      )}
+
+                      {eCard.buff && (
+                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                          <span className="text-[9px] md:text-[10px] font-black text-amber-400">
+                            {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
-                  <Skull className={`${enemy.isBoss ? 'w-12 h-12 md:w-20 md:h-20 text-red-500' : 'w-8 h-8 md:w-12 md:h-12 text-red-700/80'}`} />
+                  <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
+                  
                   {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
                   {isTarget && playEffect && playEffect.name !== 'mana_potion' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                 </div>
@@ -247,13 +312,31 @@ export default function BattleScreen({
                   <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
                   <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
                 </div>
+                
                 <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
+                  {enemy.passives && enemy.passives.map((p, pIdx) => (
+                    <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
+                      <Zap className="w-3 h-3 text-amber-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-32 md:w-48 p-2 bg-slate-900 border-2 border-amber-500/50 rounded-xl shadow-2xl z-[1000] pointer-events-none text-left">
+                        <div className="text-amber-400 font-bold text-[10px] md:text-xs mb-1 border-b border-slate-700 pb-1">{p.name}</div>
+                        <div className="text-[9px] md:text-[10px] text-slate-300 whitespace-normal leading-relaxed">{p.desc}</div>
+                      </div>
+                    </div>
+                  ))}
                   <StatusIcon type="strength" value={enemy.buffs?.strength} isEnemy={true} />
                   <StatusIcon type="dexterity" value={enemy.buffs?.dexterity} isEnemy={true} />
                   <StatusIcon type="thorns" value={enemy.buffs?.thorns} isEnemy={true} />
+                  <StatusIcon type="intangible" value={enemy.buffs?.intangible} isEnemy={true} />
+                  <StatusIcon type="regen" value={enemy.buffs?.regen} isEnemy={true} />
+                  <StatusIcon type="rage" value={enemy.buffs?.rage} isEnemy={true} />
+                  <StatusIcon type="insight" value={enemy.buffs?.insight} isEnemy={true} />
                   <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
                   <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
                   <StatusIcon type="vulnerable" value={enemy.debuffs?.vulnerable} isEnemy={true} />
+                  <StatusIcon type="mark" value={enemy.debuffs?.mark} isEnemy={true} />
+                  <StatusIcon type="frail" value={enemy.debuffs?.frail} isEnemy={true} />
+                  <StatusIcon type="silence" value={enemy.debuffs?.silence} isEnemy={true} />
+                  <StatusIcon type="bind" value={enemy.debuffs?.bind} isEnemy={true} />
                 </div>
               </div>
             );
@@ -293,10 +376,9 @@ export default function BattleScreen({
                      className="relative transition-all duration-300 ease-out origin-bottom -ml-8 md:-ml-12 first:ml-0" 
                      style={{ zIndex: isHovered ? 100 : 10 + idx, transform: isHovered ? `translateY(-60px) scale(1.15) rotate(0deg)` : `translateY(${translateY}px) rotate(${rotation}deg)` }}>
                   
-                  {/* 👇 bg-slate-900을 추가하고, rounded-2xl을 rounded-xl로 변경했습니다 */}
-      <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
-        <Card card={card} isLocked={false} />
-      </div>
+                  <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer' : 'cursor-not-allowed brightness-75'}`}>
+                    <Card card={card} isLocked={false} />
+                  </div>
                 </div>
               );
             })}
