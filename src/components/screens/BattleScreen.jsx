@@ -27,7 +27,7 @@ export default function BattleScreen({
   const [discardingHand, setDiscardingHand] = useState(false);
 
   // 턴 전환 감지 및 배너 표시
-  useEffect(() => {
+  useEffect(() => { 
     if (combatState?.turn) {
       setTurnBanner(combatState.turn === 'PLAYER' ? 'YOUR TURN' : 'ENEMY TURN');
       
