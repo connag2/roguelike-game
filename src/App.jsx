@@ -261,10 +261,30 @@ export default function App() {
     const timer = setTimeout(() => {
       setCombatState(prev => {
         let p = { ...prev.player };
+
+        // [수정1] 플레이어의 상태 이상 감소를 적 턴 시작 전으로 이동시켰습니다.
+        ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
+          p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k));
+        });
+        ['strength', 'dexterity', 'thorns', 'intangible', 'regen', 'rage', 'insight'].forEach(k => {
+          p.buffs[k] = decayStack(p.buffs[k] || 0, k === 'intangible');
+        });
+
+        // [수정2] 플레이어 중독 피해 처리
+        if ((p.debuffs?.poison || 0) > 0) {
+          p.hp -= p.debuffs.poison;
+          p.debuffs.poison = Math.max(0, p.debuffs.poison - 1);
+        }
+
         let newEnemies = prev.enemies.map(e => ({ ...e, block: 0 }));
         
         newEnemies.forEach(e => {
-          if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
+          // [수정3] 적 중독 피해 처리 (이중 감소가 되지 않도록 별도로 분리)
+          if (e.debuffs?.poison > 0) { 
+            e.hp -= e.debuffs.poison; 
+            e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); 
+            checkRevive(e, null); 
+          }
           if (e.hp <= 0) return;
           
           // ✨ 적 재생(Regen) 회복 로직 추가
@@ -286,34 +306,39 @@ export default function App() {
           // CC에 걸리지 않았을 때만 행동 수행
           if (canAct) {
             if (intent.type.includes('attack')) {
-  let dmg = intent.value + (e.buffs.strength || 0);
-  
-  // 취약, 약화 데미지 연산
-  if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-  if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-  
-  // ✨ 무형(Intangible) 로직 추가: 플레이어에게 무형이 있으면 최종 데미지를 1로 고정
-  if ((p.buffs?.intangible || 0) > 0) {
-    dmg = 1;
-  }
+              let dmg = intent.value + (e.buffs.strength || 0);
+              
+              // 취약, 약화 데미지 연산
+              if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+              if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+              
+              // ✨ 무형(Intangible) 로직 추가: 플레이어에게 무형이 있으면 최종 데미지를 1로 고정
+              if ((p.buffs?.intangible || 0) > 0) {
+                dmg = 1;
+              }
 
-  for(let i=0; i<(intent.multi || 1); i++) {
-    if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
-    if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
-  }
-}
-            if (e.hp <= 0) return;
-            if (intent.type.includes('debuff')) {
-              if (intent.debuff === 'weak') p.debuffs.weak += intent.turns;
-              if (intent.debuff === 'vulnerable') p.debuffs.vulnerable += intent.turns;
+              for(let i=0; i<(intent.multi || 1); i++) {
+                if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
+                if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+              }
             }
+            if (e.hp <= 0) return;
+            
+            // [수정4] 적이 플레이어에게 거는 디버프 (침묵, 속박 등 누락된 속성 추가 적용)
+            if (intent.type.includes('debuff')) {
+              ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison'].forEach(dbf => {
+                if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
+              });
+            }
+            
             if (intent.type.includes('defend')) e.block += intent.value;
             if (intent.type.includes('buff') && intent.buff === 'strength') e.buffs.strength += intent.buffValue;
             if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
           }
 
           // ✨ 적의 상태 이상 턴 감소 (침묵, 속박 등 하드 CC는 1턴 후 무조건 즉시 해제 적용)
-          ['weak', 'vulnerable', 'poison', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
+          // poison은 위쪽의 데미지 처리부에서 차감하였으므로 제외하였습니다.
+          ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
             e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k));
           });
           ['strength', 'intangible', 'regen', 'rage'].forEach(k => {
@@ -333,14 +358,6 @@ export default function App() {
         if ((p.buffs?.regen || 0) > 0) {
           p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen);
         }
-
-        // ✨ 플레이어의 상태 이상 턴 감소 확장 적용
-        ['weak', 'vulnerable', 'poison', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
-          p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k));
-        });
-        ['strength', 'dexterity', 'thorns', 'intangible', 'regen', 'rage', 'insight'].forEach(k => {
-          p.buffs[k] = decayStack(p.buffs[k] || 0, k === 'intangible');
-        });
 
         let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
         (playerRelics || []).forEach(r => {
