@@ -286,14 +286,22 @@ export default function App() {
           // CC에 걸리지 않았을 때만 행동 수행
           if (canAct) {
             if (intent.type.includes('attack')) {
-              let dmg = intent.value + (e.buffs.strength || 0);
-              if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-              if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-              for(let i=0; i<(intent.multi || 1); i++) {
-                if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
-                if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
-              }
-            }
+  let dmg = intent.value + (e.buffs.strength || 0);
+  
+  // 취약, 약화 데미지 연산
+  if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+  if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+  
+  // ✨ 무형(Intangible) 로직 추가: 플레이어에게 무형이 있으면 최종 데미지를 1로 고정
+  if ((p.buffs?.intangible || 0) > 0) {
+    dmg = 1;
+  }
+
+  for(let i=0; i<(intent.multi || 1); i++) {
+    if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
+    if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+  }
+}
             if (e.hp <= 0) return;
             if (intent.type.includes('debuff')) {
               if (intent.debuff === 'weak') p.debuffs.weak += intent.turns;
