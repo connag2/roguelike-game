@@ -366,6 +366,116 @@ export const NORMAL_BOSSES = [
   { name: '맹독의 여왕', baseHp: 600, deck: [{ name: '맹독 가시', type: 'attack', value: 15, multi: 3, desc: '15의 피해를 3번 줍니다.' }, { name: '마비 독', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다.' }, { name: '산성 늪', type: 'attack_debuff', value: 25, debuff: 'vulnerable', turns: 4, desc: '25의 피해를 주고 취약 4를 부여합니다.' }] },
   { name: '심연의 주시자', baseHp: 850, deck: [{ name: '파멸의 광선', type: 'attack', value: 55, desc: '55의 피해를 줍니다.' }, { name: '정신 붕괴', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다.' }, { name: '공허의 장막', type: 'defend', value: 70, desc: '70의 방어도를 얻습니다.' }] }
 ];
+// --- 하드 모드 10층 단위 전용 보스 (총 20종, 약함 -> 강함 순서) ---
+export const HARD_MODE_BOSSES = [
+  // 1~5 티어: 귀엽거나 비교적 상대하기 쉬운 초반 보스들
+  { name: '솜뭉치 유령', baseHp: 200, deck: [
+    { name: '솜뭉치 펀치', type: 'attack', value: 15, desc: '15의 피해를 줍니다.' }, 
+    { name: '폭신폭신', type: 'defend', value: 30, desc: '30의 방어도를 얻습니다.' }, 
+    { name: '재채기 가루', type: 'debuff', debuff: 'weak', turns: 2, desc: '약화 2를 부여합니다.' }
+  ]},
+  { name: '심술쟁이 요정', baseHp: 250, deck: [
+    { name: '요정의 장난', type: 'attack', value: 8, multi: 2, desc: '8의 피해를 2번 줍니다.' }, 
+    { name: '눈부신 가루', type: 'debuff', debuff: 'frail', turns: 2, desc: '허약 2를 부여합니다.' }, 
+    { name: '반짝반짝', type: 'heal', heal: 30, desc: '체력을 30 회복합니다.' }
+  ]},
+  { name: '서큐버스 동생 리리', baseHp: 300, deck: [
+    { name: '하트 브레이커', type: 'attack_debuff', value: 20, debuff: 'vulnerable', turns: 2, desc: '20의 피해를 주고 취약 2를 부여합니다.' }, 
+    { name: '달콤한 속삭임', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다. (스킬 봉인)' }, 
+    { name: '언니 도와줘!', type: 'defend_buff', value: 40, buff: 'strength', buffValue: 2, desc: '40의 방어도를 얻고 근력을 2 얻습니다.' }
+  ]},
+  { name: '서큐버스 언니 롤라', baseHp: 350, deck: [
+    { name: '사랑의 채찍', type: 'attack', value: 12, multi: 3, desc: '12의 피해를 3번 줍니다.' }, 
+    { name: '정기 흡수', type: 'attack_heal', value: 25, heal: 25, desc: '25의 피해를 주고 체력을 25 회복합니다.' }, 
+    { name: '위험한 매력', type: 'debuff', debuff: 'bind', turns: 1, desc: '속박 1을 부여합니다. (공격 봉인)' }
+  ]},
+  { name: '화가 난 호박 기사', baseHp: 400, deck: [
+    { name: '호박 머리 박치기', type: 'attack', value: 35, desc: '35의 피해를 줍니다.' }, 
+    { name: '넝쿨 묶기', type: 'attack_debuff', value: 15, debuff: 'frail', turns: 3, desc: '15의 피해를 주고 허약 3을 부여합니다.' }, 
+    { name: '단단한 껍질', type: 'defend', value: 50, desc: '50의 방어도를 얻습니다.' }
+  ]},
+
+  // 6~10 티어: 중간 단계의 위협적인 보스들
+  { name: '거대 꿀벌 여왕', baseHp: 450, deck: [
+    { name: '독침 찌르기', type: 'attack_debuff', value: 25, debuff: 'poison', turns: 4, desc: '25의 피해를 주고 중독 4를 부여합니다.' }, 
+    { name: '페로몬 살포', type: 'debuff', debuff: 'mark', turns: 3, desc: '표식 3을 부여합니다.' }, 
+    { name: '일벌 소환', type: 'defend', value: 60, desc: '60의 방어도를 얻습니다.' }
+  ]},
+  { name: '달빛 늑대인간', baseHp: 500, deck: [
+    { name: '광란의 발톱', type: 'attack', value: 20, multi: 2, desc: '20의 피해를 2번 줍니다.' }, 
+    { name: '피의 갈증', type: 'buff', buff: 'strength', buffValue: 3, desc: '근력을 3 얻습니다.' }, 
+    { name: '물어뜯기', type: 'attack_heal', value: 30, heal: 20, desc: '30의 피해를 주고 체력을 20 회복합니다.' }
+  ]},
+  { name: '광기의 연금술사', baseHp: 550, deck: [
+    { name: '화학 물질 투척', type: 'attack', value: 45, desc: '45의 피해를 줍니다.' }, 
+    { name: '유독 가스', type: 'debuff', debuff: 'poison', turns: 5, desc: '중독 5를 부여합니다.' }, 
+    { name: '돌연변이 물약', type: 'defend_buff', value: 40, buff: 'strength', buffValue: 4, desc: '40의 방어도를 얻고 근력을 4 얻습니다.' }
+  ]},
+  { name: '고대 유적의 파수꾼', baseHp: 600, deck: [
+    { name: '레이저 빔', type: 'attack', value: 50, desc: '50의 피해를 줍니다.' }, 
+    { name: '강제 제압', type: 'attack_debuff', value: 20, debuff: 'bind', turns: 1, desc: '20의 피해를 주고 속박 1을 부여합니다.' }, 
+    { name: '방어막 전개', type: 'defend', value: 80, desc: '80의 방어도를 얻습니다.' }
+  ]},
+  { name: '빙결의 마녀', baseHp: 650, deck: [
+    { name: '얼음 송곳', type: 'attack', value: 15, multi: 3, desc: '15의 피해를 3번 줍니다.' }, 
+    { name: '눈보라', type: 'debuff', debuff: 'weak', turns: 4, desc: '약화 4를 부여합니다.' }, 
+    { name: '절대 영도', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다.' }
+  ]},
+
+  // 11~15 티어: 본격적인 하드 모드의 악랄한 보스들
+  { name: '심해의 악몽', baseHp: 700, deck: [
+    { name: '먹물 뿜기', type: 'attack_debuff', value: 35, debuff: 'frail', turns: 4, desc: '35의 피해를 주고 허약 4를 부여합니다.' }, 
+    { name: '촉수 난타', type: 'attack', value: 18, multi: 4, desc: '18의 피해를 4번 줍니다.' }, 
+    { name: '심해의 재생', type: 'heal', heal: 80, desc: '체력을 80 회복합니다.' }
+  ]},
+  { name: '타락한 성녀', baseHp: 750, deck: [
+    { name: '신성한 불꽃', type: 'attack', value: 60, desc: '60의 피해를 줍니다.' }, 
+    { name: '거짓된 축복', type: 'attack_debuff', value: 30, debuff: 'vulnerable', turns: 3, desc: '30의 피해를 주고 취약 3을 부여합니다.' }, 
+    { name: '기적의 방패', type: 'defend', value: 100, desc: '100의 방어도를 얻습니다.' }
+  ]},
+  { name: '강철 거수', baseHp: 800, deck: [
+    { name: '지진 일으키기', type: 'attack_debuff', value: 45, debuff: 'weak', turns: 3, desc: '45의 피해를 주고 약화 3을 부여합니다.' }, 
+    { name: '초고열 용광로', type: 'buff', buff: 'strength', buffValue: 5, desc: '근력을 5 얻습니다.' }, 
+    { name: '육중한 돌진', type: 'attack', value: 70, desc: '70의 피해를 줍니다.' }
+  ]},
+  { name: '핏빛 군단장', baseHp: 850, deck: [
+    { name: '참수격', type: 'attack', value: 80, desc: '80의 피해를 줍니다.' }, 
+    { name: '출혈 강요', type: 'attack_debuff', value: 40, debuff: 'mark', turns: 5, desc: '40의 피해를 주고 표식 5를 부여합니다.' }, 
+    { name: '군단의 방진', type: 'defend', value: 120, desc: '120의 방어도를 얻습니다.' }
+  ]},
+  { name: '역병의 사도', baseHp: 900, deck: [
+    { name: '부패의 숨결', type: 'attack_debuff', value: 30, debuff: 'poison', turns: 6, desc: '30의 피해를 주고 중독 6을 부여합니다.' }, 
+    { name: '질병 전파', type: 'debuff', debuff: 'frail', turns: 5, desc: '허약 5를 부여합니다.' }, 
+    { name: '죽음의 포옹', type: 'attack_heal', value: 50, heal: 50, desc: '50의 피해를 주고 체력을 50 회복합니다.' }
+  ]},
+
+  // 16~20 티어: 최상위 종말급 보스들
+  { name: '그림자 군주', baseHp: 950, deck: [
+    { name: '어둠의 장막', type: 'debuff', debuff: 'silence', turns: 1, desc: '침묵 1을 부여합니다.' }, 
+    { name: '그림자 베기', type: 'attack', value: 25, multi: 4, desc: '25의 피해를 4번 줍니다.' }, 
+    { name: '허구의 방패', type: 'defend', value: 150, desc: '150의 방어도를 얻습니다.' }
+  ]},
+  { name: '고대 용의 망령', baseHp: 1000, deck: [
+    { name: '망령 브레스', type: 'attack_debuff', value: 70, debuff: 'vulnerable', turns: 4, desc: '70의 피해를 주고 취약 4를 부여합니다.' }, 
+    { name: '원혼 폭발', type: 'attack', value: 100, desc: '100의 피해를 줍니다.' }, 
+    { name: '영혼 착취', type: 'attack_heal', value: 40, heal: 80, desc: '40의 피해를 주고 체력을 80 회복합니다.' }
+  ]},
+  { name: '지옥의 재판관', baseHp: 1100, deck: [
+    { name: '사형 선고', type: 'debuff', debuff: 'mark', turns: 10, desc: '표식 10을 부여합니다.' }, 
+    { name: '죄악 심판', type: 'attack', value: 30, multi: 5, desc: '30의 피해를 5번 줍니다.' }, 
+    { name: '구속구 채우기', type: 'attack_debuff', value: 50, debuff: 'bind', turns: 1, desc: '50의 피해를 주고 속박 1을 부여합니다.' }
+  ]},
+  { name: '공허의 파괴자', baseHp: 1200, deck: [
+    { name: '차원 분쇄', type: 'attack', value: 120, desc: '120의 피해를 줍니다.' }, 
+    { name: '존재 소멸', type: 'debuff', debuff: 'silence', turns: 2, desc: '침묵 2를 부여합니다.' }, 
+    { name: '공허 흡수', type: 'defend_buff', value: 200, buff: 'strength', buffValue: 5, desc: '200의 방어도를 얻고 근력을 5 얻습니다.' }
+  ]},
+  { name: '종말의 전령', baseHp: 1500, deck: [
+    { name: '종말의 도래', type: 'attack_debuff', value: 150, debuff: 'frail', turns: 5, desc: '150의 피해를 주고 허약 5를 부여합니다.' }, 
+    { name: '절망의 빛', type: 'attack', value: 40, multi: 5, desc: '40의 피해를 5번 줍니다.' }, 
+    { name: '불가역의 시간', type: 'heal', heal: 200, desc: '체력을 200 회복합니다.' }
+  ]}
+];
 
 export const SPECIAL_BOSSES = {
   // rewardCards 속성을 추가하여 해당 보스를 클리어했을 때 전용 카드를 얻게 설정합니다.
@@ -377,7 +487,7 @@ export const SPECIAL_BOSSES = {
   // src/constants/gameData.js 내 SPECIAL_BOSSES 수정 (하드 모드 부분만 교체)
 
   // --- 하드 모드 전용 보스 ---
-  H50: { 
+  H50: {  
     name: '초월한 슬라임', 
     baseHp: 3000, 
     passives: [{ id: 'scaling_strength', name: '분열하는 마력', desc: '매 턴 근력이 2씩 상승합니다.' }], 
