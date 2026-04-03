@@ -4,7 +4,6 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
-// ✨ BOSS_LOOT_CARDS 추가
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS, BOSS_LOOT_CARDS } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
@@ -325,6 +324,7 @@ export default function App() {
     else { setGameState('REWARDS'); }
   };
 
+  // ✨ 적 턴 (다중 카드 사용 로직 적용)
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
@@ -344,51 +344,60 @@ export default function App() {
             if ((e.buffs?.regen || 0) > 0) { e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen); }
 
             if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
-            let intent = e.intentCard || { type: 'attack', value: 5 }; 
             
-            const isAttack = intent.type.includes('attack');
-            const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
+            // ✨ 다중 인텐트 배열을 순회 (기본 1장, 하드 보스 2장)
+            let intents = e.intentCards || [{ type: 'attack', value: 5, uid: 'fallback' }]; 
             
-            let canAct = true;
-            if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
-            if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
+            for (const intent of intents) {
+              const isAttack = intent.type.includes('attack');
+              const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
+              
+              let canAct = true;
+              if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
+              if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
 
-            if (canAct) {
-              if (intent.type.includes('attack')) {
-                let dmg = intent.value + (e.buffs.strength || 0);
-                if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-                if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-                if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
-                if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
+              if (canAct) {
+                if (intent.type.includes('attack')) {
+                  let dmg = intent.value + (e.buffs.strength || 0);
+                  if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+                  if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+                  if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
+                  if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
 
-                for(let i=0; i<(intent.multi || 1); i++) {
-                  if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
-                  if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+                  for(let i=0; i<(intent.multi || 1); i++) {
+                    if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
+                    if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+                  }
                 }
+                
+                // 가시 등에 의해 몬스터가 사망했다면 남은 카드 중단
+                if (e.hp <= 0) break; 
+                
+                if (intent.type.includes('debuff')) {
+                  ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark'].forEach(dbf => {
+                    if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
+                  });
+                }
+                
+                if (intent.type.includes('defend')) {
+                  let gainedBlock = intent.value;
+                  if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
+                  e.block += gainedBlock;
+                }
+                
+                if (intent.type.includes('buff') && intent.buff === 'strength') {
+                  e.buffs.strength += (intent.buffValue || intent.amount || 0);
+                }
+                
+                if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
               }
-              if (e.hp <= 0) return;
-              
-              if (intent.type.includes('debuff')) {
-                ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark'].forEach(dbf => {
-                  if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
-                });
-              }
-              
-              if (intent.type.includes('defend')) {
-                let gainedBlock = intent.value;
-                if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
-                e.block += gainedBlock;
-              }
-              if (intent.type.includes('buff') && intent.buff === 'strength') {
-                e.buffs.strength += (intent.buffValue || intent.amount || 0);
-              }
-              if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
-            }
+            } // intent 반복문 종료
 
             ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
             ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
 
-            e.intentCard = generateEnemyIntent(e.template, prev.stage);
+            // ✨ 다음 턴의 카드 드로우 (enemy 객체 자체를 넘깁니다)
+            e.intentCards = generateEnemyIntent(e, e.dmgMultiplier || 1);
           });
 
           newEnemies = newEnemies.filter(e => e.hp > 0);
@@ -582,7 +591,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ✨ 도약 모달 100층 제한 적용 */}
         {skipModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
@@ -612,7 +620,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ✨ 도약 모달 300층 제한 적용 */}
         {hardSkipModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setHardSkipModalOpen(false)}>
             <div className="bg-slate-800 p-6 rounded-xl border-2 border-red-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>

@@ -131,46 +131,49 @@ export const getCardDef = (id, shopUpgrades) => {
   return base;
 };
 
-export const generateEnemyIntent = (template, stage, previousIntent = null, dmgMulti = 1) => {
-  if (!template || !template.deck || template.deck.length === 0) {
-    return { name: '오류 방지', type: 'attack', value: Math.floor(5 * dmgMulti), desc: '기본 공격을 합니다.' };
+// ✨ 덱 리필 시스템 및 다중 드로우(하드보스 전용) 처리
+export const generateEnemyIntent = (enemy, dmgMulti = 1) => {
+  if (!enemy.template || !enemy.template.deck || enemy.template.deck.length === 0) {
+    return [{ name: '오류 방지', type: 'attack', value: Math.floor(5 * dmgMulti), desc: '기본 공격을 합니다.', uid: Math.random().toString() }];
   }
   
-  let availableDeck = template.deck;
-  
-  if (previousIntent && previousIntent.type === 'defend') {
-    availableDeck = template.deck.filter(card => card.type !== 'defend');
-    if (availableDeck.length === 0) availableDeck = template.deck; 
-  }
+  // enemy 객체에 설정된 턴당 카드 사용 장수를 가져옵니다.
+  let cardsToDraw = enemy.cardsPerTurn || 1;
+  let drawnCards = [];
 
-  const baseCard = availableDeck[Math.floor(Math.random() * availableDeck.length)];
-  let newIntent = { ...baseCard };
-  let newDesc = baseCard.desc || '';
-  
-  if (baseCard.value !== undefined) {
-    let finalValue = Number(baseCard.value);
-    
-    // 공격 스킬은 dmgMulti에 비례하여 대미지 증가
-    if (baseCard.type && baseCard.type.includes('attack')) {
-      finalValue = Math.floor(finalValue * dmgMulti);
-    } 
-    // 방어 스킬은 밸런스를 위해 공격보단 완만하게 증가
-    else if (baseCard.type && baseCard.type.includes('defend')) {
-      finalValue = Math.floor(finalValue * (1 + (dmgMulti - 1) * 0.5));
+  for (let i = 0; i < cardsToDraw; i++) {
+    // 덱이 비어있다면 템플릿에서 다시 가져와 셔플 (리필)
+    if (!enemy.drawPile || enemy.drawPile.length === 0) {
+      enemy.drawPile = shuffle([...enemy.template.deck]);
     }
     
-    newIntent.value = finalValue;
-    newDesc = newDesc.replace(baseCard.value.toString(), newIntent.value.toString());
-  } else {
-    delete newIntent.value; 
+    // 카드 한 장 뽑기
+    const baseCard = enemy.drawPile.pop();
+    let newIntent = { ...baseCard, uid: Math.random().toString() + i };
+    let newDesc = baseCard.desc || '';
+    
+    // 스케일링
+    if (baseCard.value !== undefined) {
+      let finalValue = Number(baseCard.value);
+      if (baseCard.type && baseCard.type.includes('attack')) {
+        finalValue = Math.floor(finalValue * dmgMulti);
+      } 
+      else if (baseCard.type && baseCard.type.includes('defend')) {
+        finalValue = Math.floor(finalValue * (1 + (dmgMulti - 1) * 0.5));
+      }
+      newIntent.value = finalValue;
+      newDesc = newDesc.replace(baseCard.value.toString(), newIntent.value.toString());
+    } else {
+      delete newIntent.value; 
+    }
+    
+    if (baseCard.heal !== undefined) newIntent.heal = Number(baseCard.heal); 
+    newIntent.desc = newDesc;
+    
+    drawnCards.push(newIntent);
   }
   
-  if (baseCard.heal !== undefined) {
-    newIntent.heal = Number(baseCard.heal); 
-  }
-  
-  newIntent.desc = newDesc;
-  return newIntent;
+  return drawnCards; 
 };
 
 // ✨ 스테이지에 맞는 스폰 및 모드별 스케일링 (특수 보스 + 무한 모드 적용)
@@ -178,7 +181,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
   let enemyTemplates = [];
   
-  // ✨ 일반 모드 스케일링 추가 완화 (기존 0.04 -> 0.03 / 0.02 -> 0.015)
   let hpMulti = 1 + (s * 0.01);
   let dmgMulti = 1 + (s * 0.01);
 
@@ -210,7 +212,7 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     } 
     else if (mode === 'HARD') {
       hpMulti = 1 + (s * 0.05) + Math.pow(s / 40, 1.1);
-      dmgMulti = 1 + (s * 0.03) + Math.pow(s / 50, 1.05);
+      dmgMulti = 1 + (s * 0.03) + Math.pow(s / 50, 1.04);
 
       if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
@@ -256,17 +258,21 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     }
     
     let hpBase = Number(template.baseHp) || 50;
-    // 기본 체력에 스케일링 배수를 적용
     let hpFinal = Math.floor(hpBase * hpMulti);
     
-    // ✨ 보스 체력 뻥튀기 배율 소폭 너프 (하드모드 보스 체력도 같이 너프됨)
-    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 1.0); // 기존 2.2 -> 1.9
-    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 0.5); // 기존 1.6 -> 1.4
+    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 1.0); 
+    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 0.5); 
     
     let name = template.name || '알 수 없는 적';
     if (enemyTemplates.length > 1) name += ` (${String.fromCharCode(65 + idx)})`; 
 
-    return {
+    // ✨ 하드 보스에게만 턴당 2장 사용 권한 부여
+    let cardsPerTurn = 1;
+    if ((mode === 'HARD' || mode === 'ENDLESS') && (isNamedBoss || isNormalBoss)) {
+        cardsPerTurn = 2;
+    }
+
+    const newEnemy = {
       uid: Math.random().toString() + idx,
       name: name,
       hp: hpFinal,
@@ -275,11 +281,17 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       isBoss: isNamedBoss || isNormalBoss,
       dmgMultiplier: dmgMulti,
       template,
-      intentCard: generateEnemyIntent(template, s, null, dmgMulti),
+      cardsPerTurn, // 턴당 카드 장수 저장
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 },
       buffs: { strength: 0, intangible: 0, regen: 0, rage: 0 },
-      passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : []
+      passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : [],
+      drawPile: shuffle(template.deck ? [...template.deck] : []) // 몬스터 덱 초기화
     };
+
+    // ✨ 단일 intentCard 대신 배열 형태의 intentCards 할당
+    newEnemy.intentCards = generateEnemyIntent(newEnemy, dmgMulti);
+
+    return newEnemy;
   });
 };
 
