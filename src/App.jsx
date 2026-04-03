@@ -260,7 +260,7 @@ export default function App() {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
       setCombatState(prev => {
-        let p = { ...prev.player };
+        let p = { ...prev.player, buffs: { ...prev.player.buffs }, debuffs: { ...prev.player.debuffs } };
 
         // [수정1] 플레이어의 상태 이상 감소를 적 턴 시작 전으로 이동시켰습니다.
         ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
@@ -276,7 +276,7 @@ export default function App() {
           p.debuffs.poison = Math.max(0, p.debuffs.poison - 1);
         }
 
-        let newEnemies = prev.enemies.map(e => ({ ...e, block: 0 }));
+        let newEnemies = prev.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: 0 }));
         
         newEnemies.forEach(e => {
           // [수정3] 적 중독 피해 처리 (이중 감소가 되지 않도록 별도로 분리)
@@ -307,15 +307,16 @@ export default function App() {
           if (canAct) {
             if (intent.type.includes('attack')) {
               let dmg = intent.value + (e.buffs.strength || 0);
-              
-              // 취약, 약화 데미지 연산
-              if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-              if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-              
-              // ✨ 무형(Intangible) 로직 추가: 플레이어에게 무형이 있으면 최종 데미지를 1로 고정
-              if ((p.buffs?.intangible || 0) > 0) {
-                dmg = 1;
-              }
+
+if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+
+// ✨ 추가: 플레이어에게 표식이 있다면 고정 대미지 추가
+if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
+
+if ((p.buffs?.intangible || 0) > 0) {
+  dmg = 1;
+}
 
               for(let i=0; i<(intent.multi || 1); i++) {
                 if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
@@ -326,13 +327,21 @@ export default function App() {
             
             // [수정4] 적이 플레이어에게 거는 디버프 (침묵, 속박 등 누락된 속성 추가 적용)
             if (intent.type.includes('debuff')) {
-              ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison'].forEach(dbf => {
+              ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark'].forEach(dbf => {
                 if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
               });
             }
             
-            if (intent.type.includes('defend')) e.block += intent.value;
-            if (intent.type.includes('buff') && intent.buff === 'strength') e.buffs.strength += intent.buffValue;
+            if (intent.type.includes('defend')) {
+  // 허약(frail)이 있을 경우 방어도 25% 감소 처리
+  let gainedBlock = intent.value;
+  if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
+  e.block += gainedBlock;
+}
+            // buffValue뿐만 아니라 amount 프로퍼티도 함께 호환되도록 수정
+if (intent.type.includes('buff') && intent.buff === 'strength') {
+  e.buffs.strength += (intent.buffValue || intent.amount || 0);
+}
             if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
           }
 
