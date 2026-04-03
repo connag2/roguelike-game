@@ -266,9 +266,10 @@ export default function App() {
         ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => {
           p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k));
         });
-        ['strength', 'dexterity', 'thorns', 'intangible', 'regen', 'rage', 'insight'].forEach(k => {
-          p.buffs[k] = decayStack(p.buffs[k] || 0, k === 'intangible');
-        });
+        ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => {
+  p.buffs[k] = decayStack(p.buffs[k] || 0, false);
+  p.buffs.intangible = decayStack(p.buffs.intangible || 0, true);
+});
 
         // [수정2] 플레이어 중독 피해 처리
         if ((p.debuffs?.poison || 0) > 0) {
