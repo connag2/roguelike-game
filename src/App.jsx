@@ -73,7 +73,7 @@ export default function App() {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [confirmSelection, setConfirmSelection] = useState(null);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
-  const [hardSkipModalOpen, setHardSkipModalOpen] = useState(false); // ✨ 추가
+  const [hardSkipModalOpen, setHardSkipModalOpen] = useState(false); 
   const [warpStage, setWarpStage] = useState(1);
   const [tutorialModalOpen, setTutorialModalOpen] = useState(false);
   const [dexViewingEnemy, setDexViewingEnemy] = useState(null);
@@ -85,7 +85,7 @@ export default function App() {
   const [deckImportText, setDeckImportText] = useState('');
   const [showEnemyDeck, setShowEnemyDeck] = useState(false);
   const [viewingEnemy, setViewingEnemy] = useState(null);
-  const [hardClearRelicSelection, setHardClearRelicSelection] = useState([]); // ✨ 추가
+  const [hardClearRelicSelection, setHardClearRelicSelection] = useState([]); 
   
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
@@ -99,6 +99,19 @@ export default function App() {
   const [customCards, setCustomCards] = useState([]); 
   
   const [claimedMilestones, setClaimedMilestones] = useState([]);
+
+  // ✨ 전체화면 제어 함수 (Phase 1)
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {
+        setIsCssFullScreen(!isCssFullScreen);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
 
   useEffect(() => {
     document.body.style.margin = '0';
@@ -150,6 +163,7 @@ export default function App() {
     }
   }, [toastMsg]);
 
+  // ✨ Unknown 카드 표기 버그 수정 (Phase 1)
   const enhancedGetCardDef = (id, upgrades) => {
     const baseDef = getCardDef(id, upgrades);
     if (baseDef && baseDef.name) return baseDef;
@@ -168,6 +182,10 @@ export default function App() {
       }
       return upgCard;
     }
+    
+    const lootCard = BOSS_LOOT_CARDS.find(c => c.id === id);
+    if (lootCard) return lootCard;
+
     return { id, name: 'Unknown', type: 'skill', cost: 1, desc: 'Error' };
   };
 
@@ -215,7 +233,7 @@ export default function App() {
       const def = enhancedGetCardDef(id, shopUpgrades);
       for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
     });
-    const basePlayerHp = 100 + (shopUpgrades.maxHp * 15);
+    const basePlayerHp = 100 + (shopUpgrades.maxHp * 20);
     const enemies = generateEnemies(stage, mode);
     updateSeenEnemies(enemies);
 
@@ -309,101 +327,109 @@ export default function App() {
     else { setGameState('REWARDS'); }
   };
 
+  // ✨ 턴 넘어가기 에러 방어(Try-Catch) 적용 (Phase 1)
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
       setCombatState(prev => {
-        let p = { ...prev.player, buffs: { ...prev.player.buffs }, debuffs: { ...prev.player.debuffs } };
-        ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
-        ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => { p.buffs[k] = decayStack(p.buffs[k] || 0, false); });
+        try {
+          let p = { ...prev.player, buffs: { ...prev.player.buffs }, debuffs: { ...prev.player.debuffs } };
+          ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
+          ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => { p.buffs[k] = decayStack(p.buffs[k] || 0, false); });
 
-        if ((p.debuffs?.poison || 0) > 0) { p.hp -= p.debuffs.poison; p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); }
+          if ((p.debuffs?.poison || 0) > 0) { p.hp -= p.debuffs.poison; p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); }
 
-        let newEnemies = prev.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: 0 }));
-        
-        newEnemies.forEach(e => {
-          if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
-          if (e.hp <= 0) return;
-          if ((e.buffs?.regen || 0) > 0) { e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen); }
-
-          if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
-          let intent = e.intentCard;
+          let newEnemies = prev.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: 0 }));
           
-          const isAttack = intent.type.includes('attack');
-          const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
-          
-          let canAct = true;
-          if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
-          if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
-
-          if (canAct) {
-            if (intent.type.includes('attack')) {
-              let dmg = intent.value + (e.buffs.strength || 0);
-              if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-              if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-              if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
-              if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
-
-              for(let i=0; i<(intent.multi || 1); i++) {
-                if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
-                if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
-              }
-            }
+          newEnemies.forEach(e => {
+            if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
             if (e.hp <= 0) return;
+            if ((e.buffs?.regen || 0) > 0) { e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen); }
+
+            if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
+            let intent = e.intentCard || { type: 'attack', value: 5 }; 
             
-            if (intent.type.includes('debuff')) {
-              ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark'].forEach(dbf => {
-                if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
-              });
-            }
+            const isAttack = intent.type.includes('attack');
+            const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
             
-            if (intent.type.includes('defend')) {
-              let gainedBlock = intent.value;
-              if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
-              e.block += gainedBlock;
+            let canAct = true;
+            if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
+            if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
+
+            if (canAct) {
+              if (intent.type.includes('attack')) {
+                let dmg = intent.value + (e.buffs.strength || 0);
+                if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+                if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+                if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
+                if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
+
+                for(let i=0; i<(intent.multi || 1); i++) {
+                  if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
+                  if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+                }
+              }
+              if (e.hp <= 0) return;
+              
+              if (intent.type.includes('debuff')) {
+                ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark'].forEach(dbf => {
+                  if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
+                });
+              }
+              
+              if (intent.type.includes('defend')) {
+                let gainedBlock = intent.value;
+                if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
+                e.block += gainedBlock;
+              }
+              if (intent.type.includes('buff') && intent.buff === 'strength') {
+                e.buffs.strength += (intent.buffValue || intent.amount || 0);
+              }
+              if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
             }
-            if (intent.type.includes('buff') && intent.buff === 'strength') {
-              e.buffs.strength += (intent.buffValue || intent.amount || 0);
-            }
-            if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
+
+            ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
+            ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
+
+            e.intentCard = generateEnemyIntent(e.template, prev.stage);
+          });
+
+          newEnemies = newEnemies.filter(e => e.hp > 0);
+          if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
+          if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] }; }
+          
+          p.block = 0; p.mana = p.maxMana;
+          if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
+          p.buffs.intangible = decayStack(p.buffs.intangible || 0, true);
+
+          let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
+          (playerRelics || []).forEach(r => {
+            if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
+            if (r.effect?.type === 'START_TURN_ADVANCED') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.poison) newEnemies.forEach(e => e.debuffs.poison += r.effect.poison); if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
+            if (r.effect?.type === 'START_TURN_CONDITION' && r.effect.condition === 'HP_50' && p.hp <= p.maxHp / 2) { if (r.effect.strength) turnStrength += r.effect.strength; }
+            if (r.effect?.type === 'START_TURN_MYTHIC') { turnMana += r.effect.mana; turnDraw += r.effect.draw; turnStrength += r.effect.strength; }
+            if (r.effect?.type === 'START_COMBAT_AND_TURN') { if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
+          });
+          
+          p.hp -= selfDamage;
+          if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; } 
+          p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
+          turnDraw += (p.buffs?.insight || 0);
+
+          let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
+          let drawAmount = 5 + turnDraw;
+          for (let i = 0; i < drawAmount; i++) {
+            if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
+            if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
+            if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
           }
+          return { ...prev, player: p, enemies: newEnemies, hand: newHand, drawPile: newDraw, discardPile: newDiscard, turn: 'PLAYER' };
 
-          ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
-          ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
-
-          e.intentCard = generateEnemyIntent(e.template, prev.stage);
-        });
-
-        newEnemies = newEnemies.filter(e => e.hp > 0);
-        if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
-        if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] }; }
-        
-        p.block = 0; p.mana = p.maxMana;
-        if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
-        p.buffs.intangible = decayStack(p.buffs.intangible || 0, true);
-
-        let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
-        (playerRelics || []).forEach(r => {
-          if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
-          if (r.effect?.type === 'START_TURN_ADVANCED') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.poison) newEnemies.forEach(e => e.debuffs.poison += r.effect.poison); if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
-          if (r.effect?.type === 'START_TURN_CONDITION' && r.effect.condition === 'HP_50' && p.hp <= p.maxHp / 2) { if (r.effect.strength) turnStrength += r.effect.strength; }
-          if (r.effect?.type === 'START_TURN_MYTHIC') { turnMana += r.effect.mana; turnDraw += r.effect.draw; turnStrength += r.effect.strength; }
-          if (r.effect?.type === 'START_COMBAT_AND_TURN') { if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
-        });
-        
-        p.hp -= selfDamage;
-        if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; } 
-        p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
-        turnDraw += (p.buffs?.insight || 0);
-
-        let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
-        let drawAmount = 5 + turnDraw;
-        for (let i = 0; i < drawAmount; i++) {
-          if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
-          if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
-          if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
+        } catch (error) {
+          console.error("턴 넘어가기 에러 발생 (강제 복구 시도):", error);
+          setToastMsg("시스템 경고: 턴 처리 중 오류가 발생했습니다. 플레이어 턴으로 강제 복구됩니다.");
+          return { ...prev, turn: 'PLAYER' };
         }
-        return { ...prev, player: p, enemies: newEnemies, hand: newHand, drawPile: newDraw, discardPile: newDiscard, turn: 'PLAYER' };
       });
     }, fastMode ? 500 : 1500);
     return () => clearTimeout(timer);
@@ -526,25 +552,25 @@ export default function App() {
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
         <AdminPanel 
-  gameState={gameState} 
-  credits={credits} 
-  setCredits={setCredits} 
-  unlockedCards={unlockedCards} 
-  setUnlockedCards={setUnlockedCards} 
-  unlockedRelics={unlockedRelics} 
-  setUnlockedRelics={setUnlockedRelics}
-  isAdminUnlocked={isAdminUnlocked}
-  combatState={combatState}
-  setCombatState={setCombatState}
-  setGameState={setGameState}
-  setToastMsg={setToastMsg}
-  saveGame={saveGame}
-  deckCounts={deckCounts}
-  setDeckCounts={setDeckCounts}
-  playerRelics={playerRelics}
-  setPlayerRelics={setPlayerRelics}
-  startBattle={startBattle}
-/>
+          gameState={gameState} 
+          credits={credits} 
+          setCredits={setCredits} 
+          unlockedCards={unlockedCards} 
+          setUnlockedCards={setUnlockedCards} 
+          unlockedRelics={unlockedRelics} 
+          setUnlockedRelics={setUnlockedRelics}
+          isAdminUnlocked={isAdminUnlocked}
+          combatState={combatState}
+          setCombatState={setCombatState}
+          setGameState={setGameState}
+          setToastMsg={setToastMsg}
+          saveGame={saveGame}
+          deckCounts={deckCounts}
+          setDeckCounts={setDeckCounts}
+          playerRelics={playerRelics}
+          setPlayerRelics={setPlayerRelics}
+          startBattle={startBattle}
+        />
 
         {deckImportModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setDeckImportModalOpen(false)}>
@@ -710,7 +736,8 @@ export default function App() {
           </div>
         )}
 
-        {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />}
+        {/* ✨ toggleFullScreen props 연결 및 무한 모드 버튼용 startBattle 넘기기 (Phase 1) */}
+        {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={toggleFullScreen} />}
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
         
@@ -731,15 +758,15 @@ export default function App() {
         
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} handleExitGame={handleExitGame} />}
         
-        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setFilterEffect={setFilterEffect} filterRarity={filterRarity} setFilterRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery)} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
+        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={toggleFullScreen} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setFilterEffect={setFilterEffect} filterRarity={filterRarity} setFilterRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery)} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
         
         {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} getCardDef={enhancedGetCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} setToastMsg={setToastMsg} />}
         
-        {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} playCard={playCard} setToastMsg={setToastMsg} getCardDef={enhancedGetCardDef} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} shopUpgrades={shopUpgrades} />}
+        {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} playCard={playCard} setToastMsg={setToastMsg} getCardDef={enhancedGetCardDef} toggleFullScreen={toggleFullScreen} shopUpgrades={shopUpgrades} />}
         
-        {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} customCards={customCards} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
+        {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} customCards={customCards} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={toggleFullScreen} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         
-        {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} />}
+        {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={toggleFullScreen} setGameState={setGameState} />}
         
         {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && (
           <Rewards 
@@ -815,7 +842,22 @@ export default function App() {
           />
         )}
         
-        {gameState === 'GAME_OVER' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4"><h1 className="text-6xl md:text-8xl font-black text-red-500 mb-4">💀 게임 오버</h1><p className="text-2xl text-slate-400 mb-8">더 강해져서 다시 도전하세요!</p><button onClick={() => { setGameState('MENU'); }} className="py-3 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg">메인으로</button></div>}
+        {/* ✨ 게임 오버 렌더링에 모드 및 스테이지 추가 (Phase 1) */}
+        {gameState === 'GAME_OVER' && (
+          <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
+            <h1 className="text-6xl md:text-8xl font-black text-red-500 mb-2">💀 게임 오버</h1>
+            <p className="text-2xl text-slate-400 mb-6">더 강해져서 다시 도전하세요!</p>
+            
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-8 text-center shadow-xl">
+               <div className="text-sm text-slate-500 font-bold mb-1">진행한 모드</div>
+               <div className="text-xl font-black text-indigo-400 mb-4">{combatState?.mode === 'ENDLESS' ? '무한 모드' : combatState?.mode === 'HARD' ? '하드 모드' : '일반 모드'}</div>
+               <div className="text-sm text-slate-500 font-bold mb-1">도달한 스테이지</div>
+               <div className="text-3xl font-black text-red-400">{combatState?.stage || 1} 층</div>
+            </div>
+
+            <button onClick={() => { setGameState('MENU'); }} className="py-3 px-10 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xl shadow-[0_0_20px_rgba(79,70,229,0.4)]">메인으로</button>
+          </div>
+        )}
         
         {gameState === 'GAME_CLEAR' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-yellow-900 to-slate-900 text-white p-4"><h1 className="text-6xl font-black text-yellow-400 mb-4 drop-shadow-lg">🎊 클리어!</h1><p className="text-2xl text-slate-300 mb-8">정말 훌륭한 성과입니다!</p><button onClick={() => { setGameState('MENU'); }} className="py-3 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg">메인으로</button></div>}
       </div>
