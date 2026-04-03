@@ -4,7 +4,7 @@ import Tooltip from '../common/Tooltip';
 import { ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
 
 export default function MonsterDex({ 
-  seenEnemies, 
+  seenEnemies = [], // ✨ 에러 방지를 위해 기본값 빈 배열 설정
   dexViewingEnemy, 
   setDexViewingEnemy, 
   toggleFullScreen, 
@@ -29,6 +29,10 @@ export default function MonsterDex({
       list: ENEMIES 
     }
   ];
+
+  // ✨ 전체 몬스터 수와 내가 본 유효한 몬스터 수를 계산합니다.
+  const allMonsterNames = categories.flatMap(cat => cat.list.map(m => m.name));
+  const validSeenEnemies = [...new Set(seenEnemies)].filter(name => allMonsterNames.includes(name));
 
   // 누락된 스킬 설명(desc)을 상세 수치를 기반으로 자동 생성하는 헬퍼 함수
   const getDetailedDescription = (skill) => {
@@ -74,8 +78,13 @@ export default function MonsterDex({
     <div className="flex flex-col min-h-screen bg-slate-900 text-white p-4 md:p-10 relative">
       {/* 상단바 */}
       <div className="flex justify-between items-center mb-8 pl-0 md:pl-10">
-        <h2 className="text-2xl md:text-3xl font-black flex items-center gap-3">
-          <Skull className="w-8 h-8 text-red-500 animate-pulse"/> 몬스터 도감
+        <h2 className="text-2xl md:text-3xl font-black flex items-center gap-3 shrink-0">
+          <Skull className="w-8 h-8 text-red-500 animate-pulse"/> 
+          몬스터 도감
+          {/* ✨ 타이틀 옆에 도감 진행도(조우한 수 / 전체 수)를 추가했습니다. */}
+          <span className="text-sm md:text-lg text-red-400 ml-2 font-bold tracking-widest">
+            ({validSeenEnemies.length}/{allMonsterNames.length})
+          </span>
         </h2>
         <div className="flex gap-2">
           <button onClick={toggleFullScreen} className="bg-slate-800 p-2 rounded border border-slate-600 hover:bg-slate-700">
