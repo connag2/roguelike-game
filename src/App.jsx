@@ -100,7 +100,7 @@ export default function App() {
   
   const [claimedMilestones, setClaimedMilestones] = useState([]);
 
-  // ✨ 전체화면 제어 함수 (Phase 1)
+  // 전체화면 제어 함수
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {
@@ -163,7 +163,7 @@ export default function App() {
     }
   }, [toastMsg]);
 
-  // ✨ Unknown 카드 표기 버그 수정 (Phase 1)
+  // Unknown 카드 표기 버그 수정
   const enhancedGetCardDef = (id, upgrades) => {
     const baseDef = getCardDef(id, upgrades);
     if (baseDef && baseDef.name) return baseDef;
@@ -327,7 +327,7 @@ export default function App() {
     else { setGameState('REWARDS'); }
   };
 
-  // ✨ 턴 넘어가기 에러 방어(Try-Catch) 적용 (Phase 1)
+  // 턴 넘어가기 에러 방어 및 로직
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
@@ -736,7 +736,6 @@ export default function App() {
           </div>
         )}
 
-        {/* ✨ toggleFullScreen props 연결 및 무한 모드 버튼용 startBattle 넘기기 (Phase 1) */}
         {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={toggleFullScreen} />}
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
@@ -762,7 +761,34 @@ export default function App() {
         
         {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} getCardDef={enhancedGetCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} setToastMsg={setToastMsg} />}
         
-        {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} playCard={playCard} setToastMsg={setToastMsg} getCardDef={enhancedGetCardDef} toggleFullScreen={toggleFullScreen} shopUpgrades={shopUpgrades} />}
+        {/* ✨ 이 부분이 버그의 원인이었습니다! (setCombatState 등 여러 프롭스들 전부 복구) */}
+        {gameState === 'BATTLE' && (
+          <BattleScreen 
+            combatState={combatState} 
+            setCombatState={setCombatState} 
+            isPlayerTurn={combatState?.turn === 'PLAYER'} 
+            setViewingPile={setViewingPile} 
+            viewingPile={viewingPile} 
+            setGameState={setGameState} 
+            playCard={playCard} 
+            setToastMsg={setToastMsg} 
+            getCardDef={enhancedGetCardDef} 
+            toggleFullScreen={toggleFullScreen} 
+            shopUpgrades={shopUpgrades}
+            hoveredCard={hoveredCard}
+            setHoveredCard={setHoveredCard}
+            playerRelics={playerRelics}
+            fastMode={fastMode}
+            setFastMode={setFastMode}
+            saveGame={saveGame}
+            viewingEnemy={viewingEnemy}
+            setViewingEnemy={setViewingEnemy}
+            showEnemyDeck={showEnemyDeck}
+            setShowEnemyDeck={setShowEnemyDeck}
+            setTutorialModalOpen={setTutorialModalOpen}
+            MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10}
+          />
+        )}
         
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} customCards={customCards} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={toggleFullScreen} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         
@@ -842,7 +868,6 @@ export default function App() {
           />
         )}
         
-        {/* ✨ 게임 오버 렌더링에 모드 및 스테이지 추가 (Phase 1) */}
         {gameState === 'GAME_OVER' && (
           <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
             <h1 className="text-6xl md:text-8xl font-black text-red-500 mb-2">💀 게임 오버</h1>
