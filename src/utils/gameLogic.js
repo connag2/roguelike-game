@@ -163,7 +163,10 @@ export const generateEnemyIntent = (template, stage, previousIntent = null) => {
   return newIntent;
 };
 
-// ✨ 스테이지에 맞는 적 및 보스 스폰 로직
+// src/utils/gameLogic.js
+
+// ... (기존 코드 생략) ...
+
 // ✨ 스테이지에 맞는 적 및 보스 스폰 로직
 export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
@@ -174,11 +177,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
         enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       } else if (s === 250) {
         enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
-      } else if (s === 100) {
-        // ✨ 추가된 부분: 100층일 때 일반 모드와 동일하게 스스스슬라임 3마리 소환
-        enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
+      // ✨ 수정된 부분: 하드모드 100층 강제 스폰 로직 삭제 (아래 s % 50 === 0 로직에서 H100 보스를 정상적으로 가져오게 됨)
       } else if (s % 50 === 0) {
-        // ✨ 수정된 부분: H50 같은 키가 없으면 기존 숫자 키(s) 보스를 가져오도록 폴백(fallback) 추가
         enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
       } else if (s % 10 === 0) {
         const hardBossIndex = Math.min(Math.floor(s / 10) - 1, HARD_MODE_BOSSES.length - 1);
@@ -203,8 +203,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     enemyTemplates = [ENEMIES[0]]; 
   }
   
-  // 이하 생략...
-
   enemyTemplates = enemyTemplates.filter(Boolean);
   if (enemyTemplates.length === 0) enemyTemplates = [ENEMIES[0]];
 
@@ -236,6 +234,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     };
   });
 };
+
+// ... (이하 코드 유지) ...
 
 export const validateDeckStatus = (deckCounts) => {
   const total = Object.values(deckCounts || {}).reduce((a, b) => a + b, 0);
