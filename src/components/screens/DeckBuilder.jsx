@@ -1,6 +1,6 @@
 // src/components/screens/DeckBuilder.jsx
 import React, { useMemo, useState } from 'react';
-import { Eraser, Download, Upload, Save, Maximize, HelpCircle, Layers, X, ChevronDown } from 'lucide-react';
+import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { RELIC_LIBRARY } from '../../constants/relicData';
