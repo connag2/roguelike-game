@@ -31,4 +31,4 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const appId = "roguelike-game-9a094"; 
 
-export default app;
+export default app; 
