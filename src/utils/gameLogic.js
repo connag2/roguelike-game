@@ -37,7 +37,8 @@ export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak =
 
   let dmg = base + strength;
   
-  if (weak > 0) dmg = Math.floor(dmg * 0.97); 
+  // ✅ 수정됨 2: 약화(weak) 디버프 수치를 정상적인 감소폭(25%)으로 수정
+  if (weak > 0) dmg = Math.floor(dmg * 0.75); 
   if (vuln > 0) dmg = Math.floor(dmg * 1.30); 
   dmg += mark;
   
@@ -138,10 +139,9 @@ export const generateEnemyIntent = (template, stage, previousIntent = null) => {
   
   let availableDeck = template.deck;
   
-  // ✨ 연속된 같은 행동(특히 방어)을 막기 위한 필터링 로직 (적 코스트 개선)
   if (previousIntent && previousIntent.type === 'defend') {
     availableDeck = template.deck.filter(card => card.type !== 'defend');
-    if (availableDeck.length === 0) availableDeck = template.deck; // 만약 덱이 모두 방어뿐이라면 어쩔 수 없이 유지
+    if (availableDeck.length === 0) availableDeck = template.deck; 
   }
 
   const baseCard = availableDeck[Math.floor(Math.random() * availableDeck.length)];
@@ -163,10 +163,6 @@ export const generateEnemyIntent = (template, stage, previousIntent = null) => {
   return newIntent;
 };
 
-// src/utils/gameLogic.js
-
-// ... (기존 코드 생략) ...
-
 // ✨ 스테이지에 맞는 적 및 보스 스폰 로직
 export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
@@ -177,7 +173,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
         enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       } else if (s === 250) {
         enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
-      // ✨ 수정된 부분: 하드모드 100층 강제 스폰 로직 삭제 (아래 s % 50 === 0 로직에서 H100 보스를 정상적으로 가져오게 됨)
       } else if (s % 50 === 0) {
         enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
       } else if (s % 10 === 0) {
@@ -187,7 +182,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
         enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
       }
     } else {
-      // 일반 모드 로직 유지
       if (s === 100) {
         enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
       } else if ([25, 50, 75].includes(s)) {
@@ -234,8 +228,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     };
   });
 };
-
-// ... (이하 코드 유지) ...
 
 export const validateDeckStatus = (deckCounts) => {
   const total = Object.values(deckCounts || {}).reduce((a, b) => a + b, 0);

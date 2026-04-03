@@ -130,12 +130,13 @@ export function useBattle({
 
     const isWin = !card.gamble || Math.random() < card.gambleWinChance;
     const hits = (card.damage && isWin) ? (card.multiHit || 1) : 1;
-    // 여기 있는 delay는 더 이상 안 씁니다 (BattleScreen에서 제어하도록 수정됨).
 
     setCombatState(prev => {
       let p = { ...prev.player };
-      p.buffs = p.buffs || {};
-      p.debuffs = p.debuffs || {};
+      
+      // ✅ 수정됨 1: 상태 객체의 깊은 복사(Deep Copy)를 적용하여 React 상태 변이 버그 해결
+      p.buffs = { ...(prev.player.buffs || {}) };
+      p.debuffs = { ...(prev.player.debuffs || {}) };
 
       let newHand = [...prev.hand];
       let newDiscard = [...prev.discardPile];
@@ -154,7 +155,6 @@ export function useBattle({
         if (card.doubleBlock) p.block *= 2;
         if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
         
-        // ✨ 정화 카드 로직 추가
         if (card.cleanse) {
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 };
             setToastMsg("모든 상태 이상이 해제되었습니다!");
@@ -193,8 +193,6 @@ export function useBattle({
     let currentDamage = Number(card.damage) || 0;
 
     for (let i = 0; i < hits; i++) {
-      // 딜레이는 BattleScreen에서 적용되므로 여기선 0밀리초 또는 생략
-      // (렌더링 동기화를 위해 약간의 틱만 넘김)
       if (i > 0) await new Promise(r => setTimeout(r, 0));
 
       setCombatState(prev => {
@@ -230,7 +228,6 @@ export function useBattle({
 
         if (isWin) {
           if (i === 0) {
-            // ✨ 도박 성공 메시지 추가
             if (card.gamble) setToastMsg("도박 성공!");
 
             if (card.winDamage) deal(newEnemies[0]?.isBoss ? card.winDamageBoss : card.winDamage);
@@ -240,12 +237,13 @@ export function useBattle({
                 p.mana = 0; 
             }
             
-            if (card.enemyWeak) newEnemies[0].debuffs.weak = (newEnemies[0].debuffs.weak || 0) + card.enemyWeak;
-            if (card.enemyVuln) newEnemies[0].debuffs.vulnerable = (newEnemies[0].debuffs.vulnerable || 0) + card.enemyVuln;
-            if (card.enemyPoison) newEnemies[0].debuffs.poison = (newEnemies[0].debuffs.poison || 0) + card.enemyPoison;
+            // ✅ 수정됨 3: 적에게 디버프를 부여할 때에도 clampStack을 적용하여 무한 중첩 방지
+            if (card.enemyWeak) newEnemies[0].debuffs.weak = clampStack((newEnemies[0].debuffs.weak || 0) + card.enemyWeak);
+            if (card.enemyVuln) newEnemies[0].debuffs.vulnerable = clampStack((newEnemies[0].debuffs.vulnerable || 0) + card.enemyVuln);
+            if (card.enemyPoison) newEnemies[0].debuffs.poison = clampStack((newEnemies[0].debuffs.poison || 0) + card.enemyPoison);
+            if (card.enemyMark) newEnemies[0].debuffs.mark = clampStack((newEnemies[0].debuffs.mark || 0) + card.enemyMark);
+            if (card.enemyFrail) newEnemies[0].debuffs.frail = clampStack((newEnemies[0].debuffs.frail || 0) + card.enemyFrail);
             
-            if (card.enemyMark) newEnemies[0].debuffs.mark = (newEnemies[0].debuffs.mark || 0) + card.enemyMark;
-            if (card.enemyFrail) newEnemies[0].debuffs.frail = (newEnemies[0].debuffs.frail || 0) + card.enemyFrail;
             if (card.enemySilence) newEnemies[0].debuffs.silence = clampStack((newEnemies[0].debuffs.silence || 0) + card.enemySilence, 999, true);
             if (card.enemyBind) newEnemies[0].debuffs.bind = clampStack((newEnemies[0].debuffs.bind || 0) + card.enemyBind, 999, true);
           }
