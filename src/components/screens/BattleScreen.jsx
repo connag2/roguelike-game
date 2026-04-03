@@ -1,3 +1,4 @@
+// src/components/screens/BattleScreen.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; 
 import Card from '../common/Card';
@@ -23,15 +24,12 @@ export default function BattleScreen({
   const [animatingCardIndex, setAnimatingCardIndex] = useState(null);
   const [turnBanner, setTurnBanner] = useState(null);
   
-  // ✨ 새로 추가된 상태: 턴 종료 시 남은 카드를 버리는 애니메이션 상태
   const [discardingHand, setDiscardingHand] = useState(false);
 
-  // 턴 전환 감지 및 배너 표시
   useEffect(() => {
     if (combatState?.turn) {
       setTurnBanner(combatState.turn === 'PLAYER' ? 'YOUR TURN' : 'ENEMY TURN');
       
-      // 내 턴이 다시 돌아오면 카드 버리는 상태 초기화
       if (combatState.turn === 'PLAYER') {
         setDiscardingHand(false);
       }
@@ -55,17 +53,11 @@ export default function BattleScreen({
   const { player, enemies, hand, stage, drawPile, discardPile, baseDeck, mode } = combatState;
   const isEnemyTurn = combatState.turn === 'ENEMY';
 
-  // ✨ 턴 종료 버튼 클릭 핸들러
   const handleTurnEndClick = async () => {
     if (!isPlayerTurn || discardingHand) return;
     
-    // 1. 남은 손패 버리는 애니메이션 시작
     setDiscardingHand(true);
-    
-    // 카드가 묘지로 모두 날아갈 때까지 대기 (카드 장수에 비례해 딜레이)
     await new Promise(r => setTimeout(r, 300 + hand.length * 50)); 
-    
-    // 2. 애니메이션 완료 후 적 턴으로 변경 -> 배너 출력 -> 적 행동 시작
     setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
   };
 
@@ -151,7 +143,6 @@ export default function BattleScreen({
           animation: bannerSlide 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
         }
 
-        /* ✨ 적 턴 진행 시 붉은 글로우와 함께 고동치는 애니메이션 */
         @keyframes enemyActionPulse {
           0%, 100% { filter: drop-shadow(0 0 15px rgba(220,38,38,0.4)); transform: scale(1.1); }
           50% { filter: drop-shadow(0 0 40px rgba(239,68,68,0.9)); transform: scale(1.15); }
@@ -343,6 +334,14 @@ export default function BattleScreen({
             if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
             if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
 
+            // ✨ [추가] 표식(mark) 및 무형(intangible) UI 실시간 반영
+            if (finalDmg > 0 && (player.debuffs?.mark || 0) > 0) {
+              finalDmg += player.debuffs.mark;
+            }
+            if (finalDmg > 0 && (player.buffs?.intangible || 0) > 0) {
+              finalDmg = 1;
+            }
+
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
@@ -361,7 +360,6 @@ export default function BattleScreen({
                         </div>
                       )}
 
-                      {/* ✨ 디버프 툴팁 추가 부분 */}
                       {eCard.debuff && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           <span className={`text-[9px] md:text-[10px] font-black ${
@@ -389,7 +387,6 @@ export default function BattleScreen({
                         </div>
                       )}
 
-                      {/* ✨ 버프 툴팁 추가 부분 */}
                       {eCard.buff && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           <span className="text-[9px] md:text-[10px] font-black text-amber-400">
