@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HelpCircle } from 'lucide-react';
 
 const EFFECT_RULES = {
@@ -19,6 +19,20 @@ const EFFECT_RULES = {
 };
 
 export default function Tooltip({ desc, direction = 'up' }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const tooltipRef = useRef(null);
+
+  // 화면의 다른 곳을 클릭하면 툴팁이 닫히도록 처리
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   if (!desc) return null;
   const targetKeyword = Object.keys(EFFECT_RULES).find(key => desc.includes(key));
   if (!targetKeyword) return null;
@@ -28,14 +42,23 @@ export default function Tooltip({ desc, direction = 'up' }) {
   const arrowClass = direction === 'down' ? 'bottom-full left-1/2 -translate-x-1/2 border-b-slate-900' : 'top-full left-1/2 -translate-x-1/2 border-t-slate-900';
 
   return (
-    <div className="relative group inline-block align-middle ml-1 leading-none">
+    <div className="relative inline-block align-middle ml-1 leading-none" ref={tooltipRef}>
       <HelpCircle 
-        className="w-3 h-3 md:w-3.5 md:h-3.5 text-indigo-400 hover:text-indigo-300 transition-colors cursor-help"
+        className={`w-3 h-3 md:w-3.5 md:h-3.5 transition-colors cursor-pointer ${isOpen ? 'text-indigo-300' : 'text-indigo-400 hover:text-indigo-300'}`}
         style={{ WebkitAppRegion: 'no-drag', pointerEvents: 'auto' }}
+        onClick={(e) => {
+          e.stopPropagation(); // 부모 요소(적 의도 박스)의 클릭 이벤트가 실행되지 않도록 막음
+          e.preventDefault();
+          setIsOpen(!isOpen);
+        }}
       />
+      
       <div 
-        className={`absolute ${positionClass} left-1/2 -translate-x-1/2 invisible opacity-0 group-hover:visible group-hover:opacity-100 w-48 p-2.5 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[99999] pointer-events-auto transition-all duration-200 transform scale-95 group-hover:scale-100`}
+        className={`absolute ${positionClass} left-1/2 -translate-x-1/2 w-48 p-2.5 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[100000] pointer-events-auto transition-all duration-200 transform ${
+          isOpen ? 'visible opacity-100 scale-100' : 'invisible opacity-0 scale-95'
+        }`}
         style={{ WebkitAppRegion: 'no-drag' }}
+        onClick={(e) => e.stopPropagation()} // 툴팁 말풍선 자체를 클릭했을 때 닫히지 않게 함
       >
         <div className="text-xs">
           <span className="text-amber-400 font-bold block mb-1 border-b border-slate-800 pb-1 text-left">
