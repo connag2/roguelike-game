@@ -178,29 +178,25 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
   let enemyTemplates = [];
   
-  // 일반 모드 스케일링 완화
-  let hpMulti = 1 + (s * 0.04);
-  let dmgMulti = 1 + (s * 0.02);
+  // ✨ 일반 모드 스케일링 추가 완화 (기존 0.04 -> 0.03 / 0.02 -> 0.015)
+  let hpMulti = 1 + (s * 0.02);
+  let dmgMulti = 1 + (s * 0.01);
 
   try {
     if (mode === 'ENDLESS') {
-      // ✨ 무한 모드 스케일링 극단적 완화
       hpMulti = 1 + (s * 0.06) + Math.pow(s / 35, 1.15);
       dmgMulti = 1 + (s * 0.04) + Math.pow(s / 45, 1.1);
       
       if (s > 300) {
         if (s % 50 === 0) {
-          // 300층 이후 50층마다 일반 보스 + 하드 보스 2마리 동시 스폰
           const normalBoss = NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)] || SPECIAL_BOSSES[100];
           const hardBoss = HARD_MODE_BOSSES[Math.floor(Math.random() * HARD_MODE_BOSSES.length)] || SPECIAL_BOSSES[100];
           enemyTemplates = [normalBoss, hardBoss];
         } else {
-          // 다수 몬스터 스폰
           const spawnCount = Math.floor(Math.random() * 2) + 2; 
           for(let i=0; i<spawnCount; i++) enemyTemplates.push(ENEMIES[Math.floor(Math.random() * ENEMIES.length)]);
         }
       } else {
-        // 무한 모드 300층 이하는 하드모드 보스 패턴 동일 적용
         if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
         else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
         else if (s % 50 === 0) enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
@@ -213,7 +209,6 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       }
     } 
     else if (mode === 'HARD') {
-      // ✨ 하드 모드 스케일링 극단적 완화
       hpMulti = 1 + (s * 0.05) + Math.pow(s / 40, 1.1);
       dmgMulti = 1 + (s * 0.03) + Math.pow(s / 50, 1.05);
 
@@ -264,8 +259,9 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     // 기본 체력에 스케일링 배수를 적용
     let hpFinal = Math.floor(hpBase * hpMulti);
     
-    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 2.2);
-    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.6);
+    // ✨ 보스 체력 뻥튀기 배율 소폭 너프 (하드모드 보스 체력도 같이 너프됨)
+    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 1.0); // 기존 2.2 -> 1.9
+    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.2); // 기존 1.6 -> 1.4
     
     let name = template.name || '알 수 없는 적';
     if (enemyTemplates.length > 1) name += ` (${String.fromCharCode(65 + idx)})`; 
