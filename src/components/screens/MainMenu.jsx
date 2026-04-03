@@ -1,3 +1,5 @@
+import { Maximize, BarChart2, HelpCircle, Bell, Settings } from 'lucide-react';
+
 export default function MainMenu({ 
   credits, 
   getTotalCards, 
