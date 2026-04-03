@@ -27,7 +27,7 @@ export const decayStack = (val, isHardCC = false) => {
   return clampStack(val - drop);
 };
 
-// ✨ 대미지 계산 로직 (약화 및 취약 중첩 효과 증폭 반영)
+// ✨ 대미지 계산 로직
 export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak = 0, targetVuln = 0, targetMark = 0, targetIntangible = 0) => {
   const base = Number(baseDamage) || 0;
   const strength = Number(attackerStrength) || 0;
@@ -37,18 +37,9 @@ export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak =
 
   let dmg = base + strength;
   
-  // ✅ 약화(weak) 1스택당 대미지 10% 감소 (최대 80% 감소까지 누적됨)
-  if (weak > 0) {
-    const weakMultiplier = Math.max(0.2, 1 - (weak * 0.10));
-    dmg = Math.floor(dmg * weakMultiplier);
-  }
-  
-  // ✅ 취약(vuln) 1스택당 대미지 15% 증가
-  if (vuln > 0) {
-    const vulnMultiplier = 1 + (vuln * 0.15);
-    dmg = Math.floor(dmg * vulnMultiplier); 
-  }
-  
+  // 약화(weak) 디버프 수치 정상적인 감소폭(25%)
+  if (weak > 0) dmg = Math.floor(dmg * 0.75); 
+  if (vuln > 0) dmg = Math.floor(dmg * 1.30); 
   dmg += mark;
   
   if (targetIntangible > 0 && dmg > 0) {
@@ -143,7 +134,7 @@ export const getCardDef = (id, shopUpgrades) => {
 // ✨ 이전 의도(행동)를 받아와서 연속 방어를 하지 않게 해주며, 스케일링 배율 적용
 export const generateEnemyIntent = (template, stage, previousIntent = null, dmgMulti = 1) => {
   if (!template || !template.deck || template.deck.length === 0) {
-    return { name: '기본 공격', type: 'attack', value: Math.floor(5 * dmgMulti), desc: '기본 데미지를 입힙니다.' };
+    return { name: '오류 방지', type: 'attack', value: Math.floor(5 * dmgMulti), desc: '기본 공격을 합니다.' };
   }
   
   let availableDeck = template.deck;
@@ -160,13 +151,13 @@ export const generateEnemyIntent = (template, stage, previousIntent = null, dmgM
   if (baseCard.value !== undefined) {
     let finalValue = Number(baseCard.value);
     
-    // 공격 스킬은 dmgMulti 에 비례하여 데미지 증가
+    // 공격 스킬은 dmgMulti에 비례하여 대미지 증가
     if (baseCard.type && baseCard.type.includes('attack')) {
       finalValue = Math.floor(finalValue * dmgMulti);
     } 
-    // 방어 스킬도 강화되지만 밸런스를 위해 공격보단 완만하게 증가
+    // 방어 스킬은 밸런스를 위해 공격보단 완만하게 증가
     else if (baseCard.type && baseCard.type.includes('defend')) {
-      finalValue = Math.floor(finalValue * (1 + (dmgMulti - 1) * 0.5)); 
+      finalValue = Math.floor(finalValue * (1 + (dmgMulti - 1) * 0.5));
     }
     
     newIntent.value = finalValue;
@@ -193,8 +184,9 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
 
   try {
     if (mode === 'ENDLESS') {
-      hpMulti = 1 + (s * 0.35) + Math.pow(s / 15, 1.7);
-      dmgMulti = 1 + (s * 0.2) + Math.pow(s / 20, 1.4);
+      // ✨ 체력/데미지 폭증 방지 (스케일링 완화)
+      hpMulti = 1 + (s * 0.15) + Math.pow(s / 30, 1.3);
+      dmgMulti = 1 + (s * 0.1) + Math.pow(s / 35, 1.2);
       
       if (s > 300) {
         if (s % 50 === 0) {
@@ -221,8 +213,9 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       }
     } 
     else if (mode === 'HARD') {
-      hpMulti = 1 + (s * 0.3) + Math.pow(s / 20, 1.6);
-      dmgMulti = 1 + (s * 0.15) + Math.pow(s / 30, 1.3);
+      // ✨ 체력/데미지 폭증 방지 (스케일링 완화)
+      hpMulti = 1 + (s * 0.12) + Math.pow(s / 35, 1.25);
+      dmgMulti = 1 + (s * 0.08) + Math.pow(s / 40, 1.15);
 
       if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
