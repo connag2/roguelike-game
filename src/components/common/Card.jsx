@@ -3,16 +3,22 @@ import { Sword, Shield, Lock, Star, Sparkles } from 'lucide-react';
 import Tooltip from './Tooltip';
 
 export default function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
-  // ... (상단 레어도/강화 로직 동일)
   if (!card) return null;
   
   const isAttack = card.type === 'attack';
   const rarity = card.rarity || 'common';
+  
   let borderStyle = isAttack ? 'border-red-500' : 'border-blue-500';
   let rarityShadow = '';
   let nameColor = 'text-white';
   let tagUi = null;
   let bgStyle = 'bg-slate-900';
+  
+  // ✨ [버그 수정] 변수 선언을 제일 위로 끌어올립니다. (초기화 전 접근 오류 방지)
+  let upBadgeBg = 'bg-yellow-400';
+  let upBadgeText = 'text-yellow-900';
+  let upBadgeShadow = 'shadow-[0_0_10px_rgba(250,204,21,0.8)]';
+  let upIconColor = 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]';
   
   // 레어도 스타일 설정
   if (rarity === 'uncommon') { 
@@ -35,7 +41,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     tagUi = <span className="text-[9px] md:text-[10px] text-fuchsia-400 font-bold bg-slate-800/80 px-1 rounded border border-fuchsia-800"><Star className="w-2 h-2 inline mb-0.5"/>특수</span>;
     bgStyle = 'special-bg'; 
   } else if (rarity === 'loot') {
-    // 🌟 [추가] 전리품 전용 테마
     rarityShadow = 'shadow-[0_0_20px_rgba(16,185,129,0.5)]'; 
     nameColor = 'text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]';
     tagUi = <span className="text-[9px] md:text-[10px] text-emerald-300 font-bold bg-slate-800/80 px-1 rounded border border-emerald-700">전리품</span>;
@@ -47,12 +52,7 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
 
-  // 강화 시 우측 상단 뱃지와 아이콘 색상 기본값
-  let upBadgeBg = 'bg-yellow-400';
-  let upBadgeText = 'text-yellow-900';
-  let upBadgeShadow = 'shadow-[0_0_10px_rgba(250,204,21,0.8)]';
-  let upIconColor = 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]';
-
+  // 강화 카드 시각 효과 처리
   if (card.isUpgraded) {
     if (rarity === 'uncommon') {
       borderStyle = 'border-cyan-400 ring-2 ring-cyan-400/50';
@@ -97,11 +97,8 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   return (
     <div 
       onClick={onClick}
-      className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border 
-      /* ✨ overflow-hidden을 제거하고 visible로 변경하여 자식 요소인 툴팁이 밖으로 나올 수 있게 함 */
-      overflow-visible`}
+      className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border overflow-visible`}
     >
-      {/* 📌 잠금 필터(isLocked) 사용 시에도 둥근 모서리가 유지되도록 오버레이에 rounded 적용 확인 */}
       {isLocked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
@@ -113,8 +110,9 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
         <div className="flex flex-col items-end gap-1">
           {tagUi}
-          {card.isUpgraded && <span className="text-[9px] md:text-[10px] text-yellow-900 font-black bg-yellow-400 px-1 rounded shadow-[0_0_10px_rgba(250,204,21,0.8)] flex items-center gap-0.5"><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
-          {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? 'text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]' : 'text-blue-400'}`}/>}
+          {/* ✨ 수정: 위에서 지정된 변수가 강화 수치와 아이콘 색상에 정상 적용되도록 변경 */}
+          {card.isUpgraded && <span className={`text-[9px] md:text-[10px] ${upBadgeText} font-black ${upBadgeBg} px-1 rounded ${upBadgeShadow} flex items-center gap-0.5`}><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
+          {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? upIconColor : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? upIconColor : 'text-blue-400'}`}/>}
         </div>
       </div>
       
@@ -122,7 +120,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
         <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
       </div>
       
-      {/* 하단 설명 영역: 여기도 overflow-visible로 설정되어 있어야 합니다. */}
       <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
         <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
           <span className="text-center leading-normal">{card.desc}</span>
