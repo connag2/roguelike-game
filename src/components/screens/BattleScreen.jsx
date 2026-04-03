@@ -61,25 +61,20 @@ export default function BattleScreen({
     setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
   };
 
-  // ✨ 다단 히트 대기 시간 대폭 축소 및 락 해제
   const handlePlayCard = async (idx) => {
     if (playEffect && playEffect.name !== 'enemy_attack') return;
-    if (discardingHand) return; // animatingCardIndex 제약 삭제로 빠른 연속 사용 허용
+    if (discardingHand) return; 
 
     const card = hand[idx];
     const isAttack = card.type === 'attack';
     const hits = card.multiHit || 1;
     const tier = card.rarity || 'common';
-    // 시각 효과 딜레이 극단적 축소
     const delay = fastMode ? 20 : (isAttack ? 50 : 30);
 
     setAnimatingCardIndex(idx);
     await new Promise(r => setTimeout(r, 20)); 
     
-    // 상태부터 즉시 업데이트
     playCard(idx);
-    
-    // 락 해제로 다음 카드 즉시 사용 가능
     setAnimatingCardIndex(null);
 
     if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
@@ -277,7 +272,6 @@ export default function BattleScreen({
       )}
 
       <div className="flex justify-between items-center bg-slate-800/90 p-2 md:p-3 rounded-xl border border-slate-700 shadow-lg z-10 shrink-0 mb-4">
-        {/* ✨ 모드 이름 표시 텍스트 수정 */}
         <div className="font-black text-sm md:text-xl flex items-center gap-2 text-indigo-400 tracking-tighter italic">
           <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin-slow" /> {mode === 'ENDLESS' ? '무한 모드' : mode === 'HARD' ? '하드 모드' : '일반 모드'} STAGE {stage} 
         </div>
@@ -331,77 +325,81 @@ export default function BattleScreen({
 
         <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
+        {/* ✨ 이 부분이 배열 처리(intentCards.map)로 완전히 교체되었습니다. */}
         <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
           {enemies.map((enemy, idx) => {
-            const eCard = enemy.intentCard;
             const isTarget = idx === 0;
-
-            let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
-            if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
-            if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
-
-            if (finalDmg > 0 && (player.debuffs?.mark || 0) > 0) {
-              finalDmg += player.debuffs.mark;
-            }
-            if (finalDmg > 0 && (player.buffs?.intangible || 0) > 0) {
-              finalDmg = 1;
-            }
+            // 배열로 변경된 intentCards를 가져옵니다. 없을 경우 빈 배열로 방어 코드 작성
+            const intents = enemy.intentCards || []; 
 
             return (
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
-                <div className={`mb-4 relative z-10 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
-                  <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 transition-colors ${isEnemyTurn ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
-                    <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
-                    
-                    <div className="flex flex-wrap justify-center items-center gap-1">
-                      {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
-                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                          {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
-                          <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
-                            {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : eCard.type === 'defend' ? 'DEF' : ''}
-                          </span>
-                        </div>
-                      )}
+                {/* 적 의도 카드가 가로로 배열되도록 flex와 gap 추가 */}
+                <div className={`mb-4 relative z-10 flex gap-2 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
+                  
+                  {intents.map((eCard, cardIdx) => {
+                    // 개별 카드 데미지 연산
+                    let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
+                    if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
+                    if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
+                    if (finalDmg > 0 && (player.debuffs?.mark || 0) > 0) finalDmg += player.debuffs.mark;
+                    if (finalDmg > 0 && (player.buffs?.intangible || 0) > 0) finalDmg = 1;
 
-                      {eCard.debuff && (
-                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                          <span className={`text-[9px] md:text-[10px] font-black ${
-                            eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : 
-                            eCard.debuff === 'weak' ? 'text-blue-300' : 
-                            eCard.debuff === 'bind' ? 'text-yellow-400' :
-                            eCard.debuff === 'silence' ? 'text-slate-400' :
-                            'text-green-400'
-                          }`}>
-                            {eCard.debuff === 'vulnerable' ? '취약' : 
-                             eCard.debuff === 'weak' ? '약화' : 
-                             eCard.debuff === 'bind' ? '속박' : 
-                             eCard.debuff === 'silence' ? '침묵' : 
-                             '중독'} {eCard.turns}
-                          </span>
-                          <Tooltip 
-                            desc={
-                              eCard.debuff === 'vulnerable' ? '취약' : 
-                              eCard.debuff === 'weak' ? '약화' : 
-                              eCard.debuff === 'bind' ? '속박' : 
-                              eCard.debuff === 'silence' ? '침묵' : 
-                              '중독'
-                            } 
-                          />
-                        </div>
-                      )}
+                    return (
+                      <div key={eCard.uid || `intent-${cardIdx}`} className={`min-w-[90px] md:min-w-[110px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 transition-colors ${isEnemyTurn ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
+                        <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
+                        
+                        <div className="flex flex-wrap justify-center items-center gap-1">
+                          {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
+                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                              {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
+                              <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
+                                {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : eCard.type === 'defend' ? 'DEF' : ''}
+                              </span>
+                            </div>
+                          )}
 
-                      {eCard.buff && (
-                        <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                          <span className="text-[9px] md:text-[10px] font-black text-amber-400">
-                            {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
-                          </span>
-                          {eCard.buff === 'strength' && <Tooltip desc="근력" />}
+                          {eCard.debuff && (
+                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                              <span className={`text-[9px] md:text-[10px] font-black ${
+                                eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : 
+                                eCard.debuff === 'weak' ? 'text-blue-300' : 
+                                eCard.debuff === 'bind' ? 'text-yellow-400' :
+                                eCard.debuff === 'silence' ? 'text-slate-400' :
+                                'text-green-400'
+                              }`}>
+                                {eCard.debuff === 'vulnerable' ? '취약' : 
+                                 eCard.debuff === 'weak' ? '약화' : 
+                                 eCard.debuff === 'bind' ? '속박' : 
+                                 eCard.debuff === 'silence' ? '침묵' : 
+                                 '중독'} {eCard.turns}
+                              </span>
+                              <Tooltip 
+                                desc={
+                                  eCard.debuff === 'vulnerable' ? '취약' : 
+                                  eCard.debuff === 'weak' ? '약화' : 
+                                  eCard.debuff === 'bind' ? '속박' : 
+                                  eCard.debuff === 'silence' ? '침묵' : 
+                                  '중독'
+                                } 
+                              />
+                            </div>
+                          )}
+
+                          {eCard.buff && (
+                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                              <span className="text-[9px] md:text-[10px] font-black text-amber-400">
+                                {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
+                              </span>
+                              {eCard.buff === 'strength' && <Tooltip desc="근력" />}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
