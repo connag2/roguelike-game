@@ -1,5 +1,5 @@
 // src/hooks/useBattle.js
-import { useCallback } from 'react'; // useEffect 제거 (App.jsx에서 턴 관리를 하므로 불필요)
+import { useCallback } from 'react'; 
 import { shuffle, calculateDamage, calculateBlock, clampStack } from '../utils/gameLogic';
 import { GAME_RULES, CARD_LIBRARY, BOSS_LOOT_CARDS } from '../constants/gameData';
 import { RELIC_LIBRARY } from '../constants/relicData';
@@ -71,14 +71,17 @@ export function useBattle({
         if (Math.random() < dropChance && enemy.template && enemy.template.deck && enemy.template.deck.length > 0) {
           let selectedCard = null;
           
-          if (isSpecialBoss) {
-            const lootPool = BOSS_LOOT_CARDS.filter(c => c.rarity === 'loot');
-            if (lootPool.length > 0) {
-              selectedCard = lootPool[Math.floor(Math.random() * lootPool.length)];
+          if (isSpecialBoss || isNormalBoss) {
+            // ✨ 보스 이름이 포함된 고유 전리품 필터링
+            const specificLoots = BOSS_LOOT_CARDS.filter(c => c.desc && c.desc.includes(`[${enemy.template.name}]`));
+            
+            if (specificLoots.length > 0) {
+              selectedCard = specificLoots[Math.floor(Math.random() * specificLoots.length)];
+            } else {
+              // 전용 전리품이 없다면 덱에서 하나 드랍
+              const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
+              selectedCard = enemy.template.deck[randomIdx];
             }
-          } else if (isNormalBoss) {
-            const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
-            selectedCard = enemy.template.deck[randomIdx];
           }
 
           if (selectedCard) {

@@ -1,3 +1,4 @@
+// src/components/screens/Statistics.jsx
 import React, { useState } from 'react';
 import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap, Star, Swords, Gift, CheckCircle } from 'lucide-react';
 import { CARD_LIBRARY, BOSS_LOOT_CARDS, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES } from '../../constants/gameData';
@@ -26,7 +27,7 @@ export default function Statistics({
     totalRuns: gameStats?.totalRuns || 0
   };
 
-  // ✨ 업적 대폭 추가 (쉬운 것 -> 어려운 것 순서)
+  // ✨ 업적 대폭 추가 (쉬운 것 -> 어려운 것 순서) + 하드 클리어 추가
   const ACHIEVEMENTS = [
     // [전투/처치]
     { id: 'kill_1', title: '첫 피', desc: '첫 번째 적을 처치하세요.', condition: safeGameStats.totalKills >= 1, icon: '🗡️', bg: 'from-red-900 to-red-700', border: 'border-red-500' },
@@ -49,6 +50,8 @@ export default function Statistics({
     { id: 'stage_100', title: '정복자', desc: '100층을 클리어하세요.', condition: normalCleared, icon: '👑', bg: 'from-amber-600 to-yellow-500', border: 'border-yellow-300' },
     { id: 'stage_200', title: '심연 탐험가', desc: '200층에 도달하세요.', condition: maxStageReached >= 200, icon: '🌌', bg: 'from-indigo-950 to-purple-900', border: 'border-indigo-400' },
     { id: 'stage_300', title: '신을 넘어선 자', desc: '300층에 도달하세요.', condition: maxStageReached >= 300, icon: '✨', bg: 'from-slate-900 to-black', border: 'border-slate-500' },
+    // ✨ 하드 클리어 전용 업적 추가
+    { id: 'hard_clear', title: '진정한 승리자', desc: '하드 모드(300층)를 클리어하세요.', condition: normalCleared && maxStageReached > 300, icon: '🔥', bg: 'from-purple-900 to-red-700', border: 'border-purple-500' },
     
     // [수집/도감]
     { id: 'relic_5', title: '호기심 많은 수집가', desc: '유물을 5개 이상 해금하세요.', condition: unlockedRelics.length >= 5, icon: '🏺', bg: 'from-stone-800 to-stone-600', border: 'border-stone-400' },
@@ -78,8 +81,9 @@ export default function Statistics({
   return (
     <div className="flex flex-col items-center justify-start min-h-[100dvh] bg-slate-900 text-white p-4 md:p-8 pt-8 overflow-y-auto hide-scrollbar relative">
       <div className="w-full max-w-6xl flex justify-between items-center mb-8 shrink-0 relative z-10">
+        {/* ✨ 오타 수정 (플이어 기록실 -> 플레이어 기록실) */}
         <h1 className="text-3xl md:text-5xl font-black text-indigo-400 drop-shadow-lg flex items-center gap-3">
-          <Activity className="w-8 h-8 md:w-12 md:h-12" /> 플���이어 기록실
+          <Activity className="w-8 h-8 md:w-12 md:h-12" /> 플레이어 기록실
         </h1>
         <button onClick={() => setGameState('MENU')} className="py-2 px-6 md:py-3 md:px-8 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-xl font-bold md:text-xl shadow-lg transition-colors">
           메인으로

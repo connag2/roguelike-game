@@ -61,21 +61,26 @@ export default function BattleScreen({
     setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
   };
 
+  // ✨ 다단 히트 대기 시간 대폭 축소 및 락 해제
   const handlePlayCard = async (idx) => {
     if (playEffect && playEffect.name !== 'enemy_attack') return;
-    if (animatingCardIndex !== null || discardingHand) return; 
+    if (discardingHand) return; // animatingCardIndex 제약 삭제로 빠른 연속 사용 허용
 
     const card = hand[idx];
     const isAttack = card.type === 'attack';
     const hits = card.multiHit || 1;
     const tier = card.rarity || 'common';
-    const delay = fastMode ? 100 : (isAttack ? 300 : 150);
+    // 시각 효과 딜레이 극단적 축소
+    const delay = fastMode ? 20 : (isAttack ? 50 : 30);
 
     setAnimatingCardIndex(idx);
-    await new Promise(r => setTimeout(r, fastMode ? 150 : 250)); 
-    setAnimatingCardIndex(null);
-
+    await new Promise(r => setTimeout(r, 20)); 
+    
+    // 상태부터 즉시 업데이트
     playCard(idx);
+    
+    // 락 해제로 다음 카드 즉시 사용 가능
+    setAnimatingCardIndex(null);
 
     if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
       for (let i = 0; i < hits; i++) {
@@ -272,8 +277,9 @@ export default function BattleScreen({
       )}
 
       <div className="flex justify-between items-center bg-slate-800/90 p-2 md:p-3 rounded-xl border border-slate-700 shadow-lg z-10 shrink-0 mb-4">
+        {/* ✨ 모드 이름 표시 텍스트 수정 */}
         <div className="font-black text-sm md:text-xl flex items-center gap-2 text-indigo-400 tracking-tighter italic">
-          <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin-slow" /> {mode === 'HARD' ? 'INF MODE' : 'NORMAL'} STAGE {stage} 
+          <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin-slow" /> {mode === 'ENDLESS' ? '무한 모드' : mode === 'HARD' ? '하드 모드' : '일반 모드'} STAGE {stage} 
         </div>
         <div className="flex items-center gap-2 md:gap-4 font-bold text-xs md:text-sm">
           <button onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} className={`p-2 rounded-lg border transition-all ${fastMode ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.6)]' : 'bg-slate-700 border-slate-600'}`}>
@@ -334,7 +340,6 @@ export default function BattleScreen({
             if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
             if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
 
-            // ✨ [추가] 표식(mark) 및 무형(intangible) UI 실시간 반영
             if (finalDmg > 0 && (player.debuffs?.mark || 0) > 0) {
               finalDmg += player.debuffs.mark;
             }
