@@ -593,8 +593,54 @@ export default function App() {
         
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
         
-        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards gameState={gameState} rewardCards={rewardCards} setRewardCards={setRewardCards} combatState={combatState} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} confirmSelection={confirmSelection} setConfirmSelection={setConfirmSelection} startNextStage={startNextStage} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} specialBossRewardCard={specialBossRewardCard} pendingRelicReward={pendingRelicReward} handleRelicRewardClaim={handleRelicRewardClaim}
-          enemyDropCard={enemyDropCard} setEnemyDropCard={setEnemyDropCard} customCards={customCards} setCustomCards={setCustomCards}
+        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards 
+          gameState={gameState} 
+          rewardCards={rewardCards} 
+          setRewardCards={setRewardCards} 
+          combatState={combatState} 
+          unlockedCards={unlockedCards} 
+          setUnlockedCards={setUnlockedCards} 
+          saveGame={saveGame} 
+          setGameState={setGameState} 
+          confirmSelection={confirmSelection} 
+          setConfirmSelection={setConfirmSelection} 
+          startNextStage={startNextStage} 
+          getCardDef={enhancedGetCardDef} 
+          shopUpgrades={shopUpgrades} 
+          specialBossRewardCard={specialBossRewardCard} 
+          pendingRelicReward={pendingRelicReward} 
+          handleRelicRewardClaim={handleRelicRewardClaim}
+          enemyDropCard={enemyDropCard} 
+          setEnemyDropCard={setEnemyDropCard} 
+          customCards={customCards} 
+          setCustomCards={setCustomCards}
+          
+          // ✨ 추가: 일반 몬스터 전리품 획득 시 도감(customCards)에 영구 등록하고 세이브하는 기능
+          handleEnemyDropClaim={() => {
+            if (enemyDropCard) {
+              let newUnlocked = unlockedCards;
+              let newCustomCards = customCards;
+
+              // 1. 잠금 해제 목록에 없다면 추가
+              if (!unlockedCards.includes(enemyDropCard.id)) {
+                newUnlocked = [...unlockedCards, enemyDropCard.id];
+                setUnlockedCards(newUnlocked);
+              }
+              // 2. 전리품 카드 자체를 도감 라이브러리(customCards)에 추가 (중복 방지)
+              if (!customCards.some(c => c.id === enemyDropCard.id)) {
+                newCustomCards = [...customCards, enemyDropCard];
+                setCustomCards(newCustomCards);
+              }
+
+              // 3. 현재 덱에 추가하고 보상 상태 초기화
+              setCombatState(prev => ({ ...prev, baseDeck: [...prev.baseDeck, enemyDropCard] }));
+              setEnemyDropCard(null);
+              
+              // 🌟 핵심: 로컬 스토리지에 확실하게 저장하여 도감 누락 방지!
+              saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
+            }
+          }}
+
           handleSpecialBossRewardClaim={() => { 
             if(specialBossRewardCard) { 
               let newUnlocked = unlockedCards;
@@ -604,7 +650,8 @@ export default function App() {
                 newUnlocked = [...unlockedCards, specialBossRewardCard.id];
                 setUnlockedCards(newUnlocked);
               }
-              if (specialBossRewardCard.id.startsWith('drop_') && !customCards.some(c => c.id === specialBossRewardCard.id)) {
+              // 보스 전리품도 customCards에 영구 추가
+              if (!customCards.some(c => c.id === specialBossRewardCard.id)) {
                 newCustomCards = [...customCards, specialBossRewardCard];
                 setCustomCards(newCustomCards);
               }
