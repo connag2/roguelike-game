@@ -1,4 +1,12 @@
+import React from 'react';
 import { Maximize, BarChart2, HelpCircle, Bell, Settings } from 'lucide-react';
+
+// 이미지 에셋 import (경로는 실제 프로젝트 구조에 맞춤)
+import heroImg from '../../assets/hero.png';
+import coinImg from '../../assets/images/ui/coin.svg';
+import scrollImg from '../../assets/images/items/scroll.svg';
+import skeletonImg from '../../assets/images/monsters/skeleton.svg';
+import merchantImg from '../../assets/images/shop/merchant.svg';
 
 export default function MainMenu({ 
   credits, 
@@ -13,7 +21,7 @@ export default function MainMenu({
   normalCleared, 
   maxStageReached, 
   setSkipModalOpen,
-  setHardSkipModalOpen, // ✨ 추가
+  setHardSkipModalOpen,
   toggleFullScreen 
 }) {
   return (
@@ -72,7 +80,6 @@ export default function MainMenu({
           일반 모드 (100층)
         </button>
 
-        {/* ✨ [수정] 하드 모드 버튼 - 300층 표시 */}
         <button 
           onClick={() => startBattle('HARD')} 
           disabled={!normalCleared || getTotalCards() !== 20} 
@@ -82,7 +89,6 @@ export default function MainMenu({
           {!normalCleared && <span className="text-[10px] text-red-400 mt-1">일반 100층 클리어 시 개방</span>}
         </button>
         
-        {/* ✨ [수정] 일반 모드 건너뛰기 - maxStageReached >= 50 */}
         {maxStageReached >= 50 && !normalCleared && (
           <button onClick={() => setSkipModalOpen(true)} className="mt-2 py-2 px-6 rounded-lg text-base font-bold transition-all bg-emerald-700 hover:bg-emerald-600 shadow-[0_0_15px_rgba(16,185,128,0.5)] flex flex-col items-center">
             ⭐ 일반 모드 도약
@@ -90,7 +96,6 @@ export default function MainMenu({
           </button>
         )}
 
-        {/* ✨ [추가] 하드 모드 건너뛰기 - normalCleared && maxStageReached >= 50 */}
         {normalCleared && maxStageReached >= 50 && (
           <button onClick={() => setHardSkipModalOpen(true)} className="mt-2 py-2 px-6 rounded-lg text-base font-bold transition-all bg-red-700 hover:bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)] flex flex-col items-center">
             🔥 하드 모드 도약
