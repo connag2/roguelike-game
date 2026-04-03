@@ -49,6 +49,7 @@ export default function App() {
   const [unlockedCards, setUnlockedCards] = useState(BASE_CARDS);
   const [deckCounts, setDeckCounts] = useState({ strike: 3, defend: 3, heavy_strike: 3, shield_bash: 3, heal: 2, mana_potion: 3, focus: 3 });
   
+  const [enemyDropCard, setEnemyDropCard] = useState(null);
   const [playerRelics, setPlayerRelics] = useState([]);
   const [unlockedRelics, setUnlockedRelics] = useState([]); 
   const [startingRelic, setStartingRelic] = useState(null); 
@@ -234,6 +235,7 @@ export default function App() {
     gameStats, setGameStats,
     credits, setCredits,
     maxStageReached, setMaxStageReached,
+    setEnemyDropCard,
     setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared
   });
 

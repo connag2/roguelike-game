@@ -11,7 +11,8 @@ export function useBattle({
   gameStats, setGameStats,
   credits, setCredits,
   maxStageReached, setMaxStageReached,
-  setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared
+  setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared,
+  setEnemyDropCard // 🌟 일반 적이 떨군 카드를 처리하기 위한 함수
 }) {
 
   const checkRevive = useCallback((target, enemiesArray) => {
@@ -60,6 +61,69 @@ export function useBattle({
           if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
         }
 
+        // 🌟 [추가 로직] 적 및 보스 카드 무작위 드랍 시스템 (밸런스 패치 적용)
+        let enemyDroppedCards = [];
+        let bossDroppedCards = [];
+
+        prevCombat.enemies.forEach(enemy => {
+          const isThisEnemyBoss = enemy.isBoss || isNormalBoss || isSpecialBoss;
+          const dropChance = isThisEnemyBoss ? 1.0 : 0.10; // 보스 100% 확정, 일반 적 10%
+
+          if (Math.random() < dropChance && enemy.template && enemy.template.deck && enemy.template.deck.length > 0) {
+            
+            // 패턴 중 하나를 무작위 선택
+            const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
+            const enemyCardDef = enemy.template.deck[randomIdx];
+
+            // ⚖️ 밸런스 패치: 적의 기본 수치가 플레이어 스케일을 파괴하지 않도록 조정
+            let rawDamage = enemyCardDef.value || 0;
+            let rawBlock = enemyCardDef.type === 'defend' ? (enemyCardDef.value || 0) : 0;
+            let rawHeal = enemyCardDef.heal || 0;
+            let rawMulti = enemyCardDef.multi || 1;
+
+            let nerfedDamage = isThisEnemyBoss ? Math.min(30, Math.ceil(rawDamage * 0.4)) : Math.min(15, Math.ceil(rawDamage * 0.8));
+            let nerfedBlock = isThisEnemyBoss ? Math.min(30, Math.ceil(rawBlock * 0.4)) : Math.min(15, Math.ceil(rawBlock * 0.8));
+            let nerfedHeal = isThisEnemyBoss ? Math.min(20, Math.ceil(rawHeal * 0.05)) : Math.min(10, Math.ceil(rawHeal * 0.5));
+            let nerfedMulti = Math.min(4, rawMulti); 
+
+            const convertedCard = {
+              id: `drop_${enemy.name}_${Date.now()}_${Math.floor(Math.random() * 10000)}`, 
+              name: `${enemy.name}의 ${enemyCardDef.name}`,
+              type: (enemyCardDef.type && enemyCardDef.type.includes('attack')) ? 'attack' : 'skill',
+              cost: isThisEnemyBoss ? 2 : 1, 
+              rarity: isThisEnemyBoss ? 'special' : 'uncommon',
+              desc: `(전리품) ${enemyCardDef.desc}`,
+              damage: nerfedDamage,
+              multiHit: nerfedMulti,
+              block: nerfedBlock,
+              heal: nerfedHeal,
+            };
+
+            if (enemyCardDef.debuff) {
+              const turns = Math.min(3, enemyCardDef.turns || 1); 
+              if (enemyCardDef.debuff === 'weak') convertedCard.enemyWeak = turns;
+              if (enemyCardDef.debuff === 'vulnerable') convertedCard.enemyVuln = turns;
+              if (enemyCardDef.debuff === 'poison') convertedCard.enemyPoison = turns;
+              if (enemyCardDef.debuff === 'mark') convertedCard.enemyMark = turns;
+              if (enemyCardDef.debuff === 'frail') convertedCard.enemyFrail = turns;
+              if (enemyCardDef.debuff === 'silence') convertedCard.enemySilence = turns;
+              if (enemyCardDef.debuff === 'bind') convertedCard.enemyBind = turns;
+            }
+
+            if (enemyCardDef.buff) {
+              const val = Math.min(2, enemyCardDef.buffValue || enemyCardDef.amount || 1);
+              if (enemyCardDef.buff === 'strength') convertedCard.selfStrength = val;
+            }
+
+            if (isThisEnemyBoss) {
+              bossDroppedCards.push(convertedCard);
+            } else {
+              enemyDroppedCards.push(convertedCard);
+            }
+          }
+        });
+
+        // 층별 확정 카드 보상 로직
         const determineReward = (st) => {
           const roll = Math.random();
           
@@ -83,7 +147,21 @@ export function useBattle({
         };
 
         const spReward = determineReward(prevCombat.stage);
-        if (spReward) setSpecialBossRewardCard(spReward);
+        
+        // 보스가 드랍한 카드를 1순위로, 기존 보상을 2순위로 뽓스카드에 할당
+        let finalBossCard = null;
+        if (bossDroppedCards.length > 0) {
+          finalBossCard = bossDroppedCards[0];
+          setSpecialBossRewardCard(finalBossCard);
+        } else if (spReward) {
+          finalBossCard = spReward;
+          setSpecialBossRewardCard(spReward);
+        }
+
+        // 일반 적이 드랍한 카드를 상태에 저장
+        if (enemyDroppedCards.length > 0 && typeof setEnemyDropCard === 'function') {
+          setEnemyDropCard(enemyDroppedCards[0]); 
+        }
 
         saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
         
@@ -91,7 +169,7 @@ export function useBattle({
           setPendingRelicReward(droppedRelic);
           setTimeout(() => setGameState('RELIC_REWARD'), 600);
         } else {
-          if (spReward) {
+          if (finalBossCard) {
             setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
           } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
             if (prevCombat.mode === 'NORMAL') {
@@ -107,7 +185,7 @@ export function useBattle({
         console.error("보상 처리 중 에러 발생:", err);
         setTimeout(() => setGameState('REWARDS'), 600);
       }
-  }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared]);
+  }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setEnemyDropCard]);
 
   const playCard = useCallback(async (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;
@@ -134,7 +212,6 @@ export function useBattle({
     setCombatState(prev => {
       let p = { ...prev.player };
       
-      // ✅ 수정됨 1: 상태 객체의 깊은 복사(Deep Copy)를 적용하여 React 상태 변이 버그 해결
       p.buffs = { ...(prev.player.buffs || {}) };
       p.debuffs = { ...(prev.player.debuffs || {}) };
 
@@ -237,7 +314,6 @@ export function useBattle({
                 p.mana = 0; 
             }
             
-            // ✅ 수정됨 3: 적에게 디버프를 부여할 때에도 clampStack을 적용하여 무한 중첩 방지
             if (card.enemyWeak) newEnemies[0].debuffs.weak = clampStack((newEnemies[0].debuffs.weak || 0) + card.enemyWeak);
             if (card.enemyVuln) newEnemies[0].debuffs.vulnerable = clampStack((newEnemies[0].debuffs.vulnerable || 0) + card.enemyVuln);
             if (card.enemyPoison) newEnemies[0].debuffs.poison = clampStack((newEnemies[0].debuffs.poison || 0) + card.enemyPoison);
