@@ -344,11 +344,9 @@ export default function BattleScreen({
             if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
 
             return (
-              // ✨ 적 턴일 때 강하게 부각(스케일업 + 펄스 애니메이션) 시키는 클래스 적용
               <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                 
-                {/* ✨ 적 턴일 때 공격 의도 아이콘을 위로 띄우며 크게 강조 */}
                 <div className={`mb-4 relative z-10 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
                   <div className={`min-w-[100px] md:min-w-[120px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 transition-colors ${isEnemyTurn ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
                     <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
@@ -363,6 +361,7 @@ export default function BattleScreen({
                         </div>
                       )}
 
+                      {/* ✨ 디버프 툴팁 추가 부분 */}
                       {eCard.debuff && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           <span className={`text-[9px] md:text-[10px] font-black ${
@@ -378,14 +377,25 @@ export default function BattleScreen({
                              eCard.debuff === 'silence' ? '침묵' : 
                              '중독'} {eCard.turns}
                           </span>
+                          <Tooltip 
+                            desc={
+                              eCard.debuff === 'vulnerable' ? '취약' : 
+                              eCard.debuff === 'weak' ? '약화' : 
+                              eCard.debuff === 'bind' ? '속박' : 
+                              eCard.debuff === 'silence' ? '침묵' : 
+                              '중독'
+                            } 
+                          />
                         </div>
                       )}
 
+                      {/* ✨ 버프 툴팁 추가 부분 */}
                       {eCard.buff && (
                         <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
                           <span className="text-[9px] md:text-[10px] font-black text-amber-400">
                             {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
                           </span>
+                          {eCard.buff === 'strength' && <Tooltip desc="근력" />}
                         </div>
                       )}
                     </div>
@@ -459,14 +469,12 @@ export default function BattleScreen({
           <div className="flex justify-center items-end w-full px-20 md:px-40 h-full pb-4 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
-              // 카드 버리기 중에는 호버 불가
               const isHovered = hoveredCard === idx && !discardingHand; 
               const offset = idx - (hand.length - 1) / 2;
               
               const rotation = isHovered ? 0 : offset * 4.5;
               const translateY = isHovered ? -60 : Math.abs(offset) * 8; 
 
-              // ✨ 버리기 연출, 사용 연출, 일반 상태 분기 처리
               let cardTransform = '';
               let cardOpacity = 1;
 
@@ -489,7 +497,6 @@ export default function BattleScreen({
                        zIndex: isHovered ? 100 : 10 + idx, 
                        transform: cardTransform,
                        opacity: cardOpacity,
-                       // 버릴 때는 카드마다 살짝 시차를 두고 빨려들어가는 transition 적용
                        transition: discardingHand 
                           ? `all 0.5s cubic-bezier(0.55, 0.085, 0.68, 0.53) ${idx * 0.05}s` 
                           : 'all 0.3s ease-out',
@@ -512,7 +519,6 @@ export default function BattleScreen({
           </div>
 
           <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
-            {/* ✨ 턴 종료 버튼 (클릭 시 애니메이션 발동) */}
             <button 
               onClick={handleTurnEndClick} 
               disabled={!isPlayerTurn || discardingHand} 
