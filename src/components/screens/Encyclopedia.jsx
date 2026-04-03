@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Maximize } from 'lucide-react';
-import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES, UNPLAYABLE_MONSTER_SKILLS } from '../../constants/gameData';
+import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
@@ -23,7 +23,7 @@ export default function Encyclopedia({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ 적 카드 데이터를 추출 (일반 몹 제외, 보스몹만! + 플레이어 사용 불가 카드 제거!)
+  // ✨ 보스 몹 카드만 추출 (일반 몹 제외)
   const enemyCardsMap = {};
   const allEnemies = [ 
     ...NORMAL_BOSSES, 
@@ -34,9 +34,6 @@ export default function Encyclopedia({
   allEnemies.forEach(enemy => {
     if (enemy?.deck) {
       enemy.deck.forEach(c => {
-        // ✨ 플레이어 사용 불가 카드 필터링
-        if (UNPLAYABLE_MONSTER_SKILLS.includes(c.id)) return;
-        
         if (!enemyCardsMap[c.name]) {
           enemyCardsMap[c.name] = {
             id: `enemy_${c.name}`,
