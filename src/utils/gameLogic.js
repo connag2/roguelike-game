@@ -131,7 +131,6 @@ export const getCardDef = (id, shopUpgrades) => {
   return base;
 };
 
-// ✨ 이전 의도(행동)를 받아와서 연속 방어를 하지 않게 해주며, 스케일링 배율 적용
 export const generateEnemyIntent = (template, stage, previousIntent = null, dmgMulti = 1) => {
   if (!template || !template.deck || template.deck.length === 0) {
     return { name: '오류 방지', type: 'attack', value: Math.floor(5 * dmgMulti), desc: '기본 공격을 합니다.' };
@@ -179,14 +178,15 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
   let enemyTemplates = [];
   
-  let hpMulti = 1 + (s * 0.15);
-  let dmgMulti = 1 + (s * 0.05);
+  // 일반 모드 스케일링 완화
+  let hpMulti = 1 + (s * 0.04);
+  let dmgMulti = 1 + (s * 0.02);
 
   try {
     if (mode === 'ENDLESS') {
-      // ✨ 체력/데미지 폭증 방지 (스케일링 완화)
-      hpMulti = 1 + (s * 0.15) + Math.pow(s / 30, 1.3);
-      dmgMulti = 1 + (s * 0.1) + Math.pow(s / 35, 1.2);
+      // ✨ 무한 모드 스케일링 극단적 완화
+      hpMulti = 1 + (s * 0.06) + Math.pow(s / 35, 1.15);
+      dmgMulti = 1 + (s * 0.04) + Math.pow(s / 45, 1.1);
       
       if (s > 300) {
         if (s % 50 === 0) {
@@ -213,9 +213,9 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       }
     } 
     else if (mode === 'HARD') {
-      // ✨ 체력/데미지 폭증 방지 (스케일링 완화)
-      hpMulti = 1 + (s * 0.12) + Math.pow(s / 35, 1.25);
-      dmgMulti = 1 + (s * 0.08) + Math.pow(s / 40, 1.15);
+      // ✨ 하드 모드 스케일링 극단적 완화
+      hpMulti = 1 + (s * 0.05) + Math.pow(s / 40, 1.1);
+      dmgMulti = 1 + (s * 0.03) + Math.pow(s / 50, 1.05);
 
       if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
