@@ -1,4 +1,3 @@
-// src/components/screens/Encyclopedia.jsx
 import React, { useState } from 'react';
 import { Maximize } from 'lucide-react';
 import { CARD_LIBRARY } from '../../constants/gameData';
@@ -7,7 +6,14 @@ import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 
 export default function Encyclopedia({
-  unlockedCards, getCardDef, shopUpgrades, getFilteredCards, setGameState, toggleFullScreen, setTutorialModalOpen, unlockedRelics
+  unlockedCards = [], // ✨ 에러 방지를 위해 기본값 빈 배열 설정
+  getCardDef, 
+  shopUpgrades, 
+  getFilteredCards, 
+  setGameState, 
+  toggleFullScreen, 
+  setTutorialModalOpen, 
+  unlockedRelics = [] // ✨ 에러 방지를 위해 기본값 빈 배열 설정
 }) {
   const [tab, setTab] = useState('cards'); 
   const [filterType, setFilterType] = useState('all');
@@ -18,23 +24,24 @@ export default function Encyclopedia({
   // 보유/미보유 상태 필터 추가 ('all', 'unlocked', 'locked')
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // 🌟 [추가] 획득한 전리품 카드까지 포함한 '진짜' 전체 카드 개수 계산
-  const totalCardsCount = getFilteredCards('all', 'all', 'all', 'all', '').length;
+  // ✨ 핵심 버그 수정: 세이브 파일에 중복 저장되거나 삭제된 옛날 카드 ID를 걸러냅니다! (175/174 방지)
+  const validUnlockedCards = [...new Set(unlockedCards)].filter(id => CARD_LIBRARY.some(c => c.id === id));
+  const validUnlockedRelics = [...new Set(unlockedRelics)].filter(id => RELIC_LIBRARY.some(r => r.id === id));
 
   // 카드 필터링 로직에 보유/미보유 적용
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
   if (filterUnlock === 'unlocked') {
-    filteredCards = filteredCards.filter(c => unlockedCards.includes(c.id));
+    filteredCards = filteredCards.filter(c => validUnlockedCards.includes(c.id));
   } else if (filterUnlock === 'locked') {
-    filteredCards = filteredCards.filter(c => !unlockedCards.includes(c.id));
+    filteredCards = filteredCards.filter(c => !validUnlockedCards.includes(c.id));
   }
   
   // 유물 필터링 로직에 보유/미보유 적용
   const filteredRelics = RELIC_LIBRARY.filter(r => {
     if (filterRarity !== 'all' && r.rarity !== filterRarity) return false;
     if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-    if (filterUnlock === 'unlocked' && !unlockedRelics.includes(r.id)) return false;
-    if (filterUnlock === 'locked' && unlockedRelics.includes(r.id)) return false;
+    if (filterUnlock === 'unlocked' && !validUnlockedRelics.includes(r.id)) return false;
+    if (filterUnlock === 'locked' && validUnlockedRelics.includes(r.id)) return false;
     return true;
   });
 
@@ -70,8 +77,8 @@ export default function Encyclopedia({
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 shrink-0">
           종합 도감 
           <span className="text-sm md:text-lg text-indigo-400 ml-2">
-            {/* 🌟 [수정] CARD_LIBRARY.length 대신 동적으로 계산된 totalCardsCount 사용 */}
-            {tab === 'cards' ? `카드 (${unlockedCards.length}/${totalCardsCount})` : `유물 (${unlockedRelics.length}/${RELIC_LIBRARY.length})`}
+            {/* ✨ 정제된 validUnlockedCards 배열의 길이를 사용해 174/174를 초과하지 않게 만듭니다! */}
+            {tab === 'cards' ? `카드 (${validUnlockedCards.length}/${CARD_LIBRARY.length})` : `유물 (${validUnlockedRelics.length}/${RELIC_LIBRARY.length})`}
           </span>
         </h2>
         <div className="flex gap-2">
@@ -93,7 +100,6 @@ export default function Encyclopedia({
       ) : (
         <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center gap-3 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
           <div className="flex flex-wrap items-center gap-2">
-            {/* 🌟 [수정] 유물에는 '전리품' 등급이 없으므로 다시 제외 */}
             {['all', 'common', 'uncommon', 'rare', 'special', 'mythic'].map((r) => {
               const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화' };
               return (
@@ -129,13 +135,13 @@ export default function Encyclopedia({
         {tab === 'cards' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
             {filteredCards.map(baseCard => (
-              <Card key={baseCard.id} card={getCardDef(baseCard.id, shopUpgrades)} isLocked={!unlockedCards.includes(baseCard.id)} />
+              <Card key={baseCard.id} card={getCardDef(baseCard.id, shopUpgrades)} isLocked={!validUnlockedCards.includes(baseCard.id)} />
             ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {filteredRelics.map(rel => {
-              const isLocked = !unlockedRelics.includes(rel.id);
+              const isLocked = !validUnlockedRelics.includes(rel.id);
               let rColor = 'text-slate-400'; let borderColor = 'border-slate-600';
               if (!isLocked) {
                 if(rel.rarity === 'uncommon') { rColor = 'text-cyan-400'; borderColor = 'border-cyan-700'; }
