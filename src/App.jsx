@@ -4,7 +4,7 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
-import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS } from './constants/gameData';
+import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS, BOSS_LOOT_CARDS } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 import { useBattle } from './hooks/useBattle'; 
@@ -172,18 +172,20 @@ export default function App() {
   };
 
   const getFilteredCards = (t, e, r, o, q) => {
-    const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards];
-    return FULL_CARD_LIBRARY.filter(c => {
-      if (r !== 'all' && c.rarity !== r) return false;
-      if (t !== 'all' && c.type !== t) return false;
-      if (e === 'debuff' && !(c.enemyWeak || c.enemyVuln || c.enemyPoison)) return false;
-      if (e === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
-      if (o === 'owned' && !unlockedCards.includes(c.id)) return false;
-      if (o === 'unowned' && unlockedCards.includes(c.id)) return false;
-      if (q) { const def = enhancedGetCardDef(c.id, shopUpgrades); if (def && !(def.name || '').toLowerCase().includes(q.toLowerCase()) && !(def.desc || '').toLowerCase().includes(q.toLowerCase())) return false; }
-      return true;
-    });
-  };
+  const { BOSS_LOOT_CARDS } = require('./constants/gameData');
+  // ✨ BOSS_LOOT_CARDS 추가
+  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot')];
+  return FULL_CARD_LIBRARY.filter(c => {
+    if (r !== 'all' && c.rarity !== r) return false;
+    if (t !== 'all' && c.type !== t) return false;
+    if (e === 'debuff' && !(c.enemyWeak || c.enemyVuln || c.enemyPoison)) return false;
+    if (e === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
+    if (o === 'owned' && !unlockedCards.includes(c.id)) return false;
+    if (o === 'unowned' && unlockedCards.includes(c.id)) return false;
+    if (q) { const def = enhancedGetCardDef(c.id, shopUpgrades); if (def && !(def.name || '').toLowerCase().includes(q.toLowerCase()) && !(def.desc || '').toLowerCase().includes(q.toLowerCase())) return false; }
+    return true;
+  });
+};
 
   const applyStartCombatRelics = (basePlayer, activeRelics) => {
     let p = { ...basePlayer };
