@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Maximize } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import { CARD_LIBRARY, BOSS_LOOT_CARDS } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 import Card from '../common/Card';
@@ -74,7 +74,7 @@ export default function Encyclopedia({
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white pt-16 md:pt-4 p-4 md:p-10 relative">
       <button onClick={toggleFullScreen} className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-slate-800 px-3 py-2 rounded text-sm font-bold border border-slate-600">
-        <Maximize className="w-4 h-4"/> <span className="hidden md:inline">전체화면</span>
+        <Maximize2 className="w-4 h-4"/> <span className="hidden md:inline">전체화면</span>
       </button>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pl-0 md:pl-32 gap-4">
