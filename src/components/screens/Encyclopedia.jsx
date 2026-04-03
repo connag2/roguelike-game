@@ -1,3 +1,4 @@
+// src/components/screens/Encyclopedia.jsx
 import React, { useState } from 'react';
 import { Maximize } from 'lucide-react';
 import { CARD_LIBRARY } from '../../constants/gameData';
@@ -16,6 +17,9 @@ export default function Encyclopedia({
   
   // 보유/미보유 상태 필터 추가 ('all', 'unlocked', 'locked')
   const [filterUnlock, setFilterUnlock] = useState('all');
+
+  // 🌟 [추가] 획득한 전리품 카드까지 포함한 '진짜' 전체 카드 개수 계산
+  const totalCardsCount = getFilteredCards('all', 'all', 'all', 'all', '').length;
 
   // 카드 필터링 로직에 보유/미보유 적용
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
@@ -66,7 +70,8 @@ export default function Encyclopedia({
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 shrink-0">
           종합 도감 
           <span className="text-sm md:text-lg text-indigo-400 ml-2">
-            {tab === 'cards' ? `카드 (${unlockedCards.length}/${CARD_LIBRARY.length})` : `유물 (${unlockedRelics.length}/${RELIC_LIBRARY.length})`}
+            {/* 🌟 [수정] CARD_LIBRARY.length 대신 동적으로 계산된 totalCardsCount 사용 */}
+            {tab === 'cards' ? `카드 (${unlockedCards.length}/${totalCardsCount})` : `유물 (${unlockedRelics.length}/${RELIC_LIBRARY.length})`}
           </span>
         </h2>
         <div className="flex gap-2">
@@ -88,10 +93,9 @@ export default function Encyclopedia({
       ) : (
         <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center gap-3 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
           <div className="flex flex-wrap items-center gap-2">
-            {/* 🌟 배열 맨 끝에 'loot' 추가 */}
-            {['all', 'common', 'uncommon', 'rare', 'special', 'mythic', 'loot'].map((r) => {
-              // 🌟 labels 객체에도 loot 추가
-              const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화', loot: '전리품' };
+            {/* 🌟 [수정] 유물에는 '전리품' 등급이 없으므로 다시 제외 */}
+            {['all', 'common', 'uncommon', 'rare', 'special', 'mythic'].map((r) => {
+              const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화' };
               return (
                 <button
                   key={r}

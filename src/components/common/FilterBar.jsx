@@ -1,3 +1,4 @@
+// src/components/common/FilterBar.jsx
 import React from 'react';
 import { Search } from 'lucide-react';
 
@@ -46,16 +47,16 @@ export default function FilterBar({
           <button onClick={() => setEffect('buff')} className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-all ${effect === 'buff' ? 'bg-green-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}>버프 (근력/민첩/가시)</button>
         </div>
 
-        {/* 등급 필터 (신화 포함) */}
+        {/* 🌟 [수정] 등급 필터에 '전리품(loot)' 추가 */}
         <div className="flex gap-2 overflow-x-auto hide-scrollbar py-1 items-center">
           <span className="text-slate-400 text-sm font-bold w-10 shrink-0">등급</span>
-          {['all', 'common', 'uncommon', 'rare', 'mythic', 'special'].map((v) => (
+          {['all', 'common', 'uncommon', 'rare', 'special', 'mythic', 'loot'].map((v) => (
             <button 
               key={v} 
               onClick={() => setRarity(v)} 
               className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-all ${rarity === v ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-700 hover:bg-slate-600 text-slate-300'}`}
             >
-              {v === 'all' ? '전체' : v === 'common' ? '일반' : v === 'uncommon' ? '희귀' : v === 'rare' ? '전설' : v === 'mythic' ? '신화' : '특수'}
+              {v === 'all' ? '전체' : v === 'common' ? '일반' : v === 'uncommon' ? '희귀' : v === 'rare' ? '전설' : v === 'special' ? '특수' : v === 'mythic' ? '신화' : '전리품'}
             </button>
           ))}
         </div>
