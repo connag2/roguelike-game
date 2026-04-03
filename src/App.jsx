@@ -22,26 +22,6 @@ import UpdateHistory from './components/screens/UpdateHistory';
 import GameGuide from './components/screens/GameGuide';
 import AdminPanel from './components/admin/AdminPanel'; 
 
-// 1. 상태 추가 (기존 state 모여있는 곳에 추가하세요)
-const [claimedMilestones, setClaimedMilestones] = useState([]);
-
-// 2. 보상 수령 함수 만들기
-const handleClaimMilestone = (requiredCount, amount) => {
-  if (claimedMilestones.includes(requiredCount)) return; // 이미 수령한 경우 방지
-  
-  // 크레딧 지급 및 저장
-  const newCredits = credits + amount;
-  setCredits(newCredits);
-  
-  // 수령한 마일스톤 목록 업데이트
-  const newClaimed = [...claimedMilestones, requiredCount];
-  setClaimedMilestones(newClaimed);
-
-  alert(`업적 달성 보상으로 ${amount.toLocaleString()} 크레딧을 받았습니다!`);
-};
-
-
-
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -112,9 +92,11 @@ export default function App() {
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 🌟 [추가] 전리품 관련 State
   const [enemyDropCard, setEnemyDropCard] = useState(null); 
   const [customCards, setCustomCards] = useState([]); 
+  
+  // ✨ [추가] 업적 달성 보상(마일스톤) 수령 여부 저장 State
+  const [claimedMilestones, setClaimedMilestones] = useState([]);
 
   useEffect(() => {
     document.body.style.margin = '0';
@@ -145,15 +127,18 @@ export default function App() {
         if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
         if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
         if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
-        if (d.customCards) setCustomCards(d.customCards); // 🌟 [추가]
+        if (d.customCards) setCustomCards(d.customCards); 
+        // ✨ [추가] 세이브 데이터에서 수령한 마일스톤 로드
+        if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones);
       }
     } catch (e) {
       console.error("세이브 데이터 로드 실패", e);
     }
   }, []);
 
+  // ✨ [수정] 세이브 대상에 claimedMilestones 추가
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -165,7 +150,6 @@ export default function App() {
     }
   }, [toastMsg]);
 
-  // 🌟 [추가] 일반 카드 도감 + 획득한 전리품 도감을 합쳐 카드를 찾아주는 확장 함수
   const enhancedGetCardDef = (id, upgrades) => {
     const baseDef = getCardDef(id, upgrades);
     if (baseDef && baseDef.name) return baseDef;
@@ -187,7 +171,6 @@ export default function App() {
     return { id, name: 'Unknown', type: 'skill', cost: 1, desc: 'Error' };
   };
 
-  // 🌟 [수정] 필터링 시 일반 카드와 전리품 카드를 모두 탐색하도록 변경
   const getFilteredCards = (t, e, r, o, q) => {
     const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards];
     return FULL_CARD_LIBRARY.filter(c => {
@@ -219,7 +202,7 @@ export default function App() {
   const startBattle = (mode = 'NORMAL', stage = 1) => {
     let fullDeck = [];
     Object.keys(deckCounts).forEach(id => {
-      const def = enhancedGetCardDef(id, shopUpgrades); // 🌟 [수정] 전리품 포함해서 덱 생성
+      const def = enhancedGetCardDef(id, shopUpgrades);
       for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
     });
     const basePlayerHp = 100 + (shopUpgrades.maxHp * 15);
@@ -297,7 +280,7 @@ export default function App() {
     credits, setCredits,
     maxStageReached, setMaxStageReached,
     setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared,
-    setEnemyDropCard // 🌟 [추가] 몬스터 드랍 카드 연동
+    setEnemyDropCard 
   });
 
   const handleRelicRewardClaim = () => {
@@ -479,7 +462,7 @@ export default function App() {
     setToastMsg(`관리자 권한: ${targetStage}층으로 워프!`);
   };
 
-  const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
+  const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
   const handleExitGame = async () => { setToastMsg('저장 중...'); await saveGame(); if (window.require) window.close(); else setGameState('MENU'); };
 
   const handlePremiumGacha = () => {
@@ -509,6 +492,21 @@ export default function App() {
       return;
     }
     setTempDeckCounts({ ...tempDeckCounts, [id]: (tempDeckCounts[id] || 0) + 1 });
+  };
+
+  // ✨ [추가] 업적 달성 시 보상 획득 처리 함수
+  const handleClaimMilestone = (requiredCount, amount) => {
+    if (claimedMilestones.includes(requiredCount)) return; // 이미 수령한 경우 방지
+    
+    const newCredits = credits + amount;
+    const newClaimed = [...claimedMilestones, requiredCount];
+    
+    setCredits(newCredits);
+    setClaimedMilestones(newClaimed);
+    
+    // 로컬 스토리지 및 Firebase에 획득 내역 영구 저장
+    saveGame({ credits: newCredits, claimedMilestones: newClaimed });
+    setToastMsg(`✨ 업적 보상으로 ${amount.toLocaleString()} 크레딧을 획득했습니다! ✨`);
   };
 
   return (
@@ -584,6 +582,7 @@ export default function App() {
                     if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
                     if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
                     if (d.customCards) setCustomCards(d.customCards);
+                    if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones); // ✨ 마일스톤 내역 복구
                     saveGame(d);
                     setImportModalOpen(false); 
                     setToastMsg('세이브 불러오기 성공!'); 
@@ -598,21 +597,21 @@ export default function App() {
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
         
+        {/* ✨ [수정] 통계 화면에 보상 처리 관련 함수와 상태를 넘겨줌 */}
         {gameState === 'STATISTICS' && (
-  <Statistics
-    maxStageReached={maxStageReached}
-    normalCleared={normalCleared}
-    seenEnemies={seenEnemies}
-    unlockedCards={unlockedCards}
-    credits={credits}
-    unlockedRelics={unlockedRelics}
-    gameStats={gameStats}
-    setGameState={setGameState}
-    // ✨ 아래 두 줄을 반드시 추가해주세요!
-    claimedMilestones={claimedMilestones}
-    handleClaimMilestone={handleClaimMilestone}
-  />
-)}
+          <Statistics 
+            maxStageReached={maxStageReached} 
+            normalCleared={normalCleared} 
+            seenEnemies={seenEnemies} 
+            unlockedCards={unlockedCards} 
+            credits={credits} 
+            unlockedRelics={unlockedRelics} 
+            gameStats={gameStats} 
+            setGameState={setGameState} 
+            claimedMilestones={claimedMilestones}
+            handleClaimMilestone={handleClaimMilestone}
+          />
+        )}
         
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} adminUnlockAllCards={() => { const all = CARD_LIBRARY.map(c=>c.id); setUnlockedCards(all); saveGame({unlockedCards: all}); setToastMsg('완료'); }} adminGiveMoney={() => { const nc = credits + 99999; setCredits(nc); saveGame({credits: nc}); setToastMsg('완료'); }} adminUnlockAllRelics={() => { const all = RELIC_LIBRARY.map(r=>r.id); setUnlockedRelics(all); saveGame({unlockedRelics: all}); setToastMsg('완료'); }} adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
         
@@ -622,7 +621,6 @@ export default function App() {
         
         {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard} playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10} setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} />}
         
-        {/* ✨ 도감에 전리품 카드 목록(customCards)을 프롭스로 함께 넘겨줍니다! */}
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} customCards={customCards} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
@@ -649,28 +647,22 @@ export default function App() {
           customCards={customCards} 
           setCustomCards={setCustomCards}
           
-          // ✨ 추가: 일반 몬스터 전리품 획득 시 도감(customCards)에 영구 등록하고 세이브하는 기능
           handleEnemyDropClaim={() => {
             if (enemyDropCard) {
               let newUnlocked = unlockedCards;
               let newCustomCards = customCards;
 
-              // 1. 잠금 해제 목록에 없다면 추가
               if (!unlockedCards.includes(enemyDropCard.id)) {
                 newUnlocked = [...unlockedCards, enemyDropCard.id];
                 setUnlockedCards(newUnlocked);
               }
-              // 2. 전리품 카드 자체를 도감 라이브러리(customCards)에 추가 (중복 방지)
               if (!customCards.some(c => c.id === enemyDropCard.id)) {
                 newCustomCards = [...customCards, enemyDropCard];
                 setCustomCards(newCustomCards);
               }
 
-              // 3. 현재 덱에 추가하고 보상 상태 초기화
               setCombatState(prev => ({ ...prev, baseDeck: [...prev.baseDeck, enemyDropCard] }));
               setEnemyDropCard(null);
-              
-              // 🌟 핵심: 로컬 스토리지에 확실하게 저장하여 도감 누락 방지!
               saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
             }
           }}
@@ -684,7 +676,6 @@ export default function App() {
                 newUnlocked = [...unlockedCards, specialBossRewardCard.id];
                 setUnlockedCards(newUnlocked);
               }
-              // 보스 전리품도 customCards에 영구 추가
               if (!customCards.some(c => c.id === specialBossRewardCard.id)) {
                 newCustomCards = [...customCards, specialBossRewardCard];
                 setCustomCards(newCustomCards);
