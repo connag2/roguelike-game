@@ -525,7 +525,26 @@ export default function App() {
 
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
-        <AdminPanel gameState={gameState} credits={credits} setCredits={setCredits} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} unlockedRelics={unlockedRelics} setUnlockedRelics={setUnlockedRelics} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} setIsAdminUnlocked={setIsAdminUnlocked} handleWarp={handleWarp} setGameState={setGameState} maxStageReached={maxStageReached} setMaxStageReached={setMaxStageReached} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} saveGame={saveGame} />
+        <AdminPanel 
+  gameState={gameState} 
+  credits={credits} 
+  setCredits={setCredits} 
+  unlockedCards={unlockedCards} 
+  setUnlockedCards={setUnlockedCards} 
+  unlockedRelics={unlockedRelics} 
+  setUnlockedRelics={setUnlockedRelics}
+  isAdminUnlocked={isAdminUnlocked}
+  combatState={combatState}
+  setCombatState={setCombatState}
+  setGameState={setGameState}
+  setToastMsg={setToastMsg}
+  saveGame={saveGame}
+  deckCounts={deckCounts}
+  setDeckCounts={setDeckCounts}
+  playerRelics={playerRelics}
+  setPlayerRelics={setPlayerRelics}
+  startBattle={startBattle}
+/>
 
         {deckImportModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setDeckImportModalOpen(false)}>
