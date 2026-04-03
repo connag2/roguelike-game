@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Maximize } from 'lucide-react';
-import { CARD_LIBRARY } from '../../constants/gameData';
+// ✨ HARD_MODE_BOSSES와 기타 적 데이터들을 전부 임포트합니다.
+import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 
 export default function Encyclopedia({
   unlockedCards = [], 
-  customCards = [], // ✨ 추가: 몬스터 전리품으로 얻은 카드들을 받습니다!
+  customCards = [],
   getCardDef, 
   shopUpgrades, 
   getFilteredCards, 
@@ -24,14 +25,55 @@ export default function Encyclopedia({
   
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 기본 카드 + 획득한 전리품 카드로 확장합니다!
-  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards];
+  // ✨ 적 카드 데이터를 추출하고 중복을 제거하여 배열로 만듭니다.
+  const enemyCardsMap = {};
+  const allEnemies = [ 
+    ...ENEMIES, 
+    ...NORMAL_BOSSES, 
+    ...(HARD_MODE_BOSSES || []), 
+    ...Object.values(SPECIAL_BOSSES) 
+  ];
+  
+  allEnemies.forEach(enemy => {
+    if (enemy?.deck) {
+      enemy.deck.forEach(c => {
+        if (!enemyCardsMap[c.name]) {
+          enemyCardsMap[c.name] = {
+            id: `enemy_${c.name}`,
+            name: c.name,
+            type: c.type?.includes('attack') ? 'attack' : 'skill', // UI 렌더링용 타입 매핑
+            rarity: 'special', // 적 카드는 특수 테두리로 렌더링
+            cost: '적', // 코스트 위치에 '적'이라고 표시
+            desc: c.desc,
+            isEnemyCard: true // 적 카드 식별용 플래그
+          };
+        }
+      });
+    }
+  });
+  const ENEMY_CARDS = Object.values(enemyCardsMap);
 
-  // ✨ 확장된 FULL_CARD_LIBRARY를 기준으로 내가 보유한 카드를 필터링합니다. (175/174 버그 방지 및 전리품 누락 방지)
+  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 (기본 카드 + 전리품 카드 + 적 카드)로 완전히 확장합니다!
+  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...ENEMY_CARDS];
+
   const validUnlockedCards = [...new Set(unlockedCards)].filter(id => FULL_CARD_LIBRARY.some(c => c.id === id));
   const validUnlockedRelics = [...new Set(unlockedRelics)].filter(id => RELIC_LIBRARY.some(r => r.id === id));
 
+  // 1. 기존 플레이어 카드 필터링
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
+  
+  // 2. ✨ 적 카드도 동일한 조건(타입, 희귀도, 검색어)으로 필터링
+  let filteredEnemyCards = ENEMY_CARDS.filter(c => {
+    if (filterType !== 'all' && c.type !== filterType) return false;
+    if (filterRarity !== 'all' && c.rarity !== filterRarity) return false;
+    if (searchQuery && !c.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  // 3. ✨ 플레이어 카드와 적 카드를 하나의 리스트로 합침
+  filteredCards = [...filteredCards, ...filteredEnemyCards];
+
+  // 4. 보유/미보유 필터 적용
   if (filterUnlock === 'unlocked') {
     filteredCards = filteredCards.filter(c => validUnlockedCards.includes(c.id));
   } else if (filterUnlock === 'locked') {
@@ -77,7 +119,6 @@ export default function Encyclopedia({
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 shrink-0">
           종합 도감 
           <span className="text-sm md:text-lg text-indigo-400 ml-2">
-            {/* ✨ 분모를 FULL_CARD_LIBRARY의 길이로 변경하여 전리품을 얻을수록 카운트가 늘어나게 했습니다! */}
             {tab === 'cards' ? `카드 (${validUnlockedCards.length}/${FULL_CARD_LIBRARY.length})` : `유물 (${validUnlockedRelics.length}/${RELIC_LIBRARY.length})`}
           </span>
         </h2>
@@ -129,9 +170,20 @@ export default function Encyclopedia({
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-2 md:px-4 mt-4">
         {tab === 'cards' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-            {filteredCards.map(baseCard => (
-              <Card key={baseCard.id} card={getCardDef(baseCard.id, shopUpgrades)} isLocked={!validUnlockedCards.includes(baseCard.id)} />
-            ))}
+            {filteredCards.map(baseCard => {
+              // ✨ 적 카드는 getCardDef를 거치지 않고 바로 렌더링 데이터를 사용합니다.
+              const cardData = baseCard.isEnemyCard ? baseCard : getCardDef(baseCard.id, shopUpgrades);
+              // ✨ 적 카드는 "미해금" 상태여도 내용을 볼 수 있게 isLocked를 false로 처리합니다. (그래야 카드의 설명을 읽을 수 있습니다)
+              const isLocked = baseCard.isEnemyCard ? false : !validUnlockedCards.includes(baseCard.id);
+              
+              return (
+                <Card 
+                  key={baseCard.id} 
+                  card={cardData} 
+                  isLocked={isLocked} 
+                />
+              )
+            })}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">

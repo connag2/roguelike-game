@@ -1,16 +1,39 @@
 import React from 'react';
-// ✨ 모든 필수 아이콘 완벽하게 임포트 
 import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap, Star, Swords } from 'lucide-react';
-import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
+// ✨ HARD_MODE_BOSSES 임포트 추가
+import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 
 export default function Statistics({
   maxStageReached, normalCleared, seenEnemies, unlockedCards, credits, unlockedRelics, gameStats, setGameState 
 }) {
-  const totalCards = CARD_LIBRARY.length;
+  
+  // ✨ 적 카드 종류 개수를 계산합니다.
+  const enemyCardsMap = {};
+  const allEnemies = [ 
+    ...ENEMIES, 
+    ...NORMAL_BOSSES, 
+    ...(HARD_MODE_BOSSES || []), 
+    ...Object.values(SPECIAL_BOSSES) 
+  ];
+  
+  allEnemies.forEach(enemy => {
+    if (enemy?.deck) {
+      enemy.deck.forEach(c => {
+        if (!enemyCardsMap[c.name]) {
+          enemyCardsMap[c.name] = true;
+        }
+      });
+    }
+  });
+  const enemyCardCount = Object.keys(enemyCardsMap).length;
+
+  // ✨ 총 카드 수에 적 카드 개수(enemyCardCount)를 더해줍니다.
+  const totalCards = CARD_LIBRARY.length + enemyCardCount;
   const cardCompletion = ((unlockedCards.length / totalCards) * 100).toFixed(1);
 
-  const totalEnemyCount = ENEMIES.length + NORMAL_BOSSES.length + Object.keys(SPECIAL_BOSSES).length;
+  // 몬스터 총 마릿수 계산 (하드모드 보스 포함)
+  const totalEnemyCount = ENEMIES.length + NORMAL_BOSSES.length + (HARD_MODE_BOSSES ? HARD_MODE_BOSSES.length : 0) + Object.keys(SPECIAL_BOSSES).length;
   const enemyCompletion = ((seenEnemies.length / totalEnemyCount) * 100).toFixed(1);
 
   const relicCompletion = ((unlockedRelics.length / RELIC_LIBRARY.length) * 100).toFixed(1);
