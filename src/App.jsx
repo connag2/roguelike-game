@@ -22,6 +22,26 @@ import UpdateHistory from './components/screens/UpdateHistory';
 import GameGuide from './components/screens/GameGuide';
 import AdminPanel from './components/admin/AdminPanel'; 
 
+// 1. 상태 추가 (기존 state 모여있는 곳에 추가하세요)
+const [claimedMilestones, setClaimedMilestones] = useState([]);
+
+// 2. 보상 수령 함수 만들기
+const handleClaimMilestone = (requiredCount, amount) => {
+  if (claimedMilestones.includes(requiredCount)) return; // 이미 수령한 경우 방지
+  
+  // 크레딧 지급 및 저장
+  const newCredits = credits + amount;
+  setCredits(newCredits);
+  
+  // 수령한 마일스톤 목록 업데이트
+  const newClaimed = [...claimedMilestones, requiredCount];
+  setClaimedMilestones(newClaimed);
+
+  alert(`업적 달성 보상으로 ${amount.toLocaleString()} 크레딧을 받았습니다!`);
+};
+
+
+
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -578,7 +598,21 @@ export default function App() {
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
         
-        {gameState === 'STATISTICS' && <Statistics maxStageReached={maxStageReached} normalCleared={normalCleared} seenEnemies={seenEnemies} unlockedCards={unlockedCards} credits={credits} unlockedRelics={unlockedRelics} gameStats={gameStats} setGameState={setGameState} />}
+        {gameState === 'STATISTICS' && (
+  <Statistics
+    maxStageReached={maxStageReached}
+    normalCleared={normalCleared}
+    seenEnemies={seenEnemies}
+    unlockedCards={unlockedCards}
+    credits={credits}
+    unlockedRelics={unlockedRelics}
+    gameStats={gameStats}
+    setGameState={setGameState}
+    // ✨ 아래 두 줄을 반드시 추가해주세요!
+    claimedMilestones={claimedMilestones}
+    handleClaimMilestone={handleClaimMilestone}
+  />
+)}
         
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} adminUnlockAllCards={() => { const all = CARD_LIBRARY.map(c=>c.id); setUnlockedCards(all); saveGame({unlockedCards: all}); setToastMsg('완료'); }} adminGiveMoney={() => { const nc = credits + 99999; setCredits(nc); saveGame({credits: nc}); setToastMsg('완료'); }} adminUnlockAllRelics={() => { const all = RELIC_LIBRARY.map(r=>r.id); setUnlockedRelics(all); saveGame({unlockedRelics: all}); setToastMsg('완료'); }} adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
         

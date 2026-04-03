@@ -1,37 +1,25 @@
-import React from 'react';
-import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap, Star, Swords } from 'lucide-react';
-// ✨ HARD_MODE_BOSSES 임포트 추가
+import React, { useState } from 'react';
+import { Activity, Skull, Coins, Award, Target, Trophy, Flame, Gamepad2, Crown, Zap, Star, Swords, Gift, CheckCircle } from 'lucide-react';
 import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 
 export default function Statistics({
-  maxStageReached, normalCleared, seenEnemies, unlockedCards, credits, unlockedRelics, gameStats, setGameState 
+  maxStageReached, normalCleared, seenEnemies, unlockedCards, credits, unlockedRelics, gameStats, setGameState,
+  claimedMilestones = [], // ✨ 추가: 수령한 보상 목록 (App.jsx에서 관리해야 함)
+  handleClaimMilestone // ✨ 추가: 보상 수령 함수
 }) {
   
-  // ✨ 보스 카드 종류 개수를 계산합니다. (일반 몹 ENEMIES 제외)
+  // 적 카드 종류 개수 계산
   const enemyCardsMap = {};
-  const allEnemies = [ 
-    ...NORMAL_BOSSES, 
-    ...(HARD_MODE_BOSSES || []), 
-    ...Object.values(SPECIAL_BOSSES) 
-  ];
-  
+  const allEnemies = [ ...NORMAL_BOSSES, ...(HARD_MODE_BOSSES || []), ...Object.values(SPECIAL_BOSSES) ];
   allEnemies.forEach(enemy => {
-    if (enemy?.deck) {
-      enemy.deck.forEach(c => {
-        if (!enemyCardsMap[c.name]) {
-          enemyCardsMap[c.name] = true;
-        }
-      });
-    }
+    if (enemy?.deck) enemy.deck.forEach(c => { enemyCardsMap[c.name] = true; });
   });
   const enemyCardCount = Object.keys(enemyCardsMap).length;
 
-  // ✨ 총 카드 수에 보스 카드 개수(enemyCardCount)를 더해줍니다.
   const totalCards = CARD_LIBRARY.length + enemyCardCount;
   const cardCompletion = ((unlockedCards.length / totalCards) * 100).toFixed(1);
 
-  // 몬스터 총 마릿수 계산 (하드모드 보스 포함)
   const totalEnemyCount = ENEMIES.length + NORMAL_BOSSES.length + (HARD_MODE_BOSSES ? HARD_MODE_BOSSES.length : 0) + Object.keys(SPECIAL_BOSSES).length;
   const enemyCompletion = ((seenEnemies.length / totalEnemyCount) * 100).toFixed(1);
 
@@ -44,22 +32,54 @@ export default function Statistics({
     totalRuns: gameStats?.totalRuns || 0
   };
 
+  // ✨ 업적 대폭 추가 (쉬운 것 -> 어려운 것 순서)
   const ACHIEVEMENTS = [
-    { id: 'first_blood', title: '첫 피', desc: '첫 번째 적을 처치하세요.', condition: safeGameStats.totalKills >= 1, icon: '🗡️', bg: 'from-red-900 to-red-700', border: 'border-red-500' },
-    { id: 'boss_slayer_1', title: '초보 사냥꾼', desc: '보스를 1회 처치하세요.', condition: safeGameStats.totalBossKills >= 1, icon: '👹', bg: 'from-orange-900 to-orange-700', border: 'border-orange-500' },
-    { id: 'boss_slayer_2', title: '숙련된 사냥꾼', desc: '보스를 10회 처치하세요.', condition: safeGameStats.totalBossKills >= 10, icon: '💀', bg: 'from-purple-900 to-purple-700', border: 'border-purple-500' },
-    { id: 'rich_1', title: '자본주의', desc: '누적 1,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 1000, icon: '💰', bg: 'from-yellow-900 to-yellow-700', border: 'border-yellow-500' },
-    { id: 'rich_2', title: '만수르', desc: '누적 10,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 10000, icon: '💎', bg: 'from-cyan-900 to-cyan-700', border: 'border-cyan-500' },
-    { id: 'stage_50', title: '반환점', desc: '50층에 도달하세요.', condition: maxStageReached >= 50, icon: '🚩', bg: 'from-emerald-900 to-emerald-700', border: 'border-emerald-500' },
+    // [전투/처치]
+    { id: 'kill_1', title: '첫 피', desc: '첫 번째 적을 처치하세요.', condition: safeGameStats.totalKills >= 1, icon: '🗡️', bg: 'from-red-900 to-red-700', border: 'border-red-500' },
+    { id: 'kill_100', title: '학살자', desc: '적을 누적 100명 처치하세요.', condition: safeGameStats.totalKills >= 100, icon: '🩸', bg: 'from-red-800 to-rose-700', border: 'border-rose-500' },
+    { id: 'kill_1000', title: '사신', desc: '적을 누적 1,000명 처치하세요.', condition: safeGameStats.totalKills >= 1000, icon: '☠️', bg: 'from-neutral-900 to-red-950', border: 'border-red-600' },
+    
+    // [보스 처치]
+    { id: 'boss_1', title: '초보 사냥꾼', desc: '보스를 1회 처치하세요.', condition: safeGameStats.totalBossKills >= 1, icon: '👹', bg: 'from-orange-900 to-orange-700', border: 'border-orange-500' },
+    { id: 'boss_10', title: '숙련된 사냥꾼', desc: '보스를 누적 10회 처치하세요.', condition: safeGameStats.totalBossKills >= 10, icon: '🏹', bg: 'from-purple-900 to-purple-700', border: 'border-purple-500' },
+    { id: 'boss_50', title: '괴물 사냥꾼', desc: '보스를 누적 50회 처치하세요.', condition: safeGameStats.totalBossKills >= 50, icon: '🐲', bg: 'from-fuchsia-900 to-purple-800', border: 'border-fuchsia-500' },
+    
+    // [재화/크레딧]
+    { id: 'rich_1', title: '저축의 시작', desc: '누적 1,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 1000, icon: '🪙', bg: 'from-yellow-900 to-yellow-700', border: 'border-yellow-500' },
+    { id: 'rich_2', title: '자본주의', desc: '누적 10,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 10000, icon: '💰', bg: 'from-emerald-900 to-emerald-700', border: 'border-emerald-500' },
+    { id: 'rich_3', title: '만수르', desc: '누적 100,000 크레딧을 모으세요.', condition: safeGameStats.totalCreditsEarned >= 100000, icon: '💎', bg: 'from-cyan-900 to-blue-800', border: 'border-cyan-400' },
+    
+    // [진행도/층수]
+    { id: 'stage_10', title: '여정의 시작', desc: '10층에 도달하세요.', condition: maxStageReached >= 10, icon: '🚶', bg: 'from-stone-700 to-stone-500', border: 'border-stone-400' },
+    { id: 'stage_50', title: '반환점', desc: '50층에 도달하세요.', condition: maxStageReached >= 50, icon: '🚩', bg: 'from-blue-900 to-blue-700', border: 'border-blue-500' },
     { id: 'stage_100', title: '정복자', desc: '100층을 클리어하세요.', condition: normalCleared, icon: '👑', bg: 'from-amber-600 to-yellow-500', border: 'border-yellow-300' },
-    { id: 'relic_collector_1', title: '유물 수집가', desc: '유물을 5개 이상 해금하세요.', condition: unlockedRelics.length >= 5, icon: '🏺', bg: 'from-stone-800 to-stone-600', border: 'border-stone-400' },
-    { id: 'relic_collector_2', title: '인디아나 존스', desc: '모든 유물을 해금하세요.', condition: unlockedRelics.length >= RELIC_LIBRARY.length, icon: '🤠', bg: 'from-amber-900 to-orange-700', border: 'border-orange-400' },
-    { id: 'card_collector', title: '카드 마스터', desc: '모든 카드를 해금하세요.', condition: unlockedCards.length >= totalCards, icon: '🃏', bg: 'from-indigo-900 to-blue-700', border: 'border-blue-400' },
-    { id: 'veteran', title: '베테랑', desc: '게임을 10회 이상 시작하세요.', condition: safeGameStats.totalRuns >= 10, icon: '🎖️', bg: 'from-slate-800 to-slate-600', border: 'border-slate-400' },
-    { id: 'die_hard', title: '불굴의 의지', desc: '게임을 50회 이상 시작하세요.', condition: safeGameStats.totalRuns >= 50, icon: '🔥', bg: 'from-red-950 to-orange-800', border: 'border-red-500' },
+    { id: 'stage_200', title: '심연 탐험가', desc: '200층에 도달하세요.', condition: maxStageReached >= 200, icon: '🌌', bg: 'from-indigo-950 to-purple-900', border: 'border-indigo-400' },
+    { id: 'stage_300', title: '신을 넘어선 자', desc: '300층에 도달하세요.', condition: maxStageReached >= 300, icon: '✨', bg: 'from-slate-900 to-black', border: 'border-slate-500' },
+    
+    // [수집/도감]
+    { id: 'relic_5', title: '호기심 많은 수집가', desc: '유물을 5개 이상 해금하세요.', condition: unlockedRelics.length >= 5, icon: '🏺', bg: 'from-stone-800 to-stone-600', border: 'border-stone-400' },
+    { id: 'relic_20', title: '골동품 애호가', desc: '유물을 20개 이상 해금하세요.', condition: unlockedRelics.length >= 20, icon: '🎭', bg: 'from-orange-900 to-orange-600', border: 'border-orange-400' },
+    { id: 'relic_all', title: '인디아나 존스', desc: '모든 유물을 해금하세요.', condition: unlockedRelics.length >= RELIC_LIBRARY.length, icon: '🤠', bg: 'from-amber-900 to-orange-700', border: 'border-yellow-400' },
+    { id: 'card_50', title: '카드 수집가', desc: '도감의 카드를 50% 이상 해금하세요.', condition: unlockedCards.length >= (totalCards * 0.5), icon: '🎴', bg: 'from-blue-900 to-cyan-800', border: 'border-cyan-500' },
+    { id: 'card_all', title: '카드 마스터', desc: '모든 카드를 해금하세요.', condition: unlockedCards.length >= totalCards, icon: '🃏', bg: 'from-indigo-900 to-blue-700', border: 'border-blue-400' },
+    
+    // [도전/다회차]
+    { id: 'run_1', title: '첫 번째 죽음', desc: '게임을 1회 플레이하세요.', condition: safeGameStats.totalRuns >= 1, icon: '🌱', bg: 'from-green-900 to-green-700', border: 'border-green-500' },
+    { id: 'run_10', title: '베테랑', desc: '게임을 누적 10회 플레이하세요.', condition: safeGameStats.totalRuns >= 10, icon: '🎖️', bg: 'from-slate-800 to-slate-600', border: 'border-slate-400' },
+    { id: 'run_50', title: '불굴의 의지', desc: '게임을 누적 50회 플레이하세요.', condition: safeGameStats.totalRuns >= 50, icon: '🔥', bg: 'from-red-950 to-orange-800', border: 'border-red-500' },
+    { id: 'run_100', title: '망령', desc: '게임을 누적 100회 플레이하세요.', condition: safeGameStats.totalRuns >= 100, icon: '👻', bg: 'from-zinc-800 to-zinc-600', border: 'border-zinc-300' },
   ];
 
   const unlockedAchievementsCount = ACHIEVEMENTS.filter(a => a.condition).length;
+
+  // ✨ 업적 마일스톤 (달성도 보상)
+  const MILESTONES = [
+    { required: 5, rewardDesc: '1,000 크레딧', rewardAmount: 1000 },
+    { required: 10, rewardDesc: '5,000 크레딧', rewardAmount: 5000 },
+    { required: 15, rewardDesc: '10,000 크레딧', rewardAmount: 10000 },
+    { required: 20, rewardDesc: '30,000 크레딧', rewardAmount: 30000 },
+    { required: ACHIEVEMENTS.length, rewardDesc: '100,000 크레딧', rewardAmount: 100000 },
+  ];
 
   return (
     <div className="flex flex-col items-center justify-start min-h-[100dvh] bg-slate-900 text-white p-4 md:p-8 pt-8 overflow-y-auto hide-scrollbar relative">
@@ -72,6 +92,7 @@ export default function Statistics({
         </button>
       </div>
       
+      {/* (기존 종합 요약 및 수집/조우 달성률 UI - 그대로 유지) */}
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10 shrink-0">
         <div className="lg:col-span-4 bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-2xl flex flex-col gap-4">
           <div className="flex items-center gap-3 border-b border-slate-600 pb-3 mb-2">
@@ -139,6 +160,55 @@ export default function Statistics({
         </div>
       </div>
 
+      {/* ✨ 추가된 마일스톤(업적 보상) 섹션 */}
+      <div className="w-full max-w-6xl bg-gradient-to-r from-amber-900/40 to-orange-900/40 p-6 md:p-8 rounded-3xl border border-amber-700 shadow-2xl mb-10 shrink-0">
+        <div className="flex items-center gap-3 border-b border-amber-700/50 pb-4 mb-6">
+          <Gift className="text-amber-400 w-8 h-8" />
+          <h2 className="text-2xl font-bold text-amber-100">업적 달성 보상</h2>
+        </div>
+        
+        <div className="flex flex-col gap-4">
+          {MILESTONES.map((ms, index) => {
+            const isUnlocked = unlockedAchievementsCount >= ms.required;
+            const isClaimed = claimedMilestones.includes(ms.required);
+            
+            return (
+              <div key={index} className={`flex flex-col md:flex-row justify-between items-center p-4 rounded-xl border ${isUnlocked && !isClaimed ? 'bg-amber-900/60 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'bg-slate-900/80 border-slate-700'} transition-all`}>
+                <div className="flex items-center gap-4 mb-3 md:mb-0 w-full md:w-auto">
+                  <div className="text-xl font-black text-white bg-slate-800 w-12 h-12 flex justify-center items-center rounded-full border border-slate-600 shrink-0">
+                    {ms.required}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-200">업적 {ms.required}개 달성</h3>
+                    <p className="text-amber-400 font-medium">보상: {ms.rewardDesc}</p>
+                  </div>
+                </div>
+                
+                <div className="w-full md:w-auto flex justify-end">
+                  {isClaimed ? (
+                    <div className="flex items-center gap-2 text-emerald-400 font-bold px-4 py-2">
+                      <CheckCircle className="w-5 h-5" /> 수령 완료
+                    </div>
+                  ) : isUnlocked ? (
+                    <button 
+                      onClick={() => handleClaimMilestone(ms.required, ms.rewardAmount)}
+                      className="w-full md:w-auto bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white font-bold py-2 px-6 rounded-xl shadow-lg transform hover:-translate-y-1 transition-all animate-pulse"
+                    >
+                      보상 수령
+                    </button>
+                  ) : (
+                    <button disabled className="w-full md:w-auto bg-slate-800 text-slate-500 font-bold py-2 px-6 rounded-xl border border-slate-700 cursor-not-allowed">
+                      조건 미달성
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 기존 업적 갤러리 */}
       <div className="w-full max-w-6xl bg-slate-800 p-6 md:p-8 rounded-3xl border border-slate-700 shadow-2xl mb-10 shrink-0">
         <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-slate-600 pb-4 mb-6 gap-4">
           <div className="flex items-center gap-3">
