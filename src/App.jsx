@@ -4,6 +4,7 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
+// ✨ BOSS_LOOT_CARDS 추가
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS, BOSS_LOOT_CARDS } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
@@ -20,7 +21,7 @@ import Settings from './components/screens/Settings';
 import Statistics from './components/screens/Statistics';
 import UpdateHistory from './components/screens/UpdateHistory';
 import GameGuide from './components/screens/GameGuide';
-import AdminPanel from './components/admin/AdminPanel'; 
+import AdminPanel from './components/admin/AdminPanel';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -172,7 +173,7 @@ export default function App() {
   };
 
   const getFilteredCards = (t, e, r, o, q) => {
-  // ✨ BOSS_LOOT_CARDS 추가 (require 제거)
+  // ✨ require 없이 직접 계산
   const LOOT_CARDS = BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot');
   const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...LOOT_CARDS];
   
