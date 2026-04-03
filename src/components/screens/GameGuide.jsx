@@ -1,101 +1,115 @@
-import React, { useState } from 'react';
-import { HelpCircle, Sword, Shield, Zap, Skull, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import React from 'react';
+import { X, Zap, Shield, Heart, Brain } from 'lucide-react';
 
 export default function GameGuide({ isOpen, onClose }) {
-  const [expandedSection, setExpandedSection] = useState('rules');
-
   if (!isOpen) return null;
 
-  const sections = [
+  const guides = [
     {
-      id: 'rules',
-      title: '⚔️ 기본 전투 규칙',
-      icon: <Sword className="w-5 h-5 text-indigo-400" />,
-      content: (
-        <ul className="list-disc list-inside space-y-2 text-slate-300 text-sm md:text-base">
-          <li>매 턴 카드를 <span className="text-white font-bold">5장</span>씩 뽑으며 마나는 3으로 충전됩니다.</li>
-          <li><span className="text-blue-400 font-bold">방어도:</span> 적의 공격을 막아주지만, 내 턴 시작 시 0으로 초기화됩니다.</li>
-          <li><span className="text-red-400 font-bold">몬스터:</span> 5층마다 보스, 25/50/75/100층에는 강력한 전설 보스가 등장합니다.</li>
-        </ul>
-      )
+      title: "🎮 게임 기본 설명",
+      icon: <Brain className="w-6 h-6" />,
+      content: `로그라이크 전술 게임입니다. 매 전투마다 새로운 카드 조합으로 도전하세요.
+      
+목표: 최대한 높은 층수까지 진행하기
+난이도: 층이 높아질수록 적의 체력과 공격력이 증가합니다.
+
+✨ 팁: 균형 잡힌 덱 구성(공격+방어+회복)이 중요합니다!`
     },
     {
-      id: 'debuffs',
-      title: '🧪 상태 효과 (디버프)',
-      icon: <Skull className="w-5 h-5 text-red-400" />,
-      content: (
-        <div className="space-y-3 text-sm md:text-base">
-          <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 <span className="text-white font-bold">3%</span> 감소합니다. (중첩 가능)</p>
-          <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 <span className="text-white font-bold">30%</span> 증가합니다.</p>
-          <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.</p>
-          <p><span className="text-pink-400 font-bold">표식:</span> 타격받을 때마다 수치만큼 추가 고정 피해를 입습니다.</p>
-          <p><span className="text-yellow-600 font-bold">허약:</span> 방어도 획득량이 <span className="text-white font-bold">25%</span> 감소합니다.</p>
-          <p><span className="text-slate-400 font-bold">침묵:</span> 1턴 동안 스킬 카드를 사용할 수 없습니다.</p>
-          <p><span className="text-stone-400 font-bold">속박:</span> 1턴 동안 공격 카드를 사용할 수 없습니다.</p>
-        </div>
-      )
+      title: "⚔️ 전투 시스템",
+      icon: <Zap className="w-6 h-6" />,
+      content: `• 플레이어 차례: 카드를 선택하고 마나를 소비합니다
+• 적 차례: 적의 의도(Icon)를 읽고 준비하세요
+• 상태이상: 약화, 취약, 중독, 표식, 허약, 침묵, 속박
+
+🎯 팁: 적의 다음 행동을 예측하고 방어하세요!`
     },
     {
-      id: 'buffs',
-      title: '✨ 상태 효과 (버프)',
-      icon: <Zap className="w-5 h-5 text-yellow-400" />,
-      content: (
-        <div className="space-y-3 text-sm md:text-base">
-          <p><span className="text-red-400 font-bold">근력:</span> 공격 시 대미지가 수치만큼 영구적으로 증가합니다.</p>
-          <p><span className="text-blue-400 font-bold">민첩:</span> 방어 시 방어도가 수치만큼 영구적으로 증가합니다.</p>
-          <p><span className="text-emerald-400 font-bold">가시:</span> 적에게 공격받을 때 수치만큼 대미지를 반사합니다.</p>
-          <p><span className="text-cyan-400 font-bold">재생:</span> 턴 종료 시 수치만큼 체력을 회복하고 수치가 1 감소합니다.</p>
-          <p><span className="text-orange-500 font-bold">격노:</span> 공격 카드를 사용할 때마다 수치만큼 방어도를 획득합니다.</p>
-          <p><span className="text-indigo-300 font-bold">통찰:</span> 다음 턴 시작 시 수치만큼 카드를 추가로 뽑습니다.</p>
-          <p><span className="text-gray-300 font-bold">무형:</span> 받는 모든 타격 피해가 1로 고정됩니다. (1턴 후 해제)</p>
-        </div>
-      )
+      title: "🛡️ 방어 및 상태 시스템",
+      icon: <Shield className="w-6 h-6" />,
+      content: `방어도: 한 차례에만 적용되며, 턴 종료 시 초기화됩니다
+약화(약): 자신의 공격력 -25%
+취약(취): 적의 공격력 +30%
+중독: 매 턴마다 해당 수치만큼 피해
+
+📌 전략: 취약 상태에서는 높은 마나 카드를 자제하세요`
+    },
+    {
+      title: "❤️ 회복 및 유지",
+      icon: <Heart className="w-6 h-6" />,
+      content: `• 전투 중: 치유 카드로 즉시 회복
+• 전투 후: 보스 격파 시 일부 회복
+• 유물 효과: 유물에 따라 추가 회복 가능
+
+💡 팁: HP가 50% 이하면 보수적으로 플레이하세요`
+    },
+    {
+      title: "🏆 보스 및 보상",
+      icon: <Zap className="w-6 h-6" />,
+      content: `일반 모드:
+• 5층마다: 일반 보스 (10% 확률로 스킬 드롭)
+• 25, 50, 75층: 특수 보스 (100% 확률로 스킬 드롭)
+• 100층: 게임 클리어
+
+하드 모드:
+• 10층마다: 일반 보스 (10% 확률로 스킬 드롭)
+• 50층마다: 특수 보스 (100% 확률로 스킬 드롭)
+• 300층: 게임 클리어
+
+✨ 보스 스킬은 랜덤으로 선택되어 드롭됩니다!`
+    },
+    {
+      title: "🎯 덱 구성 팁",
+      icon: <Brain className="w-6 h-6" />,
+      content: `추천 구성:
+• 공격 카드 40-50%
+• 방어 카드 30-40%
+• 회복 카드 10-20%
+
+마나 관련 카드는 최대 2장까지만 추가 가능합니다.
+시너지를 맞춰서 덱을 꾸려보세요!`
+    },
+    {
+      title: "🌟 상급 전략",
+      icon: <Zap className="w-6 h-6" />,
+      content: `• 카운팅: 적의 의도 패턴을 파악하세요
+• 버프 최대화: 근력+민첩 조합으로 공격력 증대
+• 디버프 관리: 취약 상태에서 고비용 카드 피하기
+• 카드 신너지: 같은 타입의 카드들을 조합하기
+
+💪 숙달하면 어려운 층도 충분히 클리어 가능합니다!`
     }
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={onClose}>
-      <div className="bg-slate-800 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl border-2 border-indigo-500 shadow-2xl animate-draw p-6 md:p-8" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-          <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
-            <HelpCircle className="w-8 h-8" /> 게임 가이드
-          </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white text-3xl font-bold transition-colors">×</button>
+    <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-2xl shadow-2xl my-8">
+        <div className="flex justify-between items-center p-6 border-b border-slate-700 bg-slate-800/50">
+          <h2 className="text-2xl font-black text-indigo-400">📖 게임 가이드</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 p-2 rounded-lg transition-colors">
+            <X className="w-6 h-6" />
+          </button>
         </div>
 
-        <div className="space-y-4">
-          {sections.map((section) => {
-            const isExpanded = expandedSection === section.id;
-            return (
-              <div key={section.id} className={`rounded-xl border transition-all ${isExpanded ? 'bg-slate-900/50 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}>
-                <button 
-                  onClick={() => setExpandedSection(isExpanded ? '' : section.id)}
-                  className="w-full p-4 flex items-center justify-between font-bold text-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {section.icon}
-                    <span>{section.title}</span>
-                  </div>
-                  {isExpanded ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {isExpanded && (
-                  <div className="p-4 pt-0 border-t border-slate-700/50 animate-in fade-in slide-in-from-top-1">
-                    {section.content}
-                  </div>
-                )}
+        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto hide-scrollbar">
+          {guides.map((guide, idx) => (
+            <div key={idx} className="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-indigo-500 transition-colors">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="text-indigo-400">{guide.icon}</div>
+                <h3 className="text-lg font-bold text-white">{guide.title}</h3>
               </div>
-            );
-          })}
+              <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap break-keep">
+                {guide.content}
+              </p>
+            </div>
+          ))}
         </div>
 
-        <div className="mt-8 p-4 bg-indigo-900/20 rounded-xl border border-indigo-500/30 flex gap-3">
-          <Info className="w-5 h-5 text-indigo-400 shrink-0" />
-          <p className="text-xs text-indigo-200 leading-relaxed">
-            카드 도감이나 전투 중 카드 위의 <span className="text-indigo-400 font-bold">?</span> 아이콘에 마우스를 올리면 각 효과의 상세 규칙을 언제든 확인할 수 있습니다.
-          </p>
+        <div className="p-4 border-t border-slate-700 bg-slate-800/50 flex justify-end">
+          <button onClick={onClose} className="py-2 px-6 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold transition-colors">
+            닫기
+          </button>
         </div>
-
-        <button onClick={onClose} className="mt-8 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xl shadow-lg transition-all active:scale-95">확인</button>
       </div>
     </div>
   );

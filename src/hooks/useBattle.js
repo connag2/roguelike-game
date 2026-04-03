@@ -1,7 +1,7 @@
 // src/hooks/useBattle.js
 import { useEffect, useCallback } from 'react';
 import { shuffle, decayStack, calculateDamage, calculateBlock, clampStack } from '../utils/gameLogic';
-import { GAME_RULES, CARD_LIBRARY } from '../constants/gameData';
+import { GAME_RULES, CARD_LIBRARY, BOSS_LOOT_CARDS } from '../constants/gameData';
 import { RELIC_LIBRARY } from '../constants/relicData';
 
 export function useBattle({
@@ -12,7 +12,7 @@ export function useBattle({
   credits, setCredits,
   maxStageReached, setMaxStageReached,
   setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared,
-  setEnemyDropCard // 🌟 일반 적이 떨군 카드를 처리하기 위한 함수
+  setEnemyDropCard
 }) {
 
   const checkRevive = useCallback((target, enemiesArray) => {
@@ -31,161 +31,141 @@ export function useBattle({
 
   const handleVictory = useCallback((prevCombat, p) => {
     try {
-        const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : [25, 50, 75, 100].includes(prevCombat.stage);
-        const isNormalBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 10 === 0 && !isSpecialBoss) : (prevCombat.stage % 5 === 0 && !isSpecialBoss);
-        
-        let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
-        if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
-        
-        if (prevCombat.stage >= maxStageReached) setMaxStageReached(prevCombat.stage + 1);
-        
-        let extraCredits = 0, healAmount = 0;
-        (playerRelics || []).forEach(r => {
-          if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
-          if (r.effect?.type === 'END_COMBAT_HEAL') healAmount += r.effect.heal;
-        });
+      const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : [25, 50, 75, 100].includes(prevCombat.stage);
+      const isNormalBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 10 === 0 && !isSpecialBoss) : (prevCombat.stage % 5 === 0 && !isSpecialBoss);
+      
+      let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
+      if (isNormalBoss || isSpecialBoss) newStats.totalBossKills = (newStats.totalBossKills || 0) + 1;
+      
+      if (prevCombat.stage >= maxStageReached) setMaxStageReached(prevCombat.stage + 1);
+      
+      let extraCredits = 0, healAmount = 0;
+      (playerRelics || []).forEach(r => {
+        if (r.effect?.type === 'END_COMBAT_CREDITS') extraCredits += r.effect.bonus;
+        if (r.effect?.type === 'END_COMBAT_HEAL') healAmount += r.effect.heal;
+      });
 
-        let earned = 5 + prevCombat.stage + (Math.floor(prevCombat.stage / 5) * 5) + extraCredits;
-        if (isNormalBoss || isSpecialBoss) earned += 15;
-        p.hp = Math.min(p.maxHp, p.hp + healAmount);
-        
-        newStats.totalCreditsEarned = (newStats.totalCreditsEarned || 0) + earned;
-        setGameStats(newStats);
-        setCredits(credits + earned);
+      let earned = 5 + prevCombat.stage + (Math.floor(prevCombat.stage / 5) * 5) + extraCredits;
+      if (isNormalBoss || isSpecialBoss) earned += 15;
+      p.hp = Math.min(p.maxHp, p.hp + healAmount);
+      
+      newStats.totalCreditsEarned = (newStats.totalCreditsEarned || 0) + earned;
+      setGameStats(newStats);
+      setCredits(credits + earned);
 
-        let relicDropChance = isSpecialBoss ? 0.50 : isNormalBoss ? 0.20 : 0.05;
-        let droppedRelic = null;
-        
-        if (Math.random() < relicDropChance) {
-          const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
-          if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
+      let relicDropChance = isSpecialBoss ? 0.50 : isNormalBoss ? 0.20 : 0.05;
+      let droppedRelic = null;
+      
+      if (Math.random() < relicDropChance) {
+        const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
+        if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
+      }
+
+      // ✨ [수정] 보스 카드 드롭 시스템 - 일반/하드 모드별 확률 조정
+      let bossDroppedCards = [];
+
+      prevCombat.enemies.forEach(enemy => {
+        // ✨ 드롭 확률 결정
+        let dropChance = 0;
+        if (isSpecialBoss) {
+          // 특수 보스: 100% 확정 (25, 50, 75층 일반 & 50층 하드)
+          dropChance = 1.0;
+        } else if (isNormalBoss) {
+          // 일반 보스: 일반 5층 & 하드 10층에 10% 확률
+          dropChance = 0.10;
+        } else {
+          // 일반 적: 드롭 없음
+          dropChance = 0;
         }
 
-        // 🌟 [추가 로직] 적 및 보스 카드 무작위 드랍 시스템 (밸런스 패치 적용)
-        let enemyDroppedCards = [];
-        let bossDroppedCards = [];
-
-        prevCombat.enemies.forEach(enemy => {
-          const isThisEnemyBoss = enemy.isBoss || isNormalBoss || isSpecialBoss;
-          const dropChance = isThisEnemyBoss ? 1.0 : 0.10; // 보스 100% 확정, 일반 적 10%
-
-          if (Math.random() < dropChance && enemy.template && enemy.template.deck && enemy.template.deck.length > 0) {
-            
-            // 패턴 중 하나를 무작위 선택
-            const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
-            const enemyCardDef = enemy.template.deck[randomIdx];
-
-            // ⚖️ 밸런스 패치: 적의 기본 수치가 플레이어 스케일을 파괴하지 않도록 조정
-            let rawDamage = enemyCardDef.value || 0;
-            let rawBlock = enemyCardDef.type === 'defend' ? (enemyCardDef.value || 0) : 0;
-            let rawHeal = enemyCardDef.heal || 0;
-            let rawMulti = enemyCardDef.multi || 1;
-
-            let nerfedDamage = isThisEnemyBoss ? Math.min(30, Math.ceil(rawDamage * 0.4)) : Math.min(15, Math.ceil(rawDamage * 0.8));
-            let nerfedBlock = isThisEnemyBoss ? Math.min(30, Math.ceil(rawBlock * 0.4)) : Math.min(15, Math.ceil(rawBlock * 0.8));
-            let nerfedHeal = isThisEnemyBoss ? Math.min(20, Math.ceil(rawHeal * 0.05)) : Math.min(10, Math.ceil(rawHeal * 0.5));
-            let nerfedMulti = Math.min(4, rawMulti); 
-
-            const convertedCard = {
-              id: `drop_${enemy.name}_${enemyCardDef.name}`, // ✨ 무작위 난수 제거 (중복 파밍 가능하게 변경)
-              name: `${enemy.name}의 ${enemyCardDef.name}`,
-              type: (enemyCardDef.type && enemyCardDef.type.includes('attack')) ? 'attack' : 'skill',
-              cost: isThisEnemyBoss ? 2 : 1, 
-              rarity: 'loot', // ✨ 전리품 전용 카테고리로 묶음
-              desc: `(전리품) ${enemyCardDef.desc}`,
-              damage: nerfedDamage,
-              multiHit: nerfedMulti,
-              block: nerfedBlock,
-              heal: nerfedHeal,
-            };c
-
-            if (enemyCardDef.debuff) {
-              const turns = Math.min(3, enemyCardDef.turns || 1); 
-              if (enemyCardDef.debuff === 'weak') convertedCard.enemyWeak = turns;
-              if (enemyCardDef.debuff === 'vulnerable') convertedCard.enemyVuln = turns;
-              if (enemyCardDef.debuff === 'poison') convertedCard.enemyPoison = turns;
-              if (enemyCardDef.debuff === 'mark') convertedCard.enemyMark = turns;
-              if (enemyCardDef.debuff === 'frail') convertedCard.enemyFrail = turns;
-              if (enemyCardDef.debuff === 'silence') convertedCard.enemySilence = turns;
-              if (enemyCardDef.debuff === 'bind') convertedCard.enemyBind = turns;
-            }
-
-            if (enemyCardDef.buff) {
-              const val = Math.min(2, enemyCardDef.buffValue || enemyCardDef.amount || 1);
-              if (enemyCardDef.buff === 'strength') convertedCard.selfStrength = val;
-            }
-
-            if (isThisEnemyBoss) {
-              bossDroppedCards.push(convertedCard);
-            } else {
-              enemyDroppedCards.push(convertedCard);
-            }
-          }
-        });
-
-        // 층별 확정 카드 보상 로직
-        const determineReward = (st) => {
-          const roll = Math.random();
+        if (Math.random() < dropChance && enemy.template && enemy.template.deck && enemy.template.deck.length > 0) {
+          // ✨ 보스 카드 풀에서 **무작위 선택**
+          let selectedCard = null;
           
           if (isSpecialBoss) {
-            if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
-            
-            if ((prevCombat.mode === 'NORMAL' && st === 100) || (prevCombat.mode === 'HARD' && st === 300)) {
-              return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+            // 특수 보스: 전리품 카드 풀에서 랜덤
+            const lootPool = BOSS_LOOT_CARDS.filter(c => c.rarity === 'loot');
+            if (lootPool.length > 0) {
+              selectedCard = lootPool[Math.floor(Math.random() * lootPool.length)];
             }
-            
-            const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
-            return CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)]);
+          } else if (isNormalBoss) {
+            // 일반 보스: 해당 적의 카드 풀에서 랜덤
+            const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
+            selectedCard = enemy.template.deck[randomIdx];
+          }
+
+          if (selectedCard) {
+            // ✨ 카드 효과 정상화 (BOSS_LOOT_CARDS는 이미 밸런스된 수치)
+            const cardToAdd = {
+              ...selectedCard,
+              id: selectedCard.id, // 기존 ID 유지
+              rarity: 'loot',
+              isFromBoss: true
+            };
+
+            bossDroppedCards.push(cardToAdd);
+          }
+        }
+      });
+
+      // 층별 확정 카드 보상 로직
+      const determineReward = (st) => {
+        const roll = Math.random();
+        
+        if (isSpecialBoss) {
+          if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
+          
+          if ((prevCombat.mode === 'NORMAL' && st === 100) || (prevCombat.mode === 'HARD' && st === 300)) {
+            return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
           }
           
-          if (isNormalBoss && roll < 0.10) {
-            const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
-            return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
-          }
-          
-          return null;
-        };
-
-        const spReward = determineReward(prevCombat.stage);
+          const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
+          return CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)]);
+        }
         
-        // 보스가 드랍한 카드를 1순위로, 기존 보상을 2순위로 뽓스카드에 할당
-        let finalBossCard = null;
-        if (bossDroppedCards.length > 0) {
-          finalBossCard = bossDroppedCards[0];
-          setSpecialBossRewardCard(finalBossCard);
-        } else if (spReward) {
-          finalBossCard = spReward;
-          setSpecialBossRewardCard(spReward);
+        if (isNormalBoss && roll < 0.10) {
+          const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
+          return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
         }
-
-        // 일반 적이 드랍한 카드를 상태에 저장
-        if (enemyDroppedCards.length > 0 && typeof setEnemyDropCard === 'function') {
-          setEnemyDropCard(enemyDroppedCards[0]); 
-        }
-
-        saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
         
-        if (droppedRelic) {
-          setPendingRelicReward(droppedRelic);
-          setTimeout(() => setGameState('RELIC_REWARD'), 600);
-        } else {
-          if (finalBossCard) {
-            setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-          } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
-            if (prevCombat.mode === 'NORMAL') {
-              setNormalCleared(true);
-              saveGame({ normalCleared: true });
-            }
-            setGameState('GAME_CLEAR'); 
-          } else {
-            setTimeout(() => setGameState('REWARDS'), 600);
-          }
-        }
-      } catch (err) {
-        console.error("보상 처리 중 에러 발생:", err);
-        setTimeout(() => setGameState('REWARDS'), 600);
+        return null;
+      };
+
+      const spReward = determineReward(prevCombat.stage);
+      
+      // ✨ 보스 드롭 카드를 1순위로 할당
+      let finalBossCard = null;
+      if (bossDroppedCards.length > 0) {
+        finalBossCard = bossDroppedCards[0];
+        setSpecialBossRewardCard(finalBossCard);
+      } else if (spReward) {
+        finalBossCard = spReward;
+        setSpecialBossRewardCard(spReward);
       }
-  }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setEnemyDropCard]);
+
+      saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
+      
+      if (droppedRelic) {
+        setPendingRelicReward(droppedRelic);
+        setTimeout(() => setGameState('RELIC_REWARD'), 600);
+      } else {
+        if (finalBossCard) {
+          setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
+        } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
+          if (prevCombat.mode === 'NORMAL') {
+            setNormalCleared(true);
+            saveGame({ normalCleared: true });
+          }
+          setGameState('GAME_CLEAR'); 
+        } else {
+          setTimeout(() => setGameState('REWARDS'), 600);
+        }
+      }
+    } catch (err) {
+      console.error("보상 처리 중 에러 발생:", err);
+      setTimeout(() => setGameState('REWARDS'), 600);
+    }
+  }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared]);
 
   const playCard = useCallback(async (cardIndex) => {
     if (combatState.turn !== 'PLAYER') return;

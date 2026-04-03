@@ -539,31 +539,36 @@ export default function App() {
         )}
 
         {skipModalOpen && (
-          <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
-            <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
-              <h3 className="text-2xl font-black mb-2 text-emerald-400">스테이지 도약</h3>
-              <p className="text-slate-300 text-xs mb-6 break-keep">
-                최대 도달 층({maxStageReached}층)을 기준으로, 이전에 돌파했던 보스 층에서 바로 시작할 수 있습니다.
-              </p>
-              
-              <div className="grid grid-cols-4 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-1">
-                {Array.from({ length: Math.floor(maxStageReached / 5) }, (_, i) => (i + 1) * 5).map(floor => (
-                  <button 
-                    key={floor}
-                    onClick={() => {
-                      if (getTotalCards() !== 20) { setToastMsg('덱을 20장 꽉 채워야 시작할 수 있습니다.'); setSkipModalOpen(false); return; }
-                      startBattle('NORMAL', floor); setSkipModalOpen(false); setToastMsg(`${floor}층부터 도약을 시작합니다!`);
-                    }}
-                    className="py-2 bg-slate-900 hover:bg-emerald-600 border border-slate-600 hover:border-emerald-400 rounded-lg text-sm font-bold transition-all text-slate-200 hover:text-white"
-                  >
-                    {floor}층
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => setSkipModalOpen(false)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg font-bold transition-colors">취소</button>
-            </div>
-          </div>
-        )}
+  <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
+    <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
+      <h3 className="text-2xl font-black mb-2 text-emerald-400">스테이지 도약</h3>
+      <p className="text-slate-300 text-xs mb-6 break-keep">
+        최대 도달 층({maxStageReached}층)을 기준으로, 이전에 돌파했던 보스 층에서 바로 시작할 수 있습니다.
+      </p>
+      
+      <div className="grid grid-cols-4 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-1">
+        {/* ✨ [수정] 일반 모드: 5층마다, 하드 모드: 10층마다 */}
+        {Array.from({ 
+          length: Math.floor(maxStageReached / (gameState?.includes('HARD') ? 10 : 5)) 
+        }, (_, i) => (i + 1) * (gameState?.includes('HARD') ? 10 : 5)).map(floor => (
+          <button 
+            key={floor}
+            onClick={() => {
+              if (getTotalCards() !== 20) { setToastMsg('덱을 20장 꽉 채워야 시작할 수 있습니다.'); setSkipModalOpen(false); return; }
+              startBattle(gameState?.includes('HARD') ? 'HARD' : 'NORMAL', floor); 
+              setSkipModalOpen(false); 
+              setToastMsg(`${floor}층부터 도약을 시작합니다!`);
+            }}
+            className="py-2 bg-slate-900 hover:bg-emerald-600 border border-slate-600 hover:border-emerald-400 rounded-lg text-sm font-bold transition-all text-slate-200 hover:text-white"
+          >
+            {floor}층
+          </button>
+        ))}
+      </div>
+      <button onClick={() => setSkipModalOpen(false)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg font-bold transition-colors">취소</button>
+    </div>
+  </div>
+)}
 
         {importModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setImportModalOpen(false)}>
