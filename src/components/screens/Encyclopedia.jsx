@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Maximize } from 'lucide-react';
-// ✨ HARD_MODE_BOSSES와 기타 적 데이터들을 전부 임포트합니다.
-import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES } from '../../constants/gameData';
+import { CARD_LIBRARY, ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES, HARD_MODE_BOSSES, UNPLAYABLE_MONSTER_SKILLS } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
@@ -22,10 +21,9 @@ export default function Encyclopedia({
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ 적 카드 데이터를 추출 (일반 몹 제외, 보스몹만!)
+  // ✨ 적 카드 데이터를 추출 (일반 몹 제외, 보스몹만! + 플레이어 사용 불가 카드 제거!)
   const enemyCardsMap = {};
   const allEnemies = [ 
     ...NORMAL_BOSSES, 
@@ -36,15 +34,18 @@ export default function Encyclopedia({
   allEnemies.forEach(enemy => {
     if (enemy?.deck) {
       enemy.deck.forEach(c => {
+        // ✨ 플레이어 사용 불가 카드 필터링
+        if (UNPLAYABLE_MONSTER_SKILLS.includes(c.id)) return;
+        
         if (!enemyCardsMap[c.name]) {
           enemyCardsMap[c.name] = {
             id: `enemy_${c.name}`,
             name: c.name,
-            type: c.type?.includes('attack') ? 'attack' : 'skill', // UI 렌더링용 타입 매핑
-            rarity: 'special', // 적 카드는 특수 테두리로 렌더링
-            cost: '보스', // 코스트 위치에 '보스'라고 표시
+            type: c.type?.includes('attack') ? 'attack' : 'skill',
+            rarity: 'special',
+            cost: '보스',
             desc: c.desc,
-            isEnemyCard: true // 적 카드 식별용 플래그
+            isEnemyCard: true
           };
         }
       });
@@ -52,7 +53,7 @@ export default function Encyclopedia({
   });
   const ENEMY_CARDS = Object.values(enemyCardsMap);
 
-  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 (기본 카드 + 전리품 카드 + 보스 카드)로 확장합니다!
+  // ✨ 도감의 기준이 되는 "전체 카드 목록"
   const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...ENEMY_CARDS];
 
   const validUnlockedCards = [...new Set(unlockedCards)].filter(id => FULL_CARD_LIBRARY.some(c => c.id === id));
@@ -61,7 +62,7 @@ export default function Encyclopedia({
   // 1. 기존 플레이어 카드 필터링
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
   
-  // 2. ✨ 보스 카드도 동일한 조건(타입, 희귀도, 검색어)으로 필터링
+  // 2. ✨ 보스 카드도 동일한 조건으로 필터링
   let filteredEnemyCards = ENEMY_CARDS.filter(c => {
     if (filterType !== 'all' && c.type !== filterType) return false;
     if (filterRarity !== 'all' && c.rarity !== filterRarity) return false;
@@ -122,8 +123,8 @@ export default function Encyclopedia({
           </span>
         </h2>
         <div className="flex gap-2">
-          <button onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>카드 도감</button>
-          <button onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>유물 도감</button>
+          <button onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 text-white' : 'bg-slate-800 hover:bg-slate-700 border border-slate-600'}`}>카드</button>
+          <button onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 text-white' : 'bg-slate-800 hover:bg-slate-700 border border-slate-600'}`}>유물</button>
           <button onClick={() => setGameState('MENU')} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl font-bold shadow-md ml-2">메인으로</button>
         </div>
       </div>
@@ -170,9 +171,7 @@ export default function Encyclopedia({
         {tab === 'cards' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
             {filteredCards.map(baseCard => {
-              // ✨ 보스 카드는 getCardDef를 거치지 않고 바로 렌더링 데이터를 사용합니다.
               const cardData = baseCard.isEnemyCard ? baseCard : getCardDef(baseCard.id, shopUpgrades);
-              // ✨ 보스 카드는 "미해금" 상태여도 내용을 볼 수 있게 isLocked를 false로 처리합니다. (그래야 카드의 설명을 읽을 수 있습니다)
               const isLocked = baseCard.isEnemyCard ? false : !validUnlockedCards.includes(baseCard.id);
               
               return (
