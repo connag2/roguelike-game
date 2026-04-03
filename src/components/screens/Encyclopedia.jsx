@@ -6,14 +6,15 @@ import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 
 export default function Encyclopedia({
-  unlockedCards = [], // ✨ 에러 방지를 위해 기본값 빈 배열 설정
+  unlockedCards = [], 
+  customCards = [], // ✨ 추가: 몬스터 전리품으로 얻은 카드들을 받습니다!
   getCardDef, 
   shopUpgrades, 
   getFilteredCards, 
   setGameState, 
   toggleFullScreen, 
   setTutorialModalOpen, 
-  unlockedRelics = [] // ✨ 에러 방지를 위해 기본값 빈 배열 설정
+  unlockedRelics = [] 
 }) {
   const [tab, setTab] = useState('cards'); 
   const [filterType, setFilterType] = useState('all');
@@ -21,14 +22,15 @@ export default function Encyclopedia({
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // 보유/미보유 상태 필터 추가 ('all', 'unlocked', 'locked')
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ 핵심 버그 수정: 세이브 파일에 중복 저장되거나 삭제된 옛날 카드 ID를 걸러냅니다! (175/174 방지)
-  const validUnlockedCards = [...new Set(unlockedCards)].filter(id => CARD_LIBRARY.some(c => c.id === id));
+  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 기본 카드 + 획득한 전리품 카드로 확장합니다!
+  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards];
+
+  // ✨ 확장된 FULL_CARD_LIBRARY를 기준으로 내가 보유한 카드를 필터링합니다. (175/174 버그 방지 및 전리품 누락 방지)
+  const validUnlockedCards = [...new Set(unlockedCards)].filter(id => FULL_CARD_LIBRARY.some(c => c.id === id));
   const validUnlockedRelics = [...new Set(unlockedRelics)].filter(id => RELIC_LIBRARY.some(r => r.id === id));
 
-  // 카드 필터링 로직에 보유/미보유 적용
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
   if (filterUnlock === 'unlocked') {
     filteredCards = filteredCards.filter(c => validUnlockedCards.includes(c.id));
@@ -36,7 +38,6 @@ export default function Encyclopedia({
     filteredCards = filteredCards.filter(c => !validUnlockedCards.includes(c.id));
   }
   
-  // 유물 필터링 로직에 보유/미보유 적용
   const filteredRelics = RELIC_LIBRARY.filter(r => {
     if (filterRarity !== 'all' && r.rarity !== filterRarity) return false;
     if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -45,7 +46,6 @@ export default function Encyclopedia({
     return true;
   });
 
-  // 보유/미보유 버튼 렌더링 함수
   const renderUnlockFilter = (activeColor) => (
     <div className="flex gap-2">
       {['all', 'unlocked', 'locked'].map((status) => {
@@ -77,12 +77,11 @@ export default function Encyclopedia({
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 shrink-0">
           종합 도감 
           <span className="text-sm md:text-lg text-indigo-400 ml-2">
-            {/* ✨ 정제된 validUnlockedCards 배열의 길이를 사용해 174/174를 초과하지 않게 만듭니다! */}
-            {tab === 'cards' ? `카드 (${validUnlockedCards.length}/${CARD_LIBRARY.length})` : `유물 (${validUnlockedRelics.length}/${RELIC_LIBRARY.length})`}
+            {/* ✨ 분모를 FULL_CARD_LIBRARY의 길이로 변경하여 전리품을 얻을수록 카운트가 늘어나게 했습니다! */}
+            {tab === 'cards' ? `카드 (${validUnlockedCards.length}/${FULL_CARD_LIBRARY.length})` : `유물 (${validUnlockedRelics.length}/${RELIC_LIBRARY.length})`}
           </span>
         </h2>
         <div className="flex gap-2">
-          {/* 탭 변경 시 필터, 검색어 및 보유상태 초기화 */}
           <button onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>카드 도감</button>
           <button onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>유물 도감</button>
           <button onClick={() => setGameState('MENU')} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl font-bold shadow-md ml-2">메인으로</button>
@@ -92,7 +91,6 @@ export default function Encyclopedia({
       {tab === 'cards' ? (
         <div className="flex flex-col gap-3 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
           <FilterBar type={filterType} setType={setFilterType} effect={filterEffect} setEffect={setFilterEffect} rarity={filterRarity} setRarity={setFilterRarity} search={searchQuery} setSearch={setSearchQuery} />
-          {/* 카드 전용 보유/미보유 필터 버튼 */}
           <div className="flex justify-start">
             {renderUnlockFilter('bg-indigo-600')}
           </div>
@@ -117,10 +115,7 @@ export default function Encyclopedia({
               );
             })}
           </div>
-          
-          {/* 유물 전용 보유/미보유 필터 버튼 */}
           {renderUnlockFilter('bg-amber-600')}
-
           <input
             type="text"
             placeholder="유물 이름 검색..."
