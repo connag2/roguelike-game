@@ -30,6 +30,48 @@ export default function MonsterDex({
     }
   ];
 
+  // 누락된 스킬 설명(desc)을 상세 수치를 기반으로 자동 생성하는 헬퍼 함수
+  const getDetailedDescription = (skill) => {
+    if (skill.desc) return skill.desc; // 기존에 작성된 설명이 있으면 그대로 사용
+    
+    const parts = [];
+    
+    // 공격 피해량 및 연속 타격 계산
+    if (skill.value && skill.type.includes('attack')) {
+      parts.push(`${skill.value}의 피해를 ${skill.multi ? skill.multi + '번 연속 ' : ''}줍니다.`);
+    }
+    
+    // 방어도 획득량 계산
+    if (skill.value && skill.type.includes('defend')) {
+      parts.push(`${skill.value}의 방어도를 얻습니다.`);
+    }
+    
+    // 체력 회복량 계산
+    if (skill.heal) {
+      parts.push(`체력을 ${skill.heal} 회복합니다.`);
+    }
+    
+    // 디버프(해로운 효과) 계산
+    if (skill.debuff) {
+      const debuffMap = {
+        weak: '약화', frail: '허약', vulnerable: '취약',
+        poison: '중독', mark: '표식', bind: '속박', silence: '침묵'
+      };
+      const debuffName = debuffMap[skill.debuff] || skill.debuff;
+      parts.push(`적에게 ${debuffName} ${skill.turns ? skill.turns : ''}을(를) 부여합니다.`);
+    }
+    
+    // 버프(이로운 효과) 계산
+    if (skill.buff) {
+      const buffMap = { strength: '근력' };
+      const buffName = buffMap[skill.buff] || skill.buff;
+      const buffAmount = skill.buffValue || skill.amount || '';
+      parts.push(`${buffName} ${buffAmount}을(를) 얻습니다.`);
+    }
+
+    return parts.length > 0 ? parts.join(' ') : '특수한 행동을 취합니다.';
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-900 text-white p-4 md:p-10 relative">
       {/* 상단바 */}
@@ -111,7 +153,8 @@ export default function MonsterDex({
                        {skill.type.includes('attack') ? '공격' : '보조'}
                      </span>
                    </div>
-                   <p className="text-sm text-slate-400 leading-snug">{skill.desc}</p>
+                   {/* 수정된 부분: getDetailedDescription 함수를 호출하여 설명을 출력합니다 */}
+                   <p className="text-sm text-slate-400 leading-snug">{getDetailedDescription(skill)}</p>
                  </div>
                ))}
              </div>
