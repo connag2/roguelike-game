@@ -244,3 +244,64 @@ export default function Rewards({
 
   return null;
 }
+if (gameState === 'HARD_CLEAR_RELIC_CHOICE') {
+  const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
+  const selectedRelics = [];
+  
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 text-white p-4">
+      <div className="max-w-4xl w-full">
+        <h1 className="text-5xl font-black text-center mb-2 text-purple-300 drop-shadow-lg">🎉 하드 모드 완전 클리어!</h1>
+        <p className="text-center text-slate-300 mb-8">축하합니다! 유물 3개를 선택해서 획득하세요!</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {availableRelics.slice(0, 15).map((relic, idx) => (
+            <div 
+              key={relic.id}
+              onClick={() => {
+                if (!selectedRelics.includes(relic.id) && selectedRelics.length < 3) {
+                  selectedRelics.push(relic.id);
+                }
+              }}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                selectedRelics.includes(relic.id) 
+                  ? 'bg-purple-600/40 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]' 
+                  : 'bg-slate-800 border-slate-600 hover:border-purple-400'
+              }`}
+            >
+              <div className="font-bold text-purple-300 text-lg">{relic.name}</div>
+              <div className="text-sm text-slate-300 mt-2">{relic.desc}</div>
+              {selectedRelics.includes(relic.id) && <div className="text-center text-purple-300 font-bold mt-2">✓ 선택됨</div>}
+            </div>
+          ))}
+        </div>
+        
+        <button
+          onClick={() => {
+            selectedRelics.forEach(rid => {
+              const relDef = RELIC_LIBRARY.find(r => r.id === rid);
+              if (relDef) {
+                playerRelics.push(relDef);
+              }
+            });
+            const newUnlocked = [...(unlockedRelics || [])];
+            selectedRelics.forEach(rid => {
+              if (!newUnlocked.includes(rid)) newUnlocked.push(rid);
+            });
+            setUnlockedRelics(newUnlocked);
+            saveGame({ unlockedRelics: newUnlocked });
+            setGameState('GAME_CLEAR');
+          }}
+          disabled={selectedRelics.length !== 3}
+          className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+            selectedRelics.length === 3 
+              ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.5)]' 
+              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          3개 선택 완료 ({selectedRelics.length}/3)
+        </button>
+      </div>
+    </div>
+  );
+}

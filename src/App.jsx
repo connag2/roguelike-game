@@ -73,6 +73,7 @@ export default function App() {
   const [hoveredCard, setHoveredCard] = useState(null);
   const [confirmSelection, setConfirmSelection] = useState(null);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [hardSkipModalOpen, setHardSkipModalOpen] = useState(false); // ✨ 추가
   const [warpStage, setWarpStage] = useState(1);
   const [tutorialModalOpen, setTutorialModalOpen] = useState(false);
   const [dexViewingEnemy, setDexViewingEnemy] = useState(null);
@@ -84,6 +85,7 @@ export default function App() {
   const [deckImportText, setDeckImportText] = useState('');
   const [showEnemyDeck, setShowEnemyDeck] = useState(false);
   const [viewingEnemy, setViewingEnemy] = useState(null);
+  const [hardClearRelicSelection, setHardClearRelicSelection] = useState([]); // ✨ 추가
   
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importText, setImportText] = useState('');
@@ -96,7 +98,6 @@ export default function App() {
   const [enemyDropCard, setEnemyDropCard] = useState(null); 
   const [customCards, setCustomCards] = useState([]); 
   
-  // ✨ [추가] 업적 달성 보상(마일스톤) 수령 여부 저장 State
   const [claimedMilestones, setClaimedMilestones] = useState([]);
 
   useEffect(() => {
@@ -129,7 +130,6 @@ export default function App() {
         if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
         if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
         if (d.customCards) setCustomCards(d.customCards); 
-        // ✨ [추가] 세이브 데이터에서 수령한 마일스톤 로드
         if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones);
       }
     } catch (e) {
@@ -137,7 +137,6 @@ export default function App() {
     }
   }, []);
 
-  // ✨ [수정] 세이브 대상에 claimedMilestones 추가
   const saveGame = async (payload = {}) => {
     const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
@@ -173,24 +172,23 @@ export default function App() {
   };
 
   const getFilteredCards = (t, e, r, o, q) => {
-  // ✨ require 없이 직접 계산
-  const LOOT_CARDS = BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot');
-  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...LOOT_CARDS];
-  
-  return FULL_CARD_LIBRARY.filter(c => {
-    if (r !== 'all' && c.rarity !== r) return false;
-    if (t !== 'all' && c.type !== t) return false;
-    if (e === 'debuff' && !(c.enemyWeak || c.enemyVuln || c.enemyPoison)) return false;
-    if (e === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
-    if (o === 'owned' && !unlockedCards.includes(c.id)) return false;
-    if (o === 'unowned' && unlockedCards.includes(c.id)) return false;
-    if (q) { 
-      const def = enhancedGetCardDef(c.id, shopUpgrades); 
-      if (def && !(def.name || '').toLowerCase().includes(q.toLowerCase()) && !(def.desc || '').toLowerCase().includes(q.toLowerCase())) return false; 
-    }
-    return true;
-  });
-};
+    const LOOT_CARDS = BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot');
+    const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...LOOT_CARDS];
+    
+    return FULL_CARD_LIBRARY.filter(c => {
+      if (r !== 'all' && c.rarity !== r) return false;
+      if (t !== 'all' && c.type !== t) return false;
+      if (e === 'debuff' && !(c.enemyWeak || c.enemyVuln || c.enemyPoison)) return false;
+      if (e === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
+      if (o === 'owned' && !unlockedCards.includes(c.id)) return false;
+      if (o === 'unowned' && unlockedCards.includes(c.id)) return false;
+      if (q) { 
+        const def = enhancedGetCardDef(c.id, shopUpgrades); 
+        if (def && !(def.name || '').toLowerCase().includes(q.toLowerCase()) && !(def.desc || '').toLowerCase().includes(q.toLowerCase())) return false; 
+      }
+      return true;
+    });
+  };
 
   const applyStartCombatRelics = (basePlayer, activeRelics) => {
     let p = { ...basePlayer };
@@ -207,6 +205,11 @@ export default function App() {
   };
 
   const startBattle = (mode = 'NORMAL', stage = 1) => {
+    if (mode === 'HARD' && stage > 300) {
+      setToastMsg('하드 모드는 300층까지만 진행 가능합니다!');
+      return;
+    }
+
     let fullDeck = [];
     Object.keys(deckCounts).forEach(id => {
       const def = enhancedGetCardDef(id, shopUpgrades);
@@ -246,6 +249,7 @@ export default function App() {
       return { ...prev, hand: newHand, drawPile: newDraw };
     });
     setSkipModalOpen(false);
+    setHardSkipModalOpen(false);
     setGameState('BATTLE');
   };
 
@@ -469,7 +473,7 @@ export default function App() {
     setToastMsg(`관리자 권한: ${targetStage}층으로 워프!`);
   };
 
-  const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones }); navigator.clipboard.writeText(btoa(encodeURIComponent(data))); setToastMsg('세이브 코드가 복사되었습니다!'); };
+  const handleExport = () => { const data = JSON.stringify({ credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones }); const encoded = btoa(encodeURIComponent(data)); navigator.clipboard.writeText(encoded); setToastMsg('세이브 코드 복사됨!'); };
   const handleExitGame = async () => { setToastMsg('저장 중...'); await saveGame(); if (window.require) window.close(); else setGameState('MENU'); };
 
   const handlePremiumGacha = () => {
@@ -501,9 +505,8 @@ export default function App() {
     setTempDeckCounts({ ...tempDeckCounts, [id]: (tempDeckCounts[id] || 0) + 1 });
   };
 
-  // ✨ [추가] 업적 달성 시 보상 획득 처리 함수
   const handleClaimMilestone = (requiredCount, amount) => {
-    if (claimedMilestones.includes(requiredCount)) return; // 이미 수령한 경우 방지
+    if (claimedMilestones.includes(requiredCount)) return;
     
     const newCredits = credits + amount;
     const newClaimed = [...claimedMilestones, requiredCount];
@@ -511,7 +514,6 @@ export default function App() {
     setCredits(newCredits);
     setClaimedMilestones(newClaimed);
     
-    // 로컬 스토리지 및 Firebase에 획득 내역 영구 저장
     saveGame({ credits: newCredits, claimedMilestones: newClaimed });
     setToastMsg(`✨ 업적 보상으로 ${amount.toLocaleString()} 크레딧을 획득했습니다! ✨`);
   };
@@ -523,7 +525,7 @@ export default function App() {
 
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 
-        <AdminPanel gameState={gameState} credits={credits} setCredits={setCredits} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} unlockedRelics={unlockedRelics} setUnlockedRelics={setUnlockedRelics} combatState={combatState} setCombatState={setCombatState} setGameState={setGameState} setToastMsg={setToastMsg} saveGame={saveGame} CARD_LIBRARY={CARD_LIBRARY} RELIC_LIBRARY={RELIC_LIBRARY} deckCounts={deckCounts} setDeckCounts={setDeckCounts} playerRelics={playerRelics} setPlayerRelics={setPlayerRelics} startBattle={startBattle} />
+        <AdminPanel gameState={gameState} credits={credits} setCredits={setCredits} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} unlockedRelics={unlockedRelics} setUnlockedRelics={setUnlockedRelics} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} setIsAdminUnlocked={setIsAdminUnlocked} handleWarp={handleWarp} setGameState={setGameState} maxStageReached={maxStageReached} setMaxStageReached={setMaxStageReached} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} saveGame={saveGame} />
 
         {deckImportModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setDeckImportModalOpen(false)}>
@@ -532,43 +534,69 @@ export default function App() {
               <textarea className="w-full h-32 bg-slate-900 border border-slate-600 rounded-lg p-3 text-white" value={deckImportText} onChange={e => setDeckImportText(e.target.value)} />
               <div className="flex gap-3 mt-4">
                 <button onClick={() => setDeckImportModalOpen(false)} className="flex-1 py-3 bg-slate-700 rounded-lg">취소</button>
-                <button onClick={() => { try { const data = JSON.parse(decodeURIComponent(atob(deckImportText.trim()))); setTempDeckCounts(data); setDeckImportModalOpen(false); setToastMsg('덱 성공!'); } catch(e) { setToastMsg('오류!'); } }} className="flex-1 py-3 bg-indigo-600 rounded-lg">확인</button>
+                <button onClick={() => { try { const data = JSON.parse(decodeURIComponent(atob(deckImportText.trim()))); setTempDeckCounts(data); setDeckImportModalOpen(false); setToastMsg('덱 로드 성공!'); } catch(e) { setToastMsg('잘못된 덱 코드입니다!'); } }} className="flex-1 py-3 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-500">로드</button>
               </div>
             </div>
           </div>
         )}
 
         {skipModalOpen && (
-  <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
-    <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
-      <h3 className="text-2xl font-black mb-2 text-emerald-400">스테이지 도약</h3>
-      <p className="text-slate-300 text-xs mb-6 break-keep">
-        최대 도달 층({maxStageReached}층)을 기준으로, 이전에 돌파했던 보스 층에서 바로 시작할 수 있습니다.
-      </p>
-      
-      <div className="grid grid-cols-4 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-1">
-        {/* ✨ [수정] 일반 모드: 5층마다, 하드 모드: 10층마다 */}
-        {Array.from({ 
-          length: Math.floor(maxStageReached / (gameState?.includes('HARD') ? 10 : 5)) 
-        }, (_, i) => (i + 1) * (gameState?.includes('HARD') ? 10 : 5)).map(floor => (
-          <button 
-            key={floor}
-            onClick={() => {
-              if (getTotalCards() !== 20) { setToastMsg('덱을 20장 꽉 채워야 시작할 수 있습니다.'); setSkipModalOpen(false); return; }
-              startBattle(gameState?.includes('HARD') ? 'HARD' : 'NORMAL', floor); 
-              setSkipModalOpen(false); 
-              setToastMsg(`${floor}층부터 도약을 시작합니다!`);
-            }}
-            className="py-2 bg-slate-900 hover:bg-emerald-600 border border-slate-600 hover:border-emerald-400 rounded-lg text-sm font-bold transition-all text-slate-200 hover:text-white"
-          >
-            {floor}층
-          </button>
-        ))}
-      </div>
-      <button onClick={() => setSkipModalOpen(false)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg font-bold transition-colors">취소</button>
-    </div>
-  </div>
-)}
+          <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setSkipModalOpen(false)}>
+            <div className="bg-slate-800 p-6 rounded-xl border-2 border-emerald-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
+              <h3 className="text-2xl font-black mb-2 text-emerald-400">⭐ 일반 모드 - 스테이지 도약</h3>
+              <p className="text-slate-300 text-xs mb-6 break-keep">
+                최대 도달 층({maxStageReached}층)을 기준으로, 이전에 돌파했던 보스 층(5층마다)에서 바로 시작할 수 있습니다.
+              </p>
+              
+              <div className="grid grid-cols-4 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-1">
+                {Array.from({ length: Math.floor(maxStageReached / 5) }, (_, i) => (i + 1) * 5).map(floor => (
+                  <button 
+                    key={floor}
+                    onClick={() => {
+                      if (getTotalCards() !== 20) { setToastMsg('덱을 20장 꽉 채워야 시작할 수 있습니다.'); setSkipModalOpen(false); return; }
+                      startBattle('NORMAL', floor); 
+                      setSkipModalOpen(false); 
+                      setToastMsg(`${floor}층부터 도약을 시작합니다!`);
+                    }}
+                    className="py-2 bg-slate-900 hover:bg-emerald-600 border border-slate-600 hover:border-emerald-400 rounded-lg text-sm font-bold transition-all text-slate-200 hover:text-white"
+                  >
+                    {floor}층
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setSkipModalOpen(false)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg font-bold transition-colors">취소</button>
+            </div>
+          </div>
+        )}
+
+        {hardSkipModalOpen && (
+          <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setHardSkipModalOpen(false)}>
+            <div className="bg-slate-800 p-6 rounded-xl border-2 border-red-500 w-full max-w-md text-center" onClick={e => e.stopPropagation()}>
+              <h3 className="text-2xl font-black mb-2 text-red-400">🔥 하드 모드 - 스테이지 도약</h3>
+              <p className="text-slate-300 text-xs mb-6 break-keep">
+                최대 도달 층({maxStageReached}층)을 기준으로, 이전에 돌파했던 보스 층(10층마다)에서 바로 시작할 수 있습니다.
+              </p>
+              
+              <div className="grid grid-cols-3 gap-2 mb-6 max-h-[40vh] overflow-y-auto pr-1">
+                {Array.from({ length: Math.floor(maxStageReached / 10) }, (_, i) => (i + 1) * 10).map(floor => (
+                  <button 
+                    key={floor}
+                    onClick={() => {
+                      if (getTotalCards() !== 20) { setToastMsg('덱을 20장 꽉 채워야 시작할 수 있습니다.'); setHardSkipModalOpen(false); return; }
+                      startBattle('HARD', floor); 
+                      setHardSkipModalOpen(false); 
+                      setToastMsg(`${floor}층부터 도약을 시작합니다!`);
+                    }}
+                    className="py-2 bg-slate-900 hover:bg-red-600 border border-slate-600 hover:border-red-400 rounded-lg text-sm font-bold transition-all text-slate-200 hover:text-white"
+                  >
+                    {floor}층
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setHardSkipModalOpen(false)} className="w-full py-3 bg-slate-700 hover:bg-slate-600 border border-slate-500 rounded-lg font-bold transition-colors">취소</button>
+            </div>
+          </div>
+        )}
 
         {importModalOpen && (
           <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4" onClick={() => setImportModalOpen(false)}>
@@ -594,7 +622,7 @@ export default function App() {
                     if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
                     if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
                     if (d.customCards) setCustomCards(d.customCards);
-                    if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones); // ✨ 마일스톤 내역 복구
+                    if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones);
                     saveGame(d);
                     setImportModalOpen(false); 
                     setToastMsg('세이브 불러오기 성공!'); 
@@ -605,11 +633,68 @@ export default function App() {
           </div>
         )}
 
-        {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />}
+        {gameState === 'HARD_CLEAR_RELIC_CHOICE' && (
+          <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 text-white p-4">
+            <div className="max-w-4xl w-full">
+              <h1 className="text-5xl font-black text-center mb-2 text-purple-300 drop-shadow-lg">🎉 하드 모드 완전 클리어!</h1>
+              <p className="text-center text-slate-300 mb-8">축하합니다! 유물 3개를 선택해서 획득하세요!</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id)).slice(0, 15).map((relic) => (
+                  <div 
+                    key={relic.id}
+                    onClick={() => {
+                      if (!hardClearRelicSelection.includes(relic.id) && hardClearRelicSelection.length < 3) {
+                        setHardClearRelicSelection([...hardClearRelicSelection, relic.id]);
+                      } else if (hardClearRelicSelection.includes(relic.id)) {
+                        setHardClearRelicSelection(hardClearRelicSelection.filter(id => id !== relic.id));
+                      }
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      hardClearRelicSelection.includes(relic.id) 
+                        ? 'bg-purple-600/40 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]' 
+                        : 'bg-slate-800 border-slate-600 hover:border-purple-400'
+                    }`}
+                  >
+                    <div className="font-bold text-purple-300 text-lg">{relic.name}</div>
+                    <div className="text-sm text-slate-300 mt-2">{relic.desc}</div>
+                    {hardClearRelicSelection.includes(relic.id) && <div className="text-center text-purple-300 font-bold mt-2">✓ 선택됨</div>}
+                  </div>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => {
+                  const selectedRelics = RELIC_LIBRARY.filter(r => hardClearRelicSelection.includes(r.id));
+                  const updatedRelics = [...(playerRelics || []), ...selectedRelics];
+                  setPlayerRelics(updatedRelics);
+                  let newUnlocked = [...(unlockedRelics || [])];
+                  selectedRelics.forEach(r => {
+                    if (!newUnlocked.includes(r.id)) newUnlocked.push(r.id);
+                  });
+                  setUnlockedRelics(newUnlocked);
+                  saveGame({ unlockedRelics: newUnlocked });
+                  setHardClearRelicSelection([]);
+                  setToastMsg('🎉 유물 3개가 추가되었습니다!');
+                  setGameState('GAME_CLEAR');
+                }}
+                disabled={hardClearRelicSelection.length !== 3}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                  hardClearRelicSelection.length === 3 
+                    ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.5)]' 
+                    : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                }`}
+              >
+                3개 선택 완료 ({hardClearRelicSelection.length}/3)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} />}
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
         
-        {/* ✨ [수정] 통계 화면에 보상 처리 관련 함수와 상태를 넘겨줌 */}
         {gameState === 'STATISTICS' && (
           <Statistics 
             maxStageReached={maxStageReached} 
@@ -625,91 +710,95 @@ export default function App() {
           />
         )}
         
-        {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} handleExitGame={handleExitGame} isAdminUnlocked={isAdminUnlocked} adminCodeInput={adminCodeInput} setAdminCodeInput={setAdminCodeInput} handleAdminUnlock={() => adminCodeInput==='20090324' ? setIsAdminUnlocked(true) : setToastMsg('틀림')} adminUnlockAllCards={() => { const all = CARD_LIBRARY.map(c=>c.id); setUnlockedCards(all); saveGame({unlockedCards: all}); setToastMsg('완료'); }} adminGiveMoney={() => { const nc = credits + 99999; setCredits(nc); saveGame({credits: nc}); setToastMsg('완료'); }} adminUnlockAllRelics={() => { const all = RELIC_LIBRARY.map(r=>r.id); setUnlockedRelics(all); saveGame({unlockedRelics: all}); setToastMsg('완료'); }} adminClearSave={() => {localStorage.removeItem('roguelike_tactics_save'); window.location.reload();}} handleWarp={handleWarp} warpStage={warpStage} setWarpStage={setWarpStage} />}
+        {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} handleExitGame={handleExitGame} />}
         
-        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => {navigator.clipboard.writeText(btoa(encodeURIComponent(JSON.stringify(tempDeckCounts)))); setToastMsg('복사!');}} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id]||0)-1)})} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
+        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setFilterEffect={setFilterEffect} filterRarity={filterRarity} setFilterRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery)} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
         
-        {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setToastMsg={setToastMsg} getCardDef={enhancedGetCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} selectPremiumCard={(card) => { let newUnlocked = unlockedCards; if(!unlockedCards.includes(card.id)) { newUnlocked = [...unlockedCards, card.id]; setUnlockedCards(newUnlocked); } setPremiumGachaResult(null); setToastMsg('획득!'); saveGame({ unlockedCards: newUnlocked }); }} setTutorialModalOpen={setTutorialModalOpen} />}
+        {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} getCardDef={enhancedGetCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} setToastMsg={setToastMsg} />}
         
-        {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} hoveredCard={hoveredCard} setHoveredCard={setHoveredCard} playCard={playCard} setCombatState={setCombatState} MAX_HAND_SIZE={GAME_RULES?.MAX_HAND_SIZE || 10} setShowEnemyDeck={setShowEnemyDeck} setViewingEnemy={setViewingEnemy} setTutorialModalOpen={setTutorialModalOpen} viewingEnemy={viewingEnemy} showEnemyDeck={showEnemyDeck} playerRelics={playerRelics} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} />}
+        {gameState === 'BATTLE' && <BattleScreen combatState={combatState} isPlayerTurn={combatState?.turn === 'PLAYER'} setViewingPile={setViewingPile} viewingPile={viewingPile} setGameState={setGameState} playCard={playCard} setToastMsg={setToastMsg} getCardDef={enhancedGetCardDef} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} shopUpgrades={shopUpgrades} />}
         
         {gameState === 'ENCYCLOPEDIA' && <Encyclopedia unlockedCards={unlockedCards} customCards={customCards} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} getFilteredCards={getFilteredCards} setGameState={setGameState} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setTutorialModalOpen={setTutorialModalOpen} unlockedRelics={unlockedRelics} />}
         
-        {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} setTutorialModalOpen={setTutorialModalOpen} />}
+        {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={() => setIsCssFullScreen(!isCssFullScreen)} setGameState={setGameState} />}
         
-        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && <Rewards 
-          gameState={gameState} 
-          rewardCards={rewardCards} 
-          setRewardCards={setRewardCards} 
-          combatState={combatState} 
-          unlockedCards={unlockedCards} 
-          setUnlockedCards={setUnlockedCards} 
-          saveGame={saveGame} 
-          setGameState={setGameState} 
-          confirmSelection={confirmSelection} 
-          setConfirmSelection={setConfirmSelection} 
-          startNextStage={startNextStage} 
-          getCardDef={enhancedGetCardDef} 
-          shopUpgrades={shopUpgrades} 
-          specialBossRewardCard={specialBossRewardCard} 
-          pendingRelicReward={pendingRelicReward} 
-          handleRelicRewardClaim={handleRelicRewardClaim}
-          enemyDropCard={enemyDropCard} 
-          setEnemyDropCard={setEnemyDropCard} 
-          customCards={customCards} 
-          setCustomCards={setCustomCards}
-          
-          handleEnemyDropClaim={() => {
-            if (enemyDropCard) {
-              let newUnlocked = unlockedCards;
-              let newCustomCards = customCards;
+        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && (
+          <Rewards 
+            gameState={gameState} 
+            rewardCards={rewardCards} 
+            setRewardCards={setRewardCards} 
+            combatState={combatState} 
+            unlockedCards={unlockedCards} 
+            setUnlockedCards={setUnlockedCards} 
+            saveGame={saveGame} 
+            setGameState={setGameState} 
+            confirmSelection={confirmSelection} 
+            setConfirmSelection={setConfirmSelection} 
+            startNextStage={startNextStage} 
+            getCardDef={enhancedGetCardDef} 
+            shopUpgrades={shopUpgrades} 
+            specialBossRewardCard={specialBossRewardCard} 
+            pendingRelicReward={pendingRelicReward} 
+            handleRelicRewardClaim={handleRelicRewardClaim}
+            enemyDropCard={enemyDropCard} 
+            setEnemyDropCard={setEnemyDropCard} 
+            customCards={customCards} 
+            setCustomCards={setCustomCards}
+            handleEnemyDropClaim={() => {
+              if (enemyDropCard) {
+                let newUnlocked = unlockedCards;
+                let newCustomCards = customCards;
 
-              if (!unlockedCards.includes(enemyDropCard.id)) {
-                newUnlocked = [...unlockedCards, enemyDropCard.id];
-                setUnlockedCards(newUnlocked);
-              }
-              if (!customCards.some(c => c.id === enemyDropCard.id)) {
-                newCustomCards = [...customCards, enemyDropCard];
-                setCustomCards(newCustomCards);
-              }
+                if (!unlockedCards.includes(enemyDropCard.id)) {
+                  newUnlocked = [...unlockedCards, enemyDropCard.id];
+                  setUnlockedCards(newUnlocked);
+                }
+                if (!customCards.some(c => c.id === enemyDropCard.id)) {
+                  newCustomCards = [...customCards, enemyDropCard];
+                  setCustomCards(newCustomCards);
+                }
 
-              setCombatState(prev => ({ ...prev, baseDeck: [...prev.baseDeck, enemyDropCard] }));
-              setEnemyDropCard(null);
-              saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
-            }
-          }}
-
-          handleSpecialBossRewardClaim={() => { 
-            if(specialBossRewardCard) { 
-              let newUnlocked = unlockedCards;
-              let newCustomCards = customCards;
-
-              if(!unlockedCards.includes(specialBossRewardCard.id)) {
-                newUnlocked = [...unlockedCards, specialBossRewardCard.id];
-                setUnlockedCards(newUnlocked);
+                setCombatState(prev => ({ ...prev, baseDeck: [...prev.baseDeck, enemyDropCard] }));
+                setEnemyDropCard(null);
+                saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
               }
-              if (!customCards.some(c => c.id === specialBossRewardCard.id)) {
-                newCustomCards = [...customCards, specialBossRewardCard];
-                setCustomCards(newCustomCards);
-              }
+            }}
+            handleSpecialBossRewardClaim={() => { 
+              if(specialBossRewardCard) { 
+                let newUnlocked = unlockedCards;
+                let newCustomCards = customCards;
 
-              setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
-              setSpecialBossRewardCard(null); 
-              
-              if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
-                setNormalCleared(true);
-                saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards, normalCleared: true });
-                setGameState('GAME_CLEAR');
-              } else {
-                setGameState('REWARDS'); 
-                saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards }); 
-              }
-            } 
-          }} 
-        />}
+                if(!unlockedCards.includes(specialBossRewardCard.id)) {
+                  newUnlocked = [...unlockedCards, specialBossRewardCard.id];
+                  setUnlockedCards(newUnlocked);
+                }
+                if (!customCards.some(c => c.id === specialBossRewardCard.id)) {
+                  newCustomCards = [...customCards, specialBossRewardCard];
+                  setCustomCards(newCustomCards);
+                }
+
+                setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
+                setSpecialBossRewardCard(null); 
+                
+                if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
+                  setNormalCleared(true);
+                  saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards, normalCleared: true });
+                  setGameState('GAME_CLEAR');
+                } else if (combatState.mode === 'HARD' && combatState.stage >= 300) {
+                  setGameState('HARD_CLEAR_RELIC_CHOICE');
+                  saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
+                } else {
+                  setGameState('REWARDS'); 
+                  saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards }); 
+                }
+              } 
+            }}
+          />
+        )}
         
-        {gameState === 'GAME_OVER' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4"><h1 className="text-6xl md:text-8xl font-black text-red-600 mb-6">GAME OVER</h1><p className="text-2xl text-slate-300 mb-12">STAGE {combatState?.stage || 1}</p><button onClick={() => setGameState('MENU')} className="py-4 px-12 bg-indigo-600 rounded-full text-2xl font-bold">메인으로</button></div>}
-        {gameState === 'GAME_CLEAR' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4"><h1 className="text-6xl font-black text-yellow-400 mb-8 animate-pulse">CONQUEROR!</h1><p className="text-xl text-slate-300 mb-8">이제 시작 덱에서 유물 1개를 선택할 수 있습니다!</p><button onClick={() => setGameState('MENU')} className="py-4 px-12 bg-indigo-600 rounded-full text-2xl font-bold">메인으로</button></div>}
+        {gameState === 'GAME_OVER' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4"><h1 className="text-6xl md:text-8xl font-black text-red-500 mb-4">💀 게임 오버</h1><p className="text-2xl text-slate-400 mb-8">더 강해져서 다시 도전하세요!</p><button onClick={() => { setGameState('MENU'); }} className="py-3 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg">메인으로</button></div>}
+        
+        {gameState === 'GAME_CLEAR' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-yellow-900 to-slate-900 text-white p-4"><h1 className="text-6xl font-black text-yellow-400 mb-4 drop-shadow-lg">🎊 클리어!</h1><p className="text-2xl text-slate-300 mb-8">정말 훌륭한 성과입니다!</p><button onClick={() => { setGameState('MENU'); }} className="py-3 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg">메인으로</button></div>}
       </div>
     </ErrorBoundary>
   );

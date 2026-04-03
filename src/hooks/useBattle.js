@@ -146,21 +146,27 @@ export function useBattle({
       saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
       
       if (droppedRelic) {
-        setPendingRelicReward(droppedRelic);
-        setTimeout(() => setGameState('RELIC_REWARD'), 600);
-      } else {
-        if (finalBossCard) {
-          setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-        } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
-          if (prevCombat.mode === 'NORMAL') {
-            setNormalCleared(true);
-            saveGame({ normalCleared: true });
-          }
-          setGameState('GAME_CLEAR'); 
-        } else {
-          setTimeout(() => setGameState('REWARDS'), 600);
-        }
-      }
+  setPendingRelicReward(droppedRelic);
+  setTimeout(() => setGameState('RELIC_REWARD'), 600);
+} else {
+  if (finalBossCard) {
+    setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
+  } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
+    if (prevCombat.mode === 'NORMAL') {
+      setNormalCleared(true);
+      saveGame({ normalCleared: true });
+    }
+    // ✨ [추가] 하드 모드 300층 클리어 시 특별 보상 (유물 3개 선택)
+    else if (prevCombat.mode === 'HARD' && prevCombat.stage >= 300) {
+      setToastMsg('🎉 하드 모드 완전 클리어! 유물 3개를 선택하세요!');
+      setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), 600);
+      return;
+    }
+    setGameState('GAME_CLEAR'); 
+  } else {
+    setTimeout(() => setGameState('REWARDS'), 600);
+  }
+}
     } catch (err) {
       console.error("보상 처리 중 에러 발생:", err);
       setTimeout(() => setGameState('REWARDS'), 600);
