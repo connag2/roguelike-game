@@ -87,17 +87,17 @@ export function useBattle({
             let nerfedMulti = Math.min(4, rawMulti); 
 
             const convertedCard = {
-              id: `drop_${enemy.name}_${Date.now()}_${Math.floor(Math.random() * 10000)}`, 
+              id: `drop_${enemy.name}_${enemyCardDef.name}`, // ✨ 무작위 난수 제거 (중복 파밍 가능하게 변경)
               name: `${enemy.name}의 ${enemyCardDef.name}`,
               type: (enemyCardDef.type && enemyCardDef.type.includes('attack')) ? 'attack' : 'skill',
               cost: isThisEnemyBoss ? 2 : 1, 
-              rarity: isThisEnemyBoss ? 'special' : 'uncommon',
+              rarity: 'loot', // ✨ 전리품 전용 카테고리로 묶음
               desc: `(전리품) ${enemyCardDef.desc}`,
               damage: nerfedDamage,
               multiHit: nerfedMulti,
               block: nerfedBlock,
               heal: nerfedHeal,
-            };
+            };c
 
             if (enemyCardDef.debuff) {
               const turns = Math.min(3, enemyCardDef.turns || 1); 

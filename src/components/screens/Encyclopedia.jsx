@@ -88,8 +88,10 @@ export default function Encyclopedia({
       ) : (
         <div className="flex flex-col md:flex-row flex-wrap items-start md:items-center gap-3 mb-4 px-2 md:px-4 max-w-6xl mx-auto w-full">
           <div className="flex flex-wrap items-center gap-2">
-            {['all', 'common', 'uncommon', 'rare', 'special', 'mythic'].map((r) => {
-              const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화' };
+            {/* 🌟 배열 맨 끝에 'loot' 추가 */}
+            {['all', 'common', 'uncommon', 'rare', 'special', 'mythic', 'loot'].map((r) => {
+              // 🌟 labels 객체에도 loot 추가
+              const labels = { all: '전체', common: '일반', uncommon: '희귀', rare: '전설', special: '특수', mythic: '신화', loot: '전리품' };
               return (
                 <button
                   key={r}

@@ -25,7 +25,11 @@ export default function Rewards({
   specialBossRewardCard,
   handleSpecialBossRewardClaim,
   pendingRelicReward,         // ✨ 유물 관련 상태 추가
-  handleRelicRewardClaim      // ✨ 유물 획득 핸들러 추가
+  handleRelicRewardClaim 
+  enemyDropCard,        // ✨ 추가
+  setEnemyDropCard,     // ✨ 추가
+  customCards,          // ✨ 추가
+  setCustomCards     // ✨ 유물 획득 핸들러 추가
 }) {
   if (!combatState) return null;
 

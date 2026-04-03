@@ -34,6 +34,15 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
     nameColor = 'text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]';
     tagUi = <span className="text-[9px] md:text-[10px] text-fuchsia-400 font-bold bg-slate-800/80 px-1 rounded border border-fuchsia-800"><Star className="w-2 h-2 inline mb-0.5"/>특수</span>;
     bgStyle = 'special-bg'; 
+  } else if (rarity === 'loot') {
+    // 🌟 [추가] 전리품 전용 테마
+    rarityShadow = 'shadow-[0_0_20px_rgba(16,185,129,0.5)]'; 
+    nameColor = 'text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]';
+    tagUi = <span className="text-[9px] md:text-[10px] text-emerald-300 font-bold bg-slate-800/80 px-1 rounded border border-emerald-700">전리품</span>;
+    bgStyle = 'bg-gradient-to-br from-slate-900 to-emerald-950/40';
+    upBadgeBg = 'bg-emerald-500'; upBadgeText = 'text-emerald-950'; upBadgeShadow = 'shadow-[0_0_10px_rgba(16,185,129,0.8)]';
+    upIconColor = 'text-emerald-300 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]';
+    borderStyle = isAttack ? 'border-red-500/80 ring-2 ring-emerald-500/40' : 'border-blue-500/80 ring-2 ring-emerald-500/40';
   } else {
     tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
