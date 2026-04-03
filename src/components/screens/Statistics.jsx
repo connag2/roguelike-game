@@ -8,10 +8,9 @@ export default function Statistics({
   maxStageReached, normalCleared, seenEnemies, unlockedCards, credits, unlockedRelics, gameStats, setGameState 
 }) {
   
-  // ✨ 적 카드 종류 개수를 계산합니다.
+  // ✨ 보스 카드 종류 개수를 계산합니다. (일반 몹 ENEMIES 제외)
   const enemyCardsMap = {};
   const allEnemies = [ 
-    ...ENEMIES, 
     ...NORMAL_BOSSES, 
     ...(HARD_MODE_BOSSES || []), 
     ...Object.values(SPECIAL_BOSSES) 
@@ -28,7 +27,7 @@ export default function Statistics({
   });
   const enemyCardCount = Object.keys(enemyCardsMap).length;
 
-  // ✨ 총 카드 수에 적 카드 개수(enemyCardCount)를 더해줍니다.
+  // ✨ 총 카드 수에 보스 카드 개수(enemyCardCount)를 더해줍니다.
   const totalCards = CARD_LIBRARY.length + enemyCardCount;
   const cardCompletion = ((unlockedCards.length / totalCards) * 100).toFixed(1);
 

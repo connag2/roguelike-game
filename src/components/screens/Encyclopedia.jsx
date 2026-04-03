@@ -25,10 +25,9 @@ export default function Encyclopedia({
   
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ 적 카드 데이터를 추출하고 중복을 제거하여 배열로 만듭니다.
+  // ✨ 적 카드 데이터를 추출 (일반 몹 제외, 보스몹만!)
   const enemyCardsMap = {};
   const allEnemies = [ 
-    ...ENEMIES, 
     ...NORMAL_BOSSES, 
     ...(HARD_MODE_BOSSES || []), 
     ...Object.values(SPECIAL_BOSSES) 
@@ -43,7 +42,7 @@ export default function Encyclopedia({
             name: c.name,
             type: c.type?.includes('attack') ? 'attack' : 'skill', // UI 렌더링용 타입 매핑
             rarity: 'special', // 적 카드는 특수 테두리로 렌더링
-            cost: '적', // 코스트 위치에 '적'이라고 표시
+            cost: '보스', // 코스트 위치에 '보스'라고 표시
             desc: c.desc,
             isEnemyCard: true // 적 카드 식별용 플래그
           };
@@ -53,7 +52,7 @@ export default function Encyclopedia({
   });
   const ENEMY_CARDS = Object.values(enemyCardsMap);
 
-  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 (기본 카드 + 전리품 카드 + 적 카드)로 완전히 확장합니다!
+  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 (기본 카드 + 전리품 카드 + 보스 카드)로 확장합니다!
   const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...ENEMY_CARDS];
 
   const validUnlockedCards = [...new Set(unlockedCards)].filter(id => FULL_CARD_LIBRARY.some(c => c.id === id));
@@ -62,7 +61,7 @@ export default function Encyclopedia({
   // 1. 기존 플레이어 카드 필터링
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
   
-  // 2. ✨ 적 카드도 동일한 조건(타입, 희귀도, 검색어)으로 필터링
+  // 2. ✨ 보스 카드도 동일한 조건(타입, 희귀도, 검색어)으로 필터링
   let filteredEnemyCards = ENEMY_CARDS.filter(c => {
     if (filterType !== 'all' && c.type !== filterType) return false;
     if (filterRarity !== 'all' && c.rarity !== filterRarity) return false;
@@ -70,7 +69,7 @@ export default function Encyclopedia({
     return true;
   });
 
-  // 3. ✨ 플레이어 카드와 적 카드를 하나의 리스트로 합침
+  // 3. ✨ 플레이어 카드와 보스 카드를 하나의 리스트로 합침
   filteredCards = [...filteredCards, ...filteredEnemyCards];
 
   // 4. 보유/미보유 필터 적용
@@ -171,9 +170,9 @@ export default function Encyclopedia({
         {tab === 'cards' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
             {filteredCards.map(baseCard => {
-              // ✨ 적 카드는 getCardDef를 거치지 않고 바로 렌더링 데이터를 사용합니다.
+              // ✨ 보스 카드는 getCardDef를 거치지 않고 바로 렌더링 데이터를 사용합니다.
               const cardData = baseCard.isEnemyCard ? baseCard : getCardDef(baseCard.id, shopUpgrades);
-              // ✨ 적 카드는 "미해금" 상태여도 내용을 볼 수 있게 isLocked를 false로 처리합니다. (그래야 카드의 설명을 읽을 수 있습니다)
+              // ✨ 보스 카드는 "미해금" 상태여도 내용을 볼 수 있게 isLocked를 false로 처리합니다. (그래야 카드의 설명을 읽을 수 있습니다)
               const isLocked = baseCard.isEnemyCard ? false : !validUnlockedCards.includes(baseCard.id);
               
               return (
