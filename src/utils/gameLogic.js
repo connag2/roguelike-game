@@ -179,8 +179,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   let enemyTemplates = [];
   
   // ✨ 일반 모드 스케일링 추가 완화 (기존 0.04 -> 0.03 / 0.02 -> 0.015)
-  let hpMulti = 1 + (s * 0.02);
-  let dmgMulti = 1 + (s * 0.01);
+  let hpMulti = 1 + (s * 0.01);
+  let dmgMulti = 1 + (s * 0.005);
 
   try {
     if (mode === 'ENDLESS') {
@@ -261,7 +261,7 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
     
     // ✨ 보스 체력 뻥튀기 배율 소폭 너프 (하드모드 보스 체력도 같이 너프됨)
     if (isNamedBoss) hpFinal = Math.floor(hpFinal * 1.0); // 기존 2.2 -> 1.9
-    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.2); // 기존 1.6 -> 1.4
+    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 0.5); // 기존 1.6 -> 1.4
     
     let name = template.name || '알 수 없는 적';
     if (enemyTemplates.length > 1) name += ` (${String.fromCharCode(65 + idx)})`; 
