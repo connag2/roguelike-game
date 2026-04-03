@@ -172,9 +172,10 @@ export default function App() {
   };
 
   const getFilteredCards = (t, e, r, o, q) => {
-  const { BOSS_LOOT_CARDS } = require('./constants/gameData');
-  // ✨ BOSS_LOOT_CARDS 추가
-  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot')];
+  // ✨ BOSS_LOOT_CARDS 추가 (require 제거)
+  const LOOT_CARDS = BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot');
+  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...LOOT_CARDS];
+  
   return FULL_CARD_LIBRARY.filter(c => {
     if (r !== 'all' && c.rarity !== r) return false;
     if (t !== 'all' && c.type !== t) return false;
@@ -182,7 +183,10 @@ export default function App() {
     if (e === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
     if (o === 'owned' && !unlockedCards.includes(c.id)) return false;
     if (o === 'unowned' && unlockedCards.includes(c.id)) return false;
-    if (q) { const def = enhancedGetCardDef(c.id, shopUpgrades); if (def && !(def.name || '').toLowerCase().includes(q.toLowerCase()) && !(def.desc || '').toLowerCase().includes(q.toLowerCase())) return false; }
+    if (q) { 
+      const def = enhancedGetCardDef(c.id, shopUpgrades); 
+      if (def && !(def.name || '').toLowerCase().includes(q.toLowerCase()) && !(def.desc || '').toLowerCase().includes(q.toLowerCase())) return false; 
+    }
     return true;
   });
 };

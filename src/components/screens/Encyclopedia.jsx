@@ -23,7 +23,7 @@ export default function Encyclopedia({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ BOSS_LOOT_CARDS만 도감에 추가 (올바른 카드 객체)
+  // ✨ BOSS_LOOT_CARDS만 도감에 추가
   const LOOT_CARDS = BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot');
 
   // ✨ 도감의 기준이 되는 "전체 카드 목록" (기본 + 커스텀 + 전리품)
