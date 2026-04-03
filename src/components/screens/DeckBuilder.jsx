@@ -1,3 +1,4 @@
+// src/components/screens/DeckBuilder.jsx
 import React, { useMemo, useState } from 'react';
 import { Eraser, Download, Upload, Save, Maximize, HelpCircle, Layers, X, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
@@ -32,7 +33,6 @@ export default function DeckBuilder({
   const currentCardCount = getTotalCards(tempDeckCounts);
   const isDeckFull = currentCardCount === 20;
 
-  // ✨ 추가: 유물 선택 모달 상태 관리
   const [isRelicModalOpen, setIsRelicModalOpen] = useState(false);
 
   const deckCardsList = useMemo(() => {
@@ -98,7 +98,6 @@ export default function DeckBuilder({
         </div>
       </div>
 
-      {/* 필터 & 시작 유물 선택 버튼 (한 줄로 배치) */}
       <div className="relative z-10 mb-2 shrink-0 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 w-full max-w-[1600px] mx-auto">
         <FilterBar 
           type={filterType} setType={setFilterType}
@@ -107,7 +106,6 @@ export default function DeckBuilder({
           search={searchQuery} setSearch={setSearchQuery}
         />
 
-        {/* ✨ 개선: 공간을 차지하던 유물 목록을 깔끔한 모달 호출 버튼으로 변경 */}
         {normalCleared && unlockedRelics && unlockedRelics.length > 0 && (
           <button 
             onClick={() => setIsRelicModalOpen(true)}
@@ -124,18 +122,13 @@ export default function DeckBuilder({
         )}
       </div>
 
-      {/* 메인 콘텐츠 영역 (좌측: 전체 카드 풀, 우측: 내 덱 요약 리스트) */}
       <div className="flex-1 flex flex-col lg:flex-row w-full max-w-[1600px] mx-auto overflow-hidden relative z-10 mt-2 gap-4">
         
-        {/* ✨ 왼쪽: 카드 풀 래퍼 (스크롤 가시성 개선) */}
         <div className="relative flex-1 flex flex-col min-h-0 bg-slate-900/30 rounded-2xl border border-slate-700/50">
-          
-          {/* 스크롤 다운 안내 아이콘 */}
           <div className="absolute top-2 left-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none opacity-60">
             <span className="text-[10px] text-indigo-300 font-bold mb-1 bg-slate-900/80 px-2 py-0.5 rounded-full border border-indigo-500/30">스크롤하여 더 보기</span>
           </div>
 
-          {/* ✨ 개선: hide-scrollbar 제거, custom-scrollbar 적용 */}
           <div className="flex-1 overflow-y-auto custom-scrollbar pb-[40vh] lg:pb-10 px-2 lg:px-4 pt-10 relative z-10">
             <div className="flex flex-wrap gap-4 md:gap-6 content-start justify-center">
               {filteredCards.map(baseCard => {
@@ -158,11 +151,9 @@ export default function DeckBuilder({
             </div>
           </div>
 
-          {/* ✨ 개선: 하단 컨텐츠가 더 있음을 보여주는 그라데이션 페이드 효과 */}
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent pointer-events-none z-20 rounded-b-2xl"></div>
         </div>
 
-        {/* 오른쪽: 내 덱 현황 (사이드바) */}
         <div className="fixed bottom-0 left-0 right-0 lg:static lg:w-[320px] xl:w-[360px] h-[35vh] lg:h-full shrink-0 flex flex-col bg-slate-900/95 lg:bg-slate-900/60 backdrop-blur-xl rounded-t-3xl lg:rounded-2xl border-t lg:border border-slate-600 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-xl z-50">
           <div className="bg-slate-800/80 p-3 lg:p-4 flex justify-between items-center border-b border-slate-600 rounded-t-3xl lg:rounded-t-2xl shrink-0">
             <h3 className="font-bold text-indigo-300 flex items-center gap-2">
@@ -204,11 +195,9 @@ export default function DeckBuilder({
         </div>
       </div>
 
-      {/* ✨ 추가: 다른 창으로 분리된 '시작 유물 선택' 모달 */}
       {isRelicModalOpen && normalCleared && unlockedRelics && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border-2 border-amber-500/50 rounded-2xl w-full max-w-3xl flex flex-col max-h-[85vh] shadow-[0_0_40px_rgba(245,158,11,0.3)] animate-in fade-in zoom-in duration-200">
-            {/* 모달 헤더 */}
             <div className="flex justify-between items-center p-4 md:p-5 border-b border-slate-700 shrink-0 bg-slate-800/50 rounded-t-2xl">
               <h3 className="text-xl md:text-2xl font-black text-amber-400 flex items-center gap-3">
                 <img src={shieldImg} alt="Relic" className="w-7 h-7 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
@@ -219,7 +208,6 @@ export default function DeckBuilder({
               </button>
             </div>
             
-            {/* 모달 내용 (유물 리스트) */}
             <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex flex-col gap-3">
               <button
                 onClick={() => { setStartingRelic(null); setIsRelicModalOpen(false); }}
@@ -250,7 +238,6 @@ export default function DeckBuilder({
           </div>
         </div>
       )}
-
     </div>
   );
 }
