@@ -4,10 +4,10 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
-// ✨ BOSS_LOOT_CARDS 추가
+// ✅ calculateDamage 추가
 import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS, BOSS_LOOT_CARDS } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
-import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
+import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent, calculateDamage } from './utils/gameLogic';
 import { useBattle } from './hooks/useBattle'; 
 
 import MainMenu from './components/screens/MainMenu';
@@ -100,7 +100,7 @@ export default function App() {
   
   const [claimedMilestones, setClaimedMilestones] = useState([]);
 
-  // 전체화면 제어 함수
+  // ✨ 전체화면 제어 함수
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {
@@ -112,6 +112,29 @@ export default function App() {
       }
     }
   };
+
+  // ✅ 관리자 모드 단축키 (Ctrl + Shift + A) 및 비밀번호 프롬프트 복구
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault(); // 기본 브라우저 단축키 차단
+        if (isAdminUnlocked) {
+          setIsAdminUnlocked(false);
+          setToastMsg('관리자 패널이 닫혔습니다.');
+        } else {
+          const pwd = window.prompt("관리자 비밀번호를 입력하세요:");
+          if (pwd === "050608") {
+            setIsAdminUnlocked(true);
+            setToastMsg('✅ 관리자 모드가 활성화되었습니다.');
+          } else if (pwd !== null) {
+            setToastMsg('❌ 비밀번호가 틀렸습니다.');
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAdminUnlocked]);
 
   useEffect(() => {
     document.body.style.margin = '0';
@@ -327,7 +350,7 @@ export default function App() {
     else { setGameState('REWARDS'); }
   };
 
-  // 턴 넘어가기 에러 방어 및 로직
+  // 턴 넘어가기 및 적 행동 로직
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
     const timer = setTimeout(() => {
@@ -358,11 +381,15 @@ export default function App() {
 
             if (canAct) {
               if (intent.type.includes('attack')) {
-                let dmg = intent.value + (e.buffs.strength || 0);
-                if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-                if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-                if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
-                if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
+                // ✅ 버그 수정: 여기서 하드코딩되었던 연산 제거, 통합된 calculateDamage를 활용합니다!
+                let dmg = calculateDamage(
+                  intent.value, 
+                  e.buffs.strength || 0, 
+                  e.debuffs.weak || 0, 
+                  p.debuffs.vulnerable || 0, 
+                  p.debuffs.mark || 0, 
+                  p.buffs.intangible || 0
+                );
 
                 for(let i=0; i<(intent.multi || 1); i++) {
                   if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
@@ -761,7 +788,6 @@ export default function App() {
         
         {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} getCardDef={enhancedGetCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} setToastMsg={setToastMsg} />}
         
-        {/* ✨ 이 부분이 버그의 원인이었습니다! (setCombatState 등 여러 프롭스들 전부 복구) */}
         {gameState === 'BATTLE' && (
           <BattleScreen 
             combatState={combatState} 
