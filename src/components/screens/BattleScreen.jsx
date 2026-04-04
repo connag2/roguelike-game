@@ -343,9 +343,9 @@ export default function BattleScreen({
           {/* 몬스터 */}
           <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
             {enemies.map((enemy, idx) => {
-              const isTarget = idx === 0;
-              const intents = enemy.intentCards || []; 
-
+              const isTarget = idx === targetIndex; // ✅ 0 대신 targetIndex 상태값을 바라보게 수정
+              const intents = enemy.intentCards || [];
+              
               return (
                 <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => setTargetIndex(idx)}>
                 {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
