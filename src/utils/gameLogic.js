@@ -186,8 +186,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
 
   try {
     if (mode === 'ENDLESS') {
-      hpMulti = 1 + (s * 0.06) + Math.pow(s / 35, 0.85);
-      dmgMulti = 1 + (s * 0.04) + Math.pow(s / 45, 0.55);
+      hpMulti = 1 + (s * 0.03) + Math.pow(s / 35, 0.85);
+      dmgMulti = 1 + (s * 0.02) + Math.pow(s / 45, 0.55);
       
       if (s > 300) {
         if (s % 50 === 0) {
@@ -211,8 +211,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
       }
     } 
     else if (mode === 'HARD') {
-      hpMulti = 1 + (s * 0.05) + Math.pow(s / 40, 0.91);
-      dmgMulti = 1 + (s * 0.03) + Math.pow(s / 100, 0.51);
+      hpMulti = 1 + (s * 0.03) + Math.pow(s / 40, 0.91);
+      dmgMulti = 1 + (s * 0.02) + Math.pow(s / 100, 0.51);
 
       if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
       else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
