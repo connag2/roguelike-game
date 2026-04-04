@@ -186,8 +186,8 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
 
   try {
     if (mode === 'ENDLESS') {
-      hpMulti = 1 + (s * 0.06) + Math.pow(s / 35, 1.15);
-      dmgMulti = 1 + (s * 0.04) + Math.pow(s / 45, 1.1);
+      hpMulti = 1 + (s * 0.06) + Math.pow(s / 35, 0.85);
+      dmgMulti = 1 + (s * 0.04) + Math.pow(s / 45, 0.75);
       
       if (s > 300) {
         if (s % 50 === 0) {
