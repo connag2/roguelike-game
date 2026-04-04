@@ -253,202 +253,195 @@ export default function BattleScreen({
         </div>
       )}
 
-      {playerRelics && playerRelics.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2 z-50 w-full px-2">
-          {playerRelics.map((r, i) => (
-            <div key={i} className="relative group bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors flex items-center">
-              <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter cursor-help">
-                {r.name}
-              </span>
-              <Tooltip desc={r.desc} direction="down" />
-              
-              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
-                <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-800 pb-1">{r.name}</div>
-                <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
+      {/* --- 상단 정보 영역 (shrink-0) --- */}
+      <div className="shrink-0 flex flex-col w-full z-10">
+        {playerRelics && playerRelics.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2 w-full px-2">
+            {playerRelics.map((r, i) => (
+              <div key={i} className="relative group bg-slate-800/80 border-2 border-slate-600 p-1 rounded-lg shadow-sm hover:border-indigo-400 transition-colors flex items-center">
+                <span className="text-[10px] font-bold text-slate-100 px-1 uppercase tracking-tighter cursor-help">
+                  {r.name}
+                </span>
+                <Tooltip desc={r.desc} direction="down" />
+                
+                <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-slate-900 border-2 border-indigo-500/50 rounded-xl shadow-2xl z-[100000] pointer-events-none">
+                  <div className="text-amber-400 font-bold text-xs mb-1 border-b border-slate-800 pb-1">{r.name}</div>
+                  <div className="text-[10px] text-slate-300 leading-relaxed">{r.desc}</div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      <div className="flex justify-between items-center bg-slate-800/90 p-2 md:p-3 rounded-xl border border-slate-700 shadow-lg z-10 shrink-0 mb-4">
-        <div className="font-black text-sm md:text-xl flex items-center gap-2 text-indigo-400 tracking-tighter italic">
-          <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin-slow" /> {mode === 'ENDLESS' ? '무한 모드' : mode === 'HARD' ? '하드 모드' : '일반 모드'} STAGE {stage} 
-        </div>
-        <div className="flex items-center gap-2 md:gap-4 font-bold text-xs md:text-sm">
-          <button onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} className={`p-2 rounded-lg border transition-all ${fastMode ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.6)]' : 'bg-slate-700 border-slate-600'}`}>
-            <FastForward className={`w-4 h-4 ${fastMode ? 'text-white' : 'text-slate-400'}`} />
-          </button>
-          <button onClick={() => setTutorialModalOpen(true)} className="bg-slate-700 p-2 rounded-lg border border-slate-600 hover:bg-slate-600 transition-colors"><HelpCircle className="w-4 h-4 text-indigo-300" /></button>
-          <span className="text-slate-300 cursor-pointer hover:text-indigo-300 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-700 font-bold shadow-inner" onClick={() => setViewingPile('baseDeck')}>DECK: {baseDeck.length}</span>
-          <button onClick={() => setGameState('GAME_OVER')} className="text-red-500/50 hover:text-red-500 transition-colors text-xs font-bold px-2">EXIT</button>
+        <div className="flex justify-between items-center bg-slate-800/90 p-2 md:p-3 rounded-xl border border-slate-700 shadow-lg mb-4">
+          <div className="font-black text-sm md:text-xl flex items-center gap-2 text-indigo-400 tracking-tighter italic">
+            <RefreshCw className="w-4 h-4 md:w-5 md:h-5 animate-spin-slow" /> {mode === 'ENDLESS' ? '무한 모드' : mode === 'HARD' ? '하드 모드' : '일반 모드'} STAGE {stage} 
+          </div>
+          <div className="flex items-center gap-2 md:gap-4 font-bold text-xs md:text-sm">
+            <button onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} className={`p-2 rounded-lg border transition-all ${fastMode ? 'bg-indigo-600 border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.6)]' : 'bg-slate-700 border-slate-600'}`}>
+              <FastForward className={`w-4 h-4 ${fastMode ? 'text-white' : 'text-slate-400'}`} />
+            </button>
+            <button onClick={() => setTutorialModalOpen(true)} className="bg-slate-700 p-2 rounded-lg border border-slate-600 hover:bg-slate-600 transition-colors"><HelpCircle className="w-4 h-4 text-indigo-300" /></button>
+            <span className="text-slate-300 cursor-pointer hover:text-indigo-300 bg-slate-950/80 px-3 py-2 rounded-lg border border-slate-700 font-bold shadow-inner" onClick={() => setViewingPile('baseDeck')}>DECK: {baseDeck.length}</span>
+            <button onClick={() => setGameState('GAME_OVER')} className="text-red-500/50 hover:text-red-500 transition-colors text-xs font-bold px-2">EXIT</button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 flex flex-row justify-center items-end pb-16 md:pb-24 border-b-2 border-slate-800/50 w-full max-w-6xl mx-auto mt-2 relative z-10">
-        
-        <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn && !discardingHand ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
-          <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
-            <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
-            
-            {player.block > 0 && (
-              <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
-                <Shield className="absolute text-white/30 w-full h-full p-1" />
-                <span className="relative z-10 text-white text-xs md:text-sm">{player.block}</span>
-              </div>
-            )}
-            
-          </div>
-          <h3 className="text-sm md:text-xl font-black mb-1 text-indigo-400 tracking-tighter uppercase italic">PLAYER</h3>
-          <div className="w-full max-w-[120px] md:max-w-[200px] bg-slate-950 h-4 md:h-5 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
-            <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
-            <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
-          </div>
+      {/* --- 핵심 변경: 몬스터 영역 (flex-1, 스크롤 처리) --- */}
+      <div className="flex-1 overflow-y-auto min-h-0 w-full relative z-10 hide-scrollbar px-2">
+        <div className="flex flex-row justify-center items-end pb-8 md:pb-16 w-full max-w-6xl mx-auto min-h-full">
           
-          <div className="flex gap-1 mt-2 flex-wrap justify-center max-w-[200px] scale-90">
-            <StatusIcon type="strength" value={player.buffs?.strength} />
-            <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
-            <StatusIcon type="thorns" value={player.buffs?.thorns} />
-            <StatusIcon type="intangible" value={player.buffs?.intangible} />
-            <StatusIcon type="regen" value={player.buffs?.regen} />
-            <StatusIcon type="rage" value={player.buffs?.rage} />
-            <StatusIcon type="insight" value={player.buffs?.insight} />
-            <StatusIcon type="poison" value={player.debuffs?.poison} />
-            <StatusIcon type="weak" value={player.debuffs?.weak} />
-            <StatusIcon type="vulnerable" value={player.debuffs?.vulnerable} />
-            <StatusIcon type="mark" value={player.debuffs?.mark} />
-            <StatusIcon type="frail" value={player.debuffs?.frail} />
-            <StatusIcon type="silence" value={player.debuffs?.silence} />
-            <StatusIcon type="bind" value={player.debuffs?.bind} />
+          {/* 플레이어 */}
+          <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn && !discardingHand ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
+            <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+              <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
+              
+              {player.block > 0 && (
+                <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
+                  <Shield className="absolute text-white/30 w-full h-full p-1" />
+                  <span className="relative z-10 text-white text-xs md:text-sm">{player.block}</span>
+                </div>
+              )}
+              
+            </div>
+            <h3 className="text-sm md:text-xl font-black mb-1 text-indigo-400 tracking-tighter uppercase italic">PLAYER</h3>
+            <div className="w-full max-w-[120px] md:max-w-[200px] bg-slate-950 h-4 md:h-5 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
+              <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
+              <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
+            </div>
+            
+            <div className="flex gap-1 mt-2 flex-wrap justify-center max-w-[200px] scale-90">
+              <StatusIcon type="strength" value={player.buffs?.strength} />
+              <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
+              <StatusIcon type="thorns" value={player.buffs?.thorns} />
+              <StatusIcon type="intangible" value={player.buffs?.intangible} />
+              <StatusIcon type="regen" value={player.buffs?.regen} />
+              <StatusIcon type="rage" value={player.buffs?.rage} />
+              <StatusIcon type="insight" value={player.buffs?.insight} />
+              <StatusIcon type="poison" value={player.debuffs?.poison} />
+              <StatusIcon type="weak" value={player.debuffs?.weak} />
+              <StatusIcon type="vulnerable" value={player.debuffs?.vulnerable} />
+              <StatusIcon type="mark" value={player.debuffs?.mark} />
+              <StatusIcon type="frail" value={player.debuffs?.frail} />
+              <StatusIcon type="silence" value={player.debuffs?.silence} />
+              <StatusIcon type="bind" value={player.debuffs?.bind} />
+            </div>
           </div>
-        </div>
 
-        <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
+          <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
-        {/* ✨ 이 부분이 배열 처리(intentCards.map)로 완전히 교체되었습니다. */}
-        <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
-          {enemies.map((enemy, idx) => {
-            const isTarget = idx === 0;
-            // 배열로 변경된 intentCards를 가져옵니다. 없을 경우 빈 배열로 방어 코드 작성
-            const intents = enemy.intentCards || []; 
+          {/* 몬스터 */}
+          <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
+            {enemies.map((enemy, idx) => {
+              const isTarget = idx === 0;
+              const intents = enemy.intentCards || []; 
 
-            return (
-              <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
-                {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
-                
-                {/* 적 의도 카드가 가로로 배열되도록 flex와 gap 추가 */}
-                <div className={`mb-4 relative z-10 flex gap-2 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
+              return (
+                <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
+                  {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
                   
-                  {intents.map((eCard, cardIdx) => {
-                    // 개별 카드 데미지 연산
-                    let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
-                    if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
-                    if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
-                    if (finalDmg > 0 && (player.debuffs?.mark || 0) > 0) finalDmg += player.debuffs.mark;
-                    if (finalDmg > 0 && (player.buffs?.intangible || 0) > 0) finalDmg = 1;
+                  <div className={`mb-4 relative z-10 flex gap-2 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
+                    {intents.map((eCard, cardIdx) => {
+                      let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
+                      if (finalDmg > 0 && enemy.debuffs?.weak > 0) finalDmg = Math.floor(finalDmg * 0.97);
+                      if (finalDmg > 0 && player.debuffs?.vulnerable > 0) finalDmg = Math.floor(finalDmg * 1.30);
+                      if (finalDmg > 0 && (player.debuffs?.mark || 0) > 0) finalDmg += player.debuffs.mark;
+                      if (finalDmg > 0 && (player.buffs?.intangible || 0) > 0) finalDmg = 1;
 
-                    return (
-                      <div key={eCard.uid || `intent-${cardIdx}`} className={`min-w-[90px] md:min-w-[110px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 transition-colors ${isEnemyTurn ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
-                        <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
-                        
-                        <div className="flex flex-wrap justify-center items-center gap-1">
-                          {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
-                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                              {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
-                              <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
-                                {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : eCard.type === 'defend' ? 'DEF' : ''}
-                              </span>
-                            </div>
-                          )}
+                      return (
+                        <div key={eCard.uid || `intent-${cardIdx}`} className={`min-w-[90px] md:min-w-[110px] bg-slate-950 border-2 rounded-xl p-2 shadow-lg text-center flex flex-col items-center gap-1.5 transition-colors ${isEnemyTurn ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)]' : eCard.type.includes('attack') ? 'border-red-600/60 shadow-red-900/30' : eCard.type.includes('heal') ? 'border-emerald-600/60 shadow-emerald-900/30' : eCard.type.includes('debuff') ? 'border-fuchsia-600/60 shadow-fuchsia-900/30' : 'border-blue-600/60 shadow-blue-900/30'}`}>
+                          <div className="text-[9px] md:text-[11px] font-bold text-slate-100 uppercase tracking-tighter truncate w-full">{eCard.name}</div>
+                          
+                          <div className="flex flex-wrap justify-center items-center gap-1">
+                            {(eCard.value !== undefined || eCard.heal !== undefined || eCard.type === 'defend') && (
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                                {eCard.type.includes('attack') ? <Sword className="w-3 h-3 text-red-500" /> : eCard.type.includes('heal') ? <Heart className="w-3 h-3 text-emerald-500" /> : <Shield className="w-3 h-3 text-blue-500" />}
+                                <span className={`text-[10px] md:text-xs font-black ${finalDmg > (eCard.value || 0) ? 'text-red-400' : finalDmg < (eCard.value || 0) ? 'text-green-400' : 'text-white'}`}>
+                                  {eCard.value ? (eCard.multi ? `${finalDmg}x${eCard.multi}` : finalDmg) : eCard.heal ? `+${eCard.heal}` : eCard.type === 'defend' ? 'DEF' : ''}
+                                </span>
+                              </div>
+                            )}
 
-                          {eCard.debuff && (
-                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                              <span className={`text-[9px] md:text-[10px] font-black ${
-                                eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : 
-                                eCard.debuff === 'weak' ? 'text-blue-300' : 
-                                eCard.debuff === 'bind' ? 'text-yellow-400' :
-                                eCard.debuff === 'silence' ? 'text-slate-400' :
-                                'text-green-400'
-                              }`}>
-                                {eCard.debuff === 'vulnerable' ? '취약' : 
-                                 eCard.debuff === 'weak' ? '약화' : 
-                                 eCard.debuff === 'bind' ? '속박' : 
-                                 eCard.debuff === 'silence' ? '침묵' : 
-                                 '중독'} {eCard.turns}
-                              </span>
-                              <Tooltip 
-                                desc={
-                                  eCard.debuff === 'vulnerable' ? '취약' : 
-                                  eCard.debuff === 'weak' ? '약화' : 
-                                  eCard.debuff === 'bind' ? '속박' : 
-                                  eCard.debuff === 'silence' ? '침묵' : 
-                                  '중독'
-                                } 
-                              />
-                            </div>
-                          )}
+                            {eCard.debuff && (
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                                <span className={`text-[9px] md:text-[10px] font-black ${
+                                  eCard.debuff === 'vulnerable' ? 'text-fuchsia-400' : 
+                                  eCard.debuff === 'weak' ? 'text-blue-300' : 
+                                  eCard.debuff === 'bind' ? 'text-yellow-400' :
+                                  eCard.debuff === 'silence' ? 'text-slate-400' :
+                                  'text-green-400'
+                                }`}>
+                                  {eCard.debuff === 'vulnerable' ? '취약' : 
+                                   eCard.debuff === 'weak' ? '약화' : 
+                                   eCard.debuff === 'bind' ? '속박' : 
+                                   eCard.debuff === 'silence' ? '침묵' : 
+                                   '중독'} {eCard.turns}
+                                </span>
+                              </div>
+                            )}
 
-                          {eCard.buff && (
-                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                              <span className="text-[9px] md:text-[10px] font-black text-amber-400">
-                                {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
-                              </span>
-                              {eCard.buff === 'strength' && <Tooltip desc="근력" />}
-                            </div>
-                          )}
+                            {eCard.buff && (
+                              <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
+                                <span className="text-[9px] md:text-[10px] font-black text-amber-400">
+                                  {eCard.buff === 'strength' ? '근력' : '버프'} +{eCard.buffValue}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
+                    <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
+                    {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
+                    {isTarget && playEffect && playEffect.name !== 'mana_potion' && playEffect.name !== 'purify_effect' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
+                  </div>
+
+                  <h3 className={`text-[10px] md:text-base font-black mb-1 ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>{enemy.name}</h3>
+                  <div className="w-full max-w-[80px] md:max-w-[140px] bg-slate-950 h-3 md:h-4 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
+                    <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
+                    <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
+                  </div>
+                  
+                  <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
+                    {enemy.passives && enemy.passives.map((p, pIdx) => (
+                      <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
+                        <Zap className="w-3 h-3 text-amber-400" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-32 md:w-48 p-2 bg-slate-900 border-2 border-amber-500/50 rounded-xl shadow-2xl z-[1000] pointer-events-none text-left">
+                          <div className="text-amber-400 font-bold text-[10px] md:text-xs mb-1 border-b border-slate-700 pb-1">{p.name}</div>
+                          <div className="text-[9px] md:text-[10px] text-slate-300 whitespace-normal leading-relaxed">{p.desc}</div>
                         </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                    <StatusIcon type="strength" value={enemy.buffs?.strength} isEnemy={true} />
+                    <StatusIcon type="dexterity" value={enemy.buffs?.dexterity} isEnemy={true} />
+                    <StatusIcon type="thorns" value={enemy.buffs?.thorns} isEnemy={true} />
+                    <StatusIcon type="intangible" value={enemy.buffs?.intangible} isEnemy={true} />
+                    <StatusIcon type="regen" value={enemy.buffs?.regen} isEnemy={true} />
+                    <StatusIcon type="rage" value={enemy.buffs?.rage} isEnemy={true} />
+                    <StatusIcon type="insight" value={enemy.buffs?.insight} isEnemy={true} />
+                    <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
+                    <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
+                    <StatusIcon type="vulnerable" value={enemy.debuffs?.vulnerable} isEnemy={true} />
+                    <StatusIcon type="mark" value={enemy.debuffs?.mark} isEnemy={true} />
+                    <StatusIcon type="frail" value={enemy.debuffs?.frail} isEnemy={true} />
+                    <StatusIcon type="silence" value={enemy.debuffs?.silence} isEnemy={true} />
+                    <StatusIcon type="bind" value={enemy.debuffs?.bind} isEnemy={true} />
+                  </div>
                 </div>
-
-                <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
-                  <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
-                  
-                  {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
-                  {isTarget && playEffect && playEffect.name !== 'mana_potion' && playEffect.name !== 'purify_effect' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
-                </div>
-
-                <h3 className={`text-[10px] md:text-base font-black mb-1 ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>{enemy.name}</h3>
-                <div className="w-full max-w-[80px] md:max-w-[140px] bg-slate-950 h-3 md:h-4 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
-                  <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
-                  <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
-                </div>
-                
-                <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
-                  {enemy.passives && enemy.passives.map((p, pIdx) => (
-                    <div key={`passive-${pIdx}`} className="relative group w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-900/80 border border-amber-500 flex justify-center items-center cursor-help">
-                      <Zap className="w-3 h-3 text-amber-400" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-32 md:w-48 p-2 bg-slate-900 border-2 border-amber-500/50 rounded-xl shadow-2xl z-[1000] pointer-events-none text-left">
-                        <div className="text-amber-400 font-bold text-[10px] md:text-xs mb-1 border-b border-slate-700 pb-1">{p.name}</div>
-                        <div className="text-[9px] md:text-[10px] text-slate-300 whitespace-normal leading-relaxed">{p.desc}</div>
-                      </div>
-                    </div>
-                  ))}
-                  <StatusIcon type="strength" value={enemy.buffs?.strength} isEnemy={true} />
-                  <StatusIcon type="dexterity" value={enemy.buffs?.dexterity} isEnemy={true} />
-                  <StatusIcon type="thorns" value={enemy.buffs?.thorns} isEnemy={true} />
-                  <StatusIcon type="intangible" value={enemy.buffs?.intangible} isEnemy={true} />
-                  <StatusIcon type="regen" value={enemy.buffs?.regen} isEnemy={true} />
-                  <StatusIcon type="rage" value={enemy.buffs?.rage} isEnemy={true} />
-                  <StatusIcon type="insight" value={enemy.buffs?.insight} isEnemy={true} />
-                  <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
-                  <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
-                  <StatusIcon type="vulnerable" value={enemy.debuffs?.vulnerable} isEnemy={true} />
-                  <StatusIcon type="mark" value={enemy.debuffs?.mark} isEnemy={true} />
-                  <StatusIcon type="frail" value={enemy.debuffs?.frail} isEnemy={true} />
-                  <StatusIcon type="silence" value={enemy.debuffs?.silence} isEnemy={true} />
-                  <StatusIcon type="bind" value={enemy.debuffs?.bind} isEnemy={true} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4">
+      {/* --- 하단 플레이어 덱 및 UI 영역 (shrink-0, z-30 적용) --- */}
+      <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4 bg-slate-900 border-t border-slate-800/50 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
         
-        <div className="absolute bottom-[200px] md:bottom-[240px] right-4 md:right-8 text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest z-[1000] bg-slate-900/90 px-4 py-2 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md">
+        <div className="absolute top-0 right-4 md:right-8 -translate-y-1/2 text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest z-[1000] bg-slate-900/90 px-4 py-2 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md">
           손패 : <span className="text-indigo-400">{hand.length}</span> / {MAX_HAND_SIZE}장
         </div>
         
