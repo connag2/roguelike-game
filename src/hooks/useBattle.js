@@ -149,7 +149,7 @@ export function useBattle({
   }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setToastMsg]);
 
   // ✨ 플레이어 카드 사용 로직 안정화 (버그 방지)
-  const playCard = useCallback(async (cardIndex) => {
+  const playCard = useCallback(async (cardIndex, targetIndex = 0) => {
     if (!combatState || combatState.turn !== 'PLAYER') return;
     
     // 카드가 존재하는지 안전 검사
@@ -250,11 +250,16 @@ export function useBattle({
       if (newEnemies.length > 0) {
         let currentDamage = Number(card.damage) || 0;
         const hits = (card.damage && isWin) ? (card.multiHit || 1) : 1;
+        
+        // ✨ 추가: 현재 타겟 인덱스 저장
+        let currentTargetIdx = targetIndex;
 
         for (let i = 0; i < hits; i++) {
           if (newEnemies.length === 0) break;
           
-          let target = newEnemies[0];
+          // ✨ 변경: 지정한 타겟이 죽었거나 범위를 벗어나면 0번 몬스터로 타겟 초기화
+          if (currentTargetIdx >= newEnemies.length) currentTargetIdx = 0;
+          let target = newEnemies[currentTargetIdx];
 
           if (isWin) {
             // 첫 번째 타격에만 들어가는 특수 대미지/디버프

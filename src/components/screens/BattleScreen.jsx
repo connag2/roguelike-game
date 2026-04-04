@@ -26,6 +26,15 @@ export default function BattleScreen({
   
   const [discardingHand, setDiscardingHand] = useState(false);
 
+  const [targetIndex, setTargetIndex] = useState(0);
+
+  // ✨ 추가: 적이 죽어서 몬스터 배열 길이가 타겟 인덱스보다 작아질 경우 방지
+  useEffect(() => {
+    if (combatState?.enemies && targetIndex >= combatState.enemies.length) {
+      setTargetIndex(Math.max(0, combatState.enemies.length - 1));
+    }
+  }, [combatState?.enemies?.length, targetIndex]);
+
   useEffect(() => {
     if (combatState?.turn) {
       setTurnBanner(combatState.turn === 'PLAYER' ? 'YOUR TURN' : 'ENEMY TURN');
@@ -74,7 +83,7 @@ export default function BattleScreen({
     setAnimatingCardIndex(idx);
     await new Promise(r => setTimeout(r, 20)); 
     
-    playCard(idx);
+    playCard(idx, targetIndex);
     setAnimatingCardIndex(null);
 
     if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
@@ -338,9 +347,9 @@ export default function BattleScreen({
               const intents = enemy.intentCards || []; 
 
               return (
-                <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => { setViewingEnemy(enemy); setShowEnemyDeck(true); }}>
-                  {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
-                  
+                <div key={enemy.uid} className={`flex flex-col items-center cursor-pointer transition-all duration-500 origin-bottom ${isEnemyTurn ? 'scale-110 z-40 animate-pulse-enemy' : isTarget ? 'scale-100 opacity-90 hover:scale-105' : 'scale-90 opacity-40 hover:scale-95'}`} onClick={() => setTargetIndex(idx)}>
+                {isTarget && <div className="text-red-500 font-black text-[10px] md:text-sm animate-pulse mb-1 tracking-tighter">TARGET ▼</div>}
+
                   <div className={`mb-4 relative z-10 flex gap-2 transition-all duration-500 ${isEnemyTurn ? 'scale-125 -translate-y-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]' : ''}`}>
                     {intents.map((eCard, cardIdx) => {
                       let finalDmg = eCard.value ? eCard.value + (enemy.buffs?.strength || 0) : 0;
@@ -400,11 +409,24 @@ export default function BattleScreen({
                     {isTarget && playEffect && playEffect.name !== 'mana_potion' && playEffect.name !== 'purify_effect' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}
                   </div>
 
-                  <h3 className={`text-[10px] md:text-base font-black mb-1 ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>{enemy.name}</h3>
-                  <div className="w-full max-w-[80px] md:max-w-[140px] bg-slate-950 h-3 md:h-4 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
-                    <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
-                    <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
-                  </div>
+                {/* ✨ 변경: 적 이름과 정보 보기(덱 확인) 버튼을 나란히 배치 */}
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  <h3 className={`text-[10px] md:text-base font-black ${enemy.isBoss ? 'text-red-500' : 'text-slate-300'} uppercase tracking-tighter`}>
+                    {enemy.name}
+                  </h3>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); setViewingEnemy(enemy); setShowEnemyDeck(true); }} 
+                    className="p-0.5 rounded-full hover:bg-slate-700 hover:text-indigo-300 transition-colors text-slate-500"
+                    title="적 정보 보기"
+                  >
+                    <HelpCircle className="w-3 h-3 md:w-4 md:h-4" />
+                  </button>
+                </div>
+
+                <div className="w-full max-w-[80px] md:max-w-[140px] bg-slate-950 h-3 md:h-4 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
+                  <div className={`${enemy.isBoss ? 'bg-gradient-to-r from-red-800 to-red-600' : 'bg-red-700'} h-full transition-all duration-300`} style={{ width: `${(enemy.hp / enemy.maxHp) * 100}%` }}/>
+                  <span className="absolute inset-0 flex justify-center items-center text-[8px] md:text-[10px] font-black drop-shadow-md tracking-widest">{enemy.hp}</span>
+                </div>
                   
                   <div className="flex gap-1 mt-2 flex-wrap justify-center w-full min-h-[18px] scale-90">
                     {enemy.passives && enemy.passives.map((p, pIdx) => (
