@@ -30,7 +30,7 @@ export default function StatusIcon({ type, value, isEnemy = false }) {
   if (!config) return null;
 
   // 몬스터 아이콘은 살짝 더 작게 처리
-  const sizeClasses = isEnemy ? "text-[8px] px-1" : "text-[10px] px-2 py-0.5";
+  const sizeClasses = isEnemy ? "text-[10px] px-1.5 py-0.5 font-bold" : "text-xs px-2.5 py-1 font-bold";
 
   return (
     <div className={`relative group cursor-help ${config.color} ${sizeClasses} rounded-full border shadow-md ${config.pulse ? 'animate-pulse' : ''}`}>

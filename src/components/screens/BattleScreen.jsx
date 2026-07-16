@@ -518,7 +518,7 @@ export default function BattleScreen({
                   
                   <div className="animate-draw-card w-full h-full" 
                        style={{ 
-                         animationDelay: `${0.3 + (idx * 0.08)}s`, 
+                         animationDelay: `${idx * 0.03}s`, 
                          animationFillMode: 'backwards' 
                        }}>
                     <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400' : 'cursor-not-allowed brightness-75'}`}>

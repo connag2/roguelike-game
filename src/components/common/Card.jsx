@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Sword, Shield, Lock, Star, Sparkles } from 'lucide-react';
 import Tooltip from './Tooltip';
 
-export default function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
+const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
   if (!card) return null;
   
   const isAttack = card.type === 'attack';
@@ -24,32 +24,32 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
   if (rarity === 'uncommon') { 
     rarityShadow = 'shadow-[0_0_12px_rgba(34,211,238,0.4)]'; 
     nameColor = 'text-cyan-300';
-    tagUi = <span className="text-[9px] md:text-[10px] text-cyan-400 font-bold bg-slate-800/80 px-1 rounded border border-cyan-800">희귀</span>;
+    tagUi = <span className="text-[10px] md:text-xs text-cyan-400 font-bold bg-slate-800/80 px-1 rounded border border-cyan-800">희귀</span>;
   } else if (rarity === 'rare') {
     rarityShadow = 'shadow-[0_0_20px_rgba(250,204,21,0.6)]'; 
     nameColor = 'text-yellow-300 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]';
-    tagUi = <span className="text-[9px] md:text-[10px] text-yellow-400 font-bold bg-slate-800/80 px-1 rounded border border-yellow-700">전설</span>;
+    tagUi = <span className="text-[10px] md:text-xs text-yellow-400 font-bold bg-slate-800/80 px-1 rounded border border-yellow-700">전설</span>;
     bgStyle = 'legendary-bg'; 
   } else if (rarity === 'mythic') { 
     rarityShadow = 'shadow-[0_0_30px_rgba(239,68,68,0.9)]'; 
     nameColor = 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.8)]';
-    tagUi = <span className="text-[9px] md:text-[10px] text-red-500 font-black bg-black/90 px-1.5 rounded border border-red-700">신화</span>;
+    tagUi = <span className="text-[10px] md:text-xs text-red-500 font-black bg-black/90 px-1.5 rounded border border-red-700">신화</span>;
     bgStyle = 'bg-gradient-to-br from-red-950 to-black'; 
   } else if (rarity === 'special') {
     rarityShadow = 'shadow-[0_0_25px_rgba(217,70,239,0.7)]'; 
     nameColor = 'text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)]';
-    tagUi = <span className="text-[9px] md:text-[10px] text-fuchsia-400 font-bold bg-slate-800/80 px-1 rounded border border-fuchsia-800"><Star className="w-2 h-2 inline mb-0.5"/>특수</span>;
+    tagUi = <span className="text-[10px] md:text-xs text-fuchsia-400 font-bold bg-slate-800/80 px-1 rounded border border-fuchsia-800"><Star className="w-2 h-2 inline mb-0.5"/>특수</span>;
     bgStyle = 'special-bg'; 
   } else if (rarity === 'loot') {
     rarityShadow = 'shadow-[0_0_20px_rgba(16,185,129,0.5)]'; 
     nameColor = 'text-emerald-400 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]';
-    tagUi = <span className="text-[9px] md:text-[10px] text-emerald-300 font-bold bg-slate-800/80 px-1 rounded border border-emerald-700">전리품</span>;
+    tagUi = <span className="text-[10px] md:text-xs text-emerald-300 font-bold bg-slate-800/80 px-1 rounded border border-emerald-700">전리품</span>;
     bgStyle = 'bg-gradient-to-br from-slate-900 to-emerald-950/40';
     upBadgeBg = 'bg-emerald-500'; upBadgeText = 'text-emerald-950'; upBadgeShadow = 'shadow-[0_0_10px_rgba(16,185,129,0.8)]';
     upIconColor = 'text-emerald-300 drop-shadow-[0_0_5px_rgba(16,185,129,0.8)]';
     borderStyle = isAttack ? 'border-red-500/80 ring-2 ring-emerald-500/40' : 'border-blue-500/80 ring-2 ring-emerald-500/40';
   } else {
-    tagUi = <span className="text-[9px] md:text-[10px] text-slate-400 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
+    tagUi = <span className="text-[10px] md:text-xs text-slate-300 font-bold bg-slate-800/80 px-1 rounded border border-slate-600">일반</span>;
   }
 
   // 강화 카드 시각 효과 처리
@@ -102,25 +102,25 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
       {isLocked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
-          <span className="text-yellow-500 font-black text-[10px] md:text-xs bg-slate-900/90 px-2 py-1 rounded border border-slate-700 shadow-xl">미해금</span>
+          <span className="text-yellow-500 font-black text-xs bg-slate-900/90 px-2 py-1 rounded border border-slate-700 shadow-xl">미해금</span>
         </div>
       )}
       
       <div className="z-10 relative flex justify-between items-start shrink-0">
-        <span className="font-bold text-[9px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
+        <span className="font-bold text-[10px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
         <div className="flex flex-col items-end gap-1">
           {tagUi}
           {/* ✨ 수정: 위에서 지정된 변수가 강화 수치와 아이콘 색상에 정상 적용되도록 변경 */}
-          {card.isUpgraded && <span className={`text-[9px] md:text-[10px] ${upBadgeText} font-black ${upBadgeBg} px-1 rounded ${upBadgeShadow} flex items-center gap-0.5`}><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
+          {card.isUpgraded && <span className={`text-[10px] md:text-xs ${upBadgeText} font-black ${upBadgeBg} px-1 rounded ${upBadgeShadow} flex items-center gap-0.5`}><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
           {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? upIconColor : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? upIconColor : 'text-blue-400'}`}/>}
         </div>
       </div>
       
       <div className="text-center z-10 shrink-0 mt-1 mb-1">
-        <h4 className={`font-black text-[11px] sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
+        <h4 className={`font-black text-xs sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
       </div>
       
-      <div className="text-[9px] md:text-[11px] text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
+      <div className="text-[11px] md:text-xs text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
         <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
           <span className="text-center leading-normal">{card.desc}</span>
           <Tooltip desc={card.desc} />
@@ -136,4 +136,6 @@ export default function Card({ card, count = null, isLocked = false, onAdd, onRe
       )}
     </div>
   );
-}
+});
+
+export default Card;

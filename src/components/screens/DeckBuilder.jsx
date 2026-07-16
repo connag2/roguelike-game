@@ -29,12 +29,14 @@ export default function DeckBuilder({
   handleAddCard,
   handleRemoveCard,
   setTutorialModalOpen,
-  normalCleared, unlockedRelics, startingRelic, setStartingRelic
+  normalCleared, unlockedRelics, startingRelic, setStartingRelic,
+  allUnlockedCards = []
 }) {
   const currentCardCount = getTotalCards(tempDeckCounts);
   const isDeckFull = currentCardCount === 20;
 
   const [isRelicModalOpen, setIsRelicModalOpen] = useState(false);
+  const [showAutoFillMenu, setShowAutoFillMenu] = useState(false);
 
   const deckCardsList = useMemo(() => {
     return Object.entries(tempDeckCounts)
@@ -52,47 +54,51 @@ export default function DeckBuilder({
       });
   }, [tempDeckCounts, getCardDef, shopUpgrades]);
 
-  const handleAutoBuild = () => {
-    const scoredCards = filteredCards.map(baseCard => {
+  const handleAutoBuild = (theme = 'random') => {
+    // 기존에 담은 카드는 유지하고 빈자리만 채우기
+    const currentCount = getTotalCards(tempDeckCounts);
+    let remaining = 20 - currentCount;
+    if (remaining <= 0) return;
+
+    // 전체 보유 카드 대상(UI 필터 무시)
+    const availableCards = allUnlockedCards.length > 0 ? allUnlockedCards : filteredCards;
+
+    const scoredCards = availableCards.map(baseCard => {
       const cardDef = getCardDef(baseCard.id, shopUpgrades);
       if (!cardDef) return null;
-      let score = 0;
-      if (cardDef.isUpgraded) score += 100 * cardDef.upgradeLevel;
-      const rarityScores = { mythic: 50, special: 40, rare: 30, uncommon: 20, common: 10 };
+      let score = Math.random() * 20; // 기본 랜덤 점수 부여
+      
+      // 테마별 가중치
+      if (theme === 'poison' && cardDef.enemyPoison) score += 150;
+      if (theme === 'bleed' && cardDef.enemyBleed) score += 150;
+      if (theme === 'block' && (cardDef.block || cardDef.selfThorns || cardDef.selfRegen)) score += 150;
+
+      // 등급 및 강화 보너스
+      if (cardDef.isUpgraded) score += 30;
+      const rarityScores = { mythic: 60, special: 40, rare: 30, uncommon: 15, common: 5 };
       score += rarityScores[cardDef.rarity] || 0;
-      if (cardDef.manaGain) score += 15;
-      if (cardDef.draw) score += 15;
+
+      // 테마 상관없이 드로우/마나 카드는 약간 보너스
+      if (cardDef.draw) score += 20;
+      if (cardDef.manaGain) score += 20;
+
       return { id: baseCard.id, cardDef, score };
     }).filter(Boolean).sort((a, b) => b.score - a.score);
 
-    const attacks = scoredCards.filter(c => c.cardDef.type === 'attack');
-    const skills = scoredCards.filter(c => c.cardDef.type === 'skill');
+    const newCounts = { ...tempDeckCounts };
 
-    const newCounts = {};
-    let totalAdded = 0;
-
-    let attackAdded = 0;
-    for (let i = 0; i < attacks.length && attackAdded < 10; i++) {
-        const copies = Math.min(3, 10 - attackAdded);
-        newCounts[attacks[i].id] = copies;
-        attackAdded += copies;
-        totalAdded += copies;
-    }
-
-    let skillAdded = 0;
-    for (let i = 0; i < skills.length && skillAdded < 10; i++) {
-        const copies = Math.min(3, 10 - skillAdded);
-        newCounts[skills[i].id] = copies;
-        skillAdded += copies;
-        totalAdded += copies;
-    }
-
-    for (let i = 0; i < scoredCards.length && totalAdded < 20; i++) {
-        if (!newCounts[scoredCards[i].id]) newCounts[scoredCards[i].id] = 0;
-        while (newCounts[scoredCards[i].id] < 5 && totalAdded < 20) {
-            newCounts[scoredCards[i].id]++;
-            totalAdded++;
-        }
+    // 점수가 높은 순으로 덱 채우기
+    for (const sc of scoredCards) {
+      if (remaining <= 0) break;
+      const currentCardCount = newCounts[sc.id] || 0;
+      // 신화는 1장, 그 외에는 최대 3장까지만 넣어서 다양성 확보
+      const maxCopies = sc.cardDef.rarity === 'mythic' ? 1 : 3;
+      const canAdd = maxCopies - currentCardCount;
+      if (canAdd > 0) {
+        const toAdd = Math.min(canAdd, remaining);
+        newCounts[sc.id] = currentCardCount + toAdd;
+        remaining -= toAdd;
+      }
     }
 
     setTempDeckCounts(newCounts);
@@ -121,9 +127,19 @@ export default function DeckBuilder({
             <HelpCircle className="w-5 h-5 text-indigo-400" />
           </button>
 
-          <button onClick={handleAutoBuild} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-fuchsia-900/80 hover:bg-fuchsia-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-fuchsia-700 text-fuchsia-100 shadow-[0_0_10px_rgba(217,70,239,0.3)] backdrop-blur-sm">
-            <Sparkles className="w-4 h-4"/> 자동 편성
-          </button>
+          <div className="relative z-50">
+            <button onClick={() => setShowAutoFillMenu(!showAutoFillMenu)} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-fuchsia-900/80 hover:bg-fuchsia-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-fuchsia-700 text-fuchsia-100 shadow-[0_0_10px_rgba(217,70,239,0.3)] backdrop-blur-sm">
+              <Sparkles className="w-4 h-4"/> 덱 자동 편성 <ChevronDown className="w-4 h-4" />
+            </button>
+            {showAutoFillMenu && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl z-[999] overflow-hidden">
+                <button onClick={() => { handleAutoBuild('random'); setShowAutoFillMenu(false); }} className="w-full text-left px-4 py-3 text-sm text-slate-200 font-bold hover:bg-indigo-900/50 hover:text-white border-b border-slate-700">무작위 채우기</button>
+                <button onClick={() => { handleAutoBuild('poison'); setShowAutoFillMenu(false); }} className="w-full text-left px-4 py-3 text-sm text-green-400 font-bold hover:bg-green-900/40 hover:text-green-300 border-b border-slate-700">추천: 맹독 덱</button>
+                <button onClick={() => { handleAutoBuild('bleed'); setShowAutoFillMenu(false); }} className="w-full text-left px-4 py-3 text-sm text-red-400 font-bold hover:bg-red-900/40 hover:text-red-300 border-b border-slate-700">추천: 출혈 덱</button>
+                <button onClick={() => { handleAutoBuild('block'); setShowAutoFillMenu(false); }} className="w-full text-left px-4 py-3 text-sm text-blue-400 font-bold hover:bg-blue-900/40 hover:text-blue-300">추천: 철벽 덱</button>
+              </div>
+            )}
+          </div>
 
           <button onClick={handleClearDeck} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-red-900/80 hover:bg-red-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-red-700 text-red-100 shadow-[0_0_10px_rgba(220,38,38,0.2)] backdrop-blur-sm">
             <Eraser className="w-4 h-4"/> 비우기
