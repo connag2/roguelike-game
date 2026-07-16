@@ -909,5 +909,70 @@ export const RELIC_LIBRARY = [
       "type": "START_TURN",
       "draw": 1
     }
+  },
+  {
+    "id": "berserker_gloves",
+    "name": "광전사의 장갑",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "공격 카드를 사용할 때마다 20% 확률로 근력을 1 얻습니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "cardType": "attack",
+      "chance": 0.2,
+      "strength": 1
+    }
+  },
+  {
+    "id": "wizard_staff",
+    "name": "마법사의 지팡이",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "스킬 카드를 사용할 때마다 20% 확률로 통찰을 1 얻습니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "cardType": "skill",
+      "chance": 0.2,
+      "insight": 1
+    }
+  },
+  {
+    "id": "vampiric_ring",
+    "name": "흡혈의 반지",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "공격 카드를 사용할 때마다 10% 확률로 체력을 1 회복합니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "cardType": "attack",
+      "chance": 0.1,
+      "heal": 1
+    }
+  },
+  {
+    "id": "god_of_war_token",
+    "name": "투신의 증표",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "공격 카드를 사용할 때마다 방어도를 2 얻습니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "cardType": "attack",
+      "chance": 1,
+      "block": 2
+    }
+  },
+  {
+    "id": "mana_prism",
+    "name": "마나 프리즘",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "스킬 카드를 사용할 때마다 10% 확률로 마나를 1 얻습니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "cardType": "skill",
+      "chance": 0.1,
+      "mana": 1
+    }
   }
 ];

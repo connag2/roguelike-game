@@ -531,20 +531,22 @@ export default function BattleScreen({
             })}
           </div>
 
-          <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
-            <div className="text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest bg-slate-900/90 px-4 py-1.5 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md whitespace-nowrap">
+          <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-end gap-3 z-20">
+            <div className="text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest bg-slate-900/90 px-4 py-2 rounded-xl border border-slate-600 shadow-xl backdrop-blur-md">
               손패 : <span className="text-indigo-400">{hand.length}</span> / {MAX_HAND_SIZE}장
             </div>
-            <button 
-              onClick={handleTurnEndClick} 
-              disabled={!isPlayerTurn || discardingHand} 
-              className={`py-3 px-5 md:py-4 md:px-8 rounded-2xl font-black text-xs md:text-lg flex items-center gap-2 transition-all border-b-[6px] active:border-b-0 active:translate-y-1 ${isPlayerTurn && !discardingHand ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800 shadow-[0_10px_20px_rgba(245,158,11,0.3)]' : 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed'}`}
-            >
-              {isPlayerTurn && !discardingHand ? 'TURN END' : 'WAITING...'} <ArrowRightCircle className="w-4 h-4 md:w-6 md:h-6"/>
-            </button>
-            <div className="flex flex-col items-center cursor-pointer group" onClick={() => setViewingPile('discardPile')}>
-              <div className="w-12 h-16 md:w-16 md:h-24 bg-slate-950 border-2 border-slate-800 rounded-xl flex items-center justify-center font-black text-xl md:text-3xl shadow-lg group-hover:-translate-y-2 group-hover:border-red-600 transition-all duration-300 text-slate-500">{discardPile.length}</div>
-              <span className="text-slate-600 font-bold mt-1 text-[9px] md:text-xs tracking-tighter group-hover:text-red-500 transition-colors uppercase">Discard</span>
+            <div className="flex gap-4 items-end">
+              <div className="flex flex-col items-center cursor-pointer group" onClick={() => setViewingPile('discardPile')}>
+                <div className="w-12 h-16 md:w-16 md:h-20 bg-slate-950 border-2 border-slate-800 rounded-xl flex items-center justify-center font-black text-xl md:text-3xl shadow-lg group-hover:-translate-y-2 group-hover:border-red-600 transition-all duration-300 text-slate-500">{discardPile.length}</div>
+                <span className="text-slate-600 font-bold mt-1 text-[9px] md:text-xs tracking-tighter group-hover:text-red-500 transition-colors uppercase">Discard</span>
+              </div>
+              <button 
+                onClick={handleTurnEndClick} 
+                disabled={!isPlayerTurn || discardingHand} 
+                className={`py-3 px-5 md:py-4 md:px-8 h-16 md:h-20 rounded-2xl font-black text-xs md:text-lg flex items-center justify-center gap-2 transition-all border-b-[6px] active:border-b-0 active:translate-y-1 ${isPlayerTurn && !discardingHand ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800 shadow-[0_10px_20px_rgba(245,158,11,0.3)]' : 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed'}`}
+              >
+                {isPlayerTurn && !discardingHand ? 'TURN END' : 'WAIT...'} <ArrowRightCircle className="w-4 h-4 md:w-6 md:h-6"/>
+              </button>
             </div>
           </div>
         </div>

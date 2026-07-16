@@ -284,6 +284,24 @@ export function useBattle({
         newExhaust.push(playedCard);
       }
 
+      // 🌟 [추가 로직] 카드 사용 시 발동하는 유물 효과
+      if (playerRelics && playerRelics.length > 0) {
+        playerRelics.forEach(relic => {
+          if (relic.effect?.type === 'PLAY_CARD') {
+             if (!relic.effect.cardType || relic.effect.cardType === card.type) {
+                const chance = relic.effect.chance || 1.0;
+                if (Math.random() <= chance) {
+                   if (relic.effect.strength) p.buffs.strength = clampStack((p.buffs.strength || 0) + relic.effect.strength);
+                   if (relic.effect.insight) p.buffs.insight = clampStack((p.buffs.insight || 0) + relic.effect.insight);
+                   if (relic.effect.heal) p.hp = Math.min(p.maxHp, p.hp + relic.effect.heal);
+                   if (relic.effect.mana) p.mana = clampStack(p.mana + relic.effect.mana, p.maxMana + 99);
+                   if (relic.effect.block) p.block += relic.effect.block;
+                }
+             }
+          }
+        });
+      }
+
       // 2. 도박 (Gamble) 확률 계산
       const isWin = !card.gamble || Math.random() < card.gambleWinChance;
       
