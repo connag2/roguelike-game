@@ -97,7 +97,7 @@ export function useBattle({
               multiHit: nerfedMulti,
               block: nerfedBlock,
               heal: nerfedHeal,
-            };c
+            };
 
             if (enemyCardDef.debuff) {
               const turns = Math.min(3, enemyCardDef.turns || 1); 

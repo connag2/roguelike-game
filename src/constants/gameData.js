@@ -193,7 +193,7 @@ export const CARD_LIBRARY = [
   { id: 'spider_queen_poison', name: '거미 여왕의 맹독', type: 'attack', cost: 2, rarity: 'special', damage: 20, enemyWeak: 3, enemyVuln: 3, desc: '신경을 마비시키는 보라색 맹독을 뿜어 20의 피해를 주고 약화 3, 취약 3을 부여합니다.' },
   { id: 'twerking', name: '트월킹', type: 'attack', cost: 2, rarity: 'special', damage: 50, enemyVuln: 3, desc: '숨막히도록 유연하고 격렬한 엉덩이 춤을 춰 충격파로 50의 피해를 줍니다. 혼을 쏙 빼놓아 취약 3을 부여합니다.' },
   { id: 'power_of_asura', name: '수라의 힘', type: 'skill', cost: 3, rarity: 'special', selfStrength: 8, block: 30, desc: '붉은 투기가 솟구쳐 오르며 근력을 8 얻고 30의 방어도를 얻습니다.' },
-  { id: 'slime_snot', name: '슬라임의 콧물', type: 'skill', cost: 0, rarity: 'special', heal: 50, block: 50, draw: 3, manaGain: 3, desc: '매우 끈적하고 역겹지만 기적의 효능을 가진 콧물을 뒤집어씁니다! 체력과 방어도를 50 얻고 카드 3장과 마나 3을 얻습니다.' },
+  { id: 'slime_snot', name: '슬라임의 콧물', type: 'skill', cost: 0, rarity: 'special', heal: 20, block: 20, draw: 2, manaGain: 2, desc: '매우 끈적하고 역겹지만 기적의 효능을 가진 콧물을 뒤집어씁니다! 체력과 방어도를 20 얻고 카드 2장과 마나 2를 얻습니다.' },
   
   // 신화 (Mythic)
   { id: 'omniscience', name: '전지전능', type: 'skill', cost: 3, rarity: 'mythic', draw: 5, manaGain: 5, selfInsight: 5, enemyWeak: 5, enemyVuln: 5, desc: '우주의 모든 이치를 꿰뚫어 보는 제3의 눈을 뜹니다. 카드를 5장 뽑고 마나 5, 통찰 5를 얻습니다. 적에게 약화 5, 취약 5를 부여합니다.' },

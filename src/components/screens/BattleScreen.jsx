@@ -445,9 +445,7 @@ export default function BattleScreen({
 
       <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4">
         
-        <div className="absolute bottom-[200px] md:bottom-[240px] right-4 md:right-8 text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest z-[1000] bg-slate-900/90 px-4 py-2 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md">
-          손패 : <span className="text-indigo-400">{hand.length}</span> / {MAX_HAND_SIZE}장
-        </div>
+
         
         <div className="flex w-full px-4 relative justify-center items-end h-full">
           <div className="absolute left-2 md:left-8 bottom-6 flex flex-col items-center gap-4 z-20">
@@ -516,6 +514,9 @@ export default function BattleScreen({
           </div>
 
           <div className="absolute right-2 md:right-8 bottom-6 flex flex-col items-center gap-4 z-20">
+            <div className="text-center font-bold text-slate-100 text-[10px] md:text-sm tracking-widest bg-slate-900/90 px-4 py-1.5 rounded-xl border-2 border-slate-600 shadow-2xl backdrop-blur-md whitespace-nowrap">
+              손패 : <span className="text-indigo-400">{hand.length}</span> / {MAX_HAND_SIZE}장
+            </div>
             <button 
               onClick={handleTurnEndClick} 
               disabled={!isPlayerTurn || discardingHand} 
