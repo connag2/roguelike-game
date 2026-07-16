@@ -404,6 +404,12 @@ export default function App() {
               if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
 
               if (canAct) {
+                if ((e.debuffs?.bleed || 0) > 0) {
+                  e.hp -= e.debuffs.bleed;
+                  checkRevive(e, null);
+                }
+                if (e.hp <= 0) break;
+                
                 if (intent.type.includes('attack')) {
                   let dmg = intent.value + (e.buffs.strength || 0);
                   if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
@@ -421,7 +427,7 @@ export default function App() {
                 if (e.hp <= 0) break; 
                 
                 if (intent.type.includes('debuff')) {
-                  ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark'].forEach(dbf => {
+                  ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark', 'burn', 'bleed', 'frost'].forEach(dbf => {
                     if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
                   });
                 }

@@ -21,7 +21,12 @@ const statusConfig = {
   mark: { name: '표식', color: 'bg-fuchsia-900 border-fuchsia-500 text-fuchsia-100', desc: '타격 당할 때마다 추가 고정 피해를 받습니다.', pulse: true },
   frail: { name: '허약', color: 'bg-yellow-900 border-yellow-600 text-yellow-100', desc: '방어도 획득량이 25% 감소합니다.', pulse: true },
   silence: { name: '침묵', color: 'bg-gray-800 border-gray-500 text-white', desc: '스킬 카드를 사용할 수 없습니다.', pulse: true },
-  bind: { name: '속박', color: 'bg-zinc-800 border-zinc-500 text-white', desc: '공격 카드를 사용할 수 없습니다.', pulse: true }
+  bind: { name: '속박', color: 'bg-zinc-800 border-zinc-500 text-white', desc: '공격 카드를 사용할 수 없습니다.', pulse: true },
+  
+  // 🔥 화상, 출혈, 동상
+  burn: { name: '화상', color: 'bg-red-950 border-red-600 text-red-300', desc: '턴 시작 시 수치만큼 체력이 감소하고 절반으로 줄어듭니다.', pulse: true },
+  bleed: { name: '출혈', color: 'bg-rose-950 border-rose-700 text-rose-300', desc: '행동 시 수치만큼 체력이 감소하고 매 턴 1 줄어듭니다.', pulse: true },
+  frost: { name: '동상', color: 'bg-sky-900 border-sky-400 text-sky-100', desc: '턴 시작 시 수치만큼 카드를 적게 뽑고 매 턴 1 줄어듭니다.', pulse: true }
 };
 
 export default function StatusIcon({ type, value, isEnemy = false }) {
