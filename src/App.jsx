@@ -854,7 +854,7 @@ export default function App() {
         
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={toggleFullScreen} setGameState={setGameState} />}
         
-        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD'].includes(gameState)) && (
+        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD', 'BOSS_RELIC_CHOICE'].includes(gameState)) && (
           <Rewards 
             gameState={gameState} 
             rewardCards={rewardCards} 
