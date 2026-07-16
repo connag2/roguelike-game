@@ -193,8 +193,31 @@ export default function App() {
     return FULL_CARD_LIBRARY.filter(c => {
       if (r !== 'all' && c.rarity !== r) return false;
       if (t !== 'all' && c.type !== t) return false;
-      if (e === 'debuff' && !(c.enemyWeak || c.enemyVuln || c.enemyPoison)) return false;
-      if (e === 'buff' && !(c.selfStrength || c.selfDex || c.selfThorns)) return false;
+      if (e.startsWith('debuff')) {
+         if (e === 'debuff') {
+             if (!(c.enemyWeak || c.enemyVuln || c.enemyPoison || c.enemyBurn || c.enemyBleed || c.enemyFrost || c.enemySilence || c.enemyBind)) return false;
+         } else {
+             if (e === 'debuff_poison' && !c.enemyPoison) return false;
+             if (e === 'debuff_burn' && !c.enemyBurn) return false;
+             if (e === 'debuff_bleed' && !c.enemyBleed) return false;
+             if (e === 'debuff_frost' && !c.enemyFrost) return false;
+             if (e === 'debuff_weak' && !c.enemyWeak) return false;
+             if (e === 'debuff_vuln' && !c.enemyVuln) return false;
+             if (e === 'debuff_silence' && !c.enemySilence) return false;
+             if (e === 'debuff_bind' && !c.enemyBind) return false;
+         }
+      }
+      if (e.startsWith('buff')) {
+         if (e === 'buff') {
+             if (!(c.selfStrength || c.selfDex || c.selfThorns || c.selfRegen || c.selfInsight)) return false;
+         } else {
+             if (e === 'buff_str' && !c.selfStrength) return false;
+             if (e === 'buff_dex' && !c.selfDex) return false;
+             if (e === 'buff_thorns' && !c.selfThorns) return false;
+             if (e === 'buff_regen' && !c.selfRegen) return false;
+             if (e === 'buff_insight' && !c.selfInsight) return false;
+         }
+      }
       if (o === 'owned' && !unlockedCards.includes(c.id)) return false;
       if (o === 'unowned' && unlockedCards.includes(c.id)) return false;
       if (q) { 
