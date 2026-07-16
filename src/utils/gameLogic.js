@@ -17,10 +17,18 @@ export const clampStack = (val, max = 999, isHardCC = false) => {
 };
 
 // ✨ 디버프/버프 감소 로직
-export const decayStack = (val, isHardCC = false) => {
+export const decayStack = (val, isHardCC = false, type = 'normal') => {
   if (!val || val <= 0) return 0;
   if (isHardCC) return 0; 
   
+  if (type === 'burn') {
+    // 화상은 매턴 절반으로 감소 (올림)
+    return Math.ceil(val / 2);
+  } else if (type === 'bleed' || type === 'frost') {
+    // 출혈, 빙결은 1씩 감소
+    return Math.max(0, val - 1);
+  }
+
   let drop = 1;
   if (val >= 10) drop = Math.floor(val / 3);
   else if (val >= 5) drop = 2;
@@ -82,6 +90,9 @@ export const getCardDef = (id, shopUpgrades) => {
     upgraded.enemyWeak = flat(base.enemyWeak, 4);
     upgraded.enemyVuln = flat(base.enemyVuln, 4);
     upgraded.enemyPoison = flat(base.enemyPoison, 4); 
+    upgraded.enemyBurn = flat(base.enemyBurn, 4);
+    upgraded.enemyBleed = flat(base.enemyBleed, 4);
+    upgraded.enemyFrost = flat(base.enemyFrost, 4);
     upgraded.selfStrength = flat(base.selfStrength, 4);
     upgraded.selfDex = flat(base.selfDex, 4);
     upgraded.manaGain = flat(base.manaGain, 5);

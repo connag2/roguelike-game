@@ -331,7 +331,13 @@ export default function App() {
       setCombatState(prev => {
         try {
           let p = { ...prev.player, buffs: { ...prev.player.buffs }, debuffs: { ...prev.player.debuffs } };
-          ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
+          // 🔥 화상 피해 먼저 적용
+          if ((p.debuffs?.burn || 0) > 0) { 
+             p.hp -= p.debuffs.burn; 
+             if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
+          }
+          
+          ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
           ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => { p.buffs[k] = decayStack(p.buffs[k] || 0, false); });
 
           if ((p.debuffs?.poison || 0) > 0) { p.hp -= p.debuffs.poison; p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); }
@@ -340,6 +346,7 @@ export default function App() {
           
           newEnemies.forEach(e => {
             if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
+            if (e.debuffs?.burn > 0) { e.hp -= e.debuffs.burn; checkRevive(e, null); } // 🔥 화상 틱 데미지
             if (e.hp <= 0) return;
             if ((e.buffs?.regen || 0) > 0) { e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen); }
 
@@ -393,7 +400,7 @@ export default function App() {
               }
             } // intent 반복문 종료
 
-            ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k)); });
+            ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
             ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
 
             // ✨ 다음 턴의 카드 드로우 (enemy 객체 자체를 넘깁니다)
@@ -423,7 +430,7 @@ export default function App() {
           turnDraw += (p.buffs?.insight || 0);
 
           let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
-          let drawAmount = 5 + turnDraw;
+          let drawAmount = Math.max(0, 5 + turnDraw - (p.debuffs?.frost || 0));
           for (let i = 0; i < drawAmount; i++) {
             if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
             if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
@@ -447,14 +454,15 @@ export default function App() {
   const openShop = () => { setGameState('SHOP'); };
   const getTotalCards = (counts = deckCounts) => Object.values(counts || {}).reduce((a, b) => a + b, 0);
 
-  const handleGacha = () => {
-    if (credits < 50) return;
+  const handleGacha = (times = 1) => {
+    const cost = 50 * times;
+    if (credits < cost) return;
     const result = [];
     const pool = CARD_LIBRARY.filter(c => ['common', 'uncommon', 'rare'].includes(c.rarity));
     let duplicateRefund = 0;
     let currentUnlocked = [...unlockedCards]; 
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 3 * times; i++) {
       const roll = Math.random();
       let r = 'common';
       if (roll < 0.05) r = 'rare'; 
@@ -470,7 +478,7 @@ export default function App() {
         currentUnlocked.push(card.id); 
       }
     }
-    const newCredits = credits - 50 + duplicateRefund;
+    const newCredits = credits - cost + duplicateRefund;
     setCredits(newCredits);
     setUnlockedCards(currentUnlocked); 
     if (duplicateRefund > 0) setToastMsg(`${duplicateRefund} 크레딧 환급됨!`);
@@ -763,7 +771,7 @@ export default function App() {
         
         {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} handleExitGame={handleExitGame} />}
         
-        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={toggleFullScreen} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setFilterEffect={setFilterEffect} filterRarity={filterRarity} setFilterRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery)} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
+        {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={toggleFullScreen} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} setTempDeckCounts={setTempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery)} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
         
         {gameState === 'SHOP' && <ShopScreen credits={credits} setCredits={setCredits} shopUpgrades={shopUpgrades} setShopUpgrades={setShopUpgrades} unlockedCards={unlockedCards} setUnlockedCards={setUnlockedCards} saveGame={saveGame} setGameState={setGameState} getCardDef={enhancedGetCardDef} handleGacha={handleGacha} handlePremiumGacha={handlePremiumGacha} gachaResult={gachaResult} setGachaResult={setGachaResult} premiumGachaResult={premiumGachaResult} setPremiumGachaResult={setPremiumGachaResult} setToastMsg={setToastMsg} />}
         

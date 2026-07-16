@@ -244,14 +244,23 @@ export function useBattle({
       let newHand = [...prev.hand];
       let newDiscard = [...prev.discardPile];
       let newDraw = [...prev.drawPile];
+      let newExhaust = prev.exhaustPile ? [...prev.exhaustPile] : [];
       let newEnemies = prev.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs } }));
 
+      // 0. 출혈(Bleed) 처리: 카드 사용 시 출혈 수치만큼 체력 감소
+      if ((p.debuffs.bleed || 0) > 0) {
+        p.hp -= p.debuffs.bleed;
+        setToastMsg(`출혈! 체력이 ${p.debuffs.bleed} 감소했습니다.`);
+      }
+      
       // 1. 마나 소모 및 카드 덱 이동
       p.mana -= card.cost;
       const playedCard = newHand.splice(cardIndex, 1)[0];
       
       if (!card.exhaust) {
         newDiscard.push(playedCard);
+      } else {
+        newExhaust.push(playedCard);
       }
 
       // 2. 도박 (Gamble) 확률 계산
@@ -273,7 +282,7 @@ export function useBattle({
         if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
         
         if (card.cleanse) {
-            p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 };
+            p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, burn: 0, bleed: 0, frost: 0 };
             setToastMsg("모든 상태 이상이 해제되었습니다!");
         }
         
@@ -340,6 +349,14 @@ export function useBattle({
                   applySpecialDamage((Number(card.damage) || 0) + Math.floor(prev.player.mana * (card.manaMultiplier || 0))); 
                   p.mana = 0; 
               }
+              // 🔥 소멸 스택 비례 대미지 
+              if (card.exhaustStackDamage) {
+                applySpecialDamage((Number(card.damage) || 0) + Math.floor(newExhaust.length * card.exhaustStackDamage));
+              }
+              // 🔥 취약 시 2배 대미지
+              if (card.doubleDamageIfVuln && target.debuffs?.vulnerable > 0) {
+                currentDamage *= 2;
+              }
 
               if (card.enemyWeak) target.debuffs.weak = clampStack((target.debuffs.weak || 0) + card.enemyWeak);
               if (card.enemyVuln) target.debuffs.vulnerable = clampStack((target.debuffs.vulnerable || 0) + card.enemyVuln);
@@ -347,12 +364,16 @@ export function useBattle({
               if (card.enemyMark) target.debuffs.mark = clampStack((target.debuffs.mark || 0) + card.enemyMark);
               if (card.enemyFrail) target.debuffs.frail = clampStack((target.debuffs.frail || 0) + card.enemyFrail);
               
+              if (card.enemyBurn) target.debuffs.burn = clampStack((target.debuffs.burn || 0) + card.enemyBurn);
+              if (card.enemyBleed) target.debuffs.bleed = clampStack((target.debuffs.bleed || 0) + card.enemyBleed);
+              if (card.enemyFrost) target.debuffs.frost = clampStack((target.debuffs.frost || 0) + card.enemyFrost);
+
               if (card.enemySilence) target.debuffs.silence = clampStack((target.debuffs.silence || 0) + card.enemySilence, 999, true);
               if (card.enemyBind) target.debuffs.bind = clampStack((target.debuffs.bind || 0) + card.enemyBind, 999, true);
             }
 
             // 기본 타격 로직 (다단 히트 반복)
-            if (card.damage && !card.missingHpDamage && !card.consumeAllMana) { 
+            if (card.damage && !card.missingHpDamage && !card.consumeAllMana && !card.exhaustStackDamage) { 
               let dmg = calculateDamage(currentDamage, p.buffs?.strength || 0, p.debuffs?.weak || 0, target.debuffs?.vulnerable || 0, target.debuffs?.mark || 0, target.buffs?.intangible || 0);
               if (target.block >= dmg) target.block -= dmg; 
               else { target.hp = Math.max(0, target.hp - (dmg - target.block)); target.block = 0; }
@@ -378,7 +399,7 @@ export function useBattle({
         setGameState('GAME_OVER');
       }
 
-      return { ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw, enemies: newEnemies };
+      return { ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw, exhaustPile: newExhaust, enemies: newEnemies };
     });
 
   }, [combatState, checkRevive, setToastMsg, GAME_RULES, handleVictory, setGameState]);

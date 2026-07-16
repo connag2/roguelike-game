@@ -1,6 +1,6 @@
 // src/components/screens/DeckBuilder.jsx
 import React, { useMemo, useState } from 'react';
-import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, ChevronDown } from 'lucide-react';
+import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, ChevronDown, Sparkles } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { RELIC_LIBRARY } from '../../constants/relicData';
@@ -12,6 +12,7 @@ export default function DeckBuilder({
   toggleFullScreen,
   getTotalCards,
   tempDeckCounts,
+  setTempDeckCounts,
   handleClearDeck,
   handleDeckExport,
   setDeckImportModalOpen,
@@ -45,11 +46,57 @@ export default function DeckBuilder({
       }))
       .filter(item => item.cardDef)
       .sort((a, b) => {
-        if (a.cardDef.cost !== b.cardDef.cost) return a.cardDef.cost - b.cardDef.cost;
         if (a.cardDef.type !== b.cardDef.type) return a.cardDef.type.localeCompare(b.cardDef.type);
+        if (a.cardDef.cost !== b.cardDef.cost) return a.cardDef.cost - b.cardDef.cost;
         return a.cardDef.name.localeCompare(b.cardDef.name);
       });
   }, [tempDeckCounts, getCardDef, shopUpgrades]);
+
+  const handleAutoBuild = () => {
+    const scoredCards = filteredCards.map(baseCard => {
+      const cardDef = getCardDef(baseCard.id, shopUpgrades);
+      if (!cardDef) return null;
+      let score = 0;
+      if (cardDef.isUpgraded) score += 100 * cardDef.upgradeLevel;
+      const rarityScores = { mythic: 50, special: 40, rare: 30, uncommon: 20, common: 10 };
+      score += rarityScores[cardDef.rarity] || 0;
+      if (cardDef.manaGain) score += 15;
+      if (cardDef.draw) score += 15;
+      return { id: baseCard.id, cardDef, score };
+    }).filter(Boolean).sort((a, b) => b.score - a.score);
+
+    const attacks = scoredCards.filter(c => c.cardDef.type === 'attack');
+    const skills = scoredCards.filter(c => c.cardDef.type === 'skill');
+
+    const newCounts = {};
+    let totalAdded = 0;
+
+    let attackAdded = 0;
+    for (let i = 0; i < attacks.length && attackAdded < 10; i++) {
+        const copies = Math.min(3, 10 - attackAdded);
+        newCounts[attacks[i].id] = copies;
+        attackAdded += copies;
+        totalAdded += copies;
+    }
+
+    let skillAdded = 0;
+    for (let i = 0; i < skills.length && skillAdded < 10; i++) {
+        const copies = Math.min(3, 10 - skillAdded);
+        newCounts[skills[i].id] = copies;
+        skillAdded += copies;
+        totalAdded += copies;
+    }
+
+    for (let i = 0; i < scoredCards.length && totalAdded < 20; i++) {
+        if (!newCounts[scoredCards[i].id]) newCounts[scoredCards[i].id] = 0;
+        while (newCounts[scoredCards[i].id] < 5 && totalAdded < 20) {
+            newCounts[scoredCards[i].id]++;
+            totalAdded++;
+        }
+    }
+
+    setTempDeckCounts(newCounts);
+  };
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white pt-16 md:pt-4 p-4 md:p-6 lg:p-8 relative overflow-hidden">
@@ -72,6 +119,10 @@ export default function DeckBuilder({
           
           <button onClick={() => setTutorialModalOpen(true)} className="p-2 md:p-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors backdrop-blur-sm shadow-sm">
             <HelpCircle className="w-5 h-5 text-indigo-400" />
+          </button>
+
+          <button onClick={handleAutoBuild} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-fuchsia-900/80 hover:bg-fuchsia-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-fuchsia-700 text-fuchsia-100 shadow-[0_0_10px_rgba(217,70,239,0.3)] backdrop-blur-sm">
+            <Sparkles className="w-4 h-4"/> 자동 편성
           </button>
 
           <button onClick={handleClearDeck} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-red-900/80 hover:bg-red-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-red-700 text-red-100 shadow-[0_0_10px_rgba(220,38,38,0.2)] backdrop-blur-sm">

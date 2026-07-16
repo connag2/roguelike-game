@@ -291,7 +291,10 @@ export default function ShopScreen({
           <img src={scrollImg} alt="Gacha" className="w-16 h-16 mb-4 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)] hover:scale-110 transition-transform" />
           <h3 className="text-2xl font-bold mb-2">일반 뽑기</h3>
           <p className="text-slate-400 mb-6 text-sm md:text-base">랜덤 카드 3장 획득<br/>(중복 시 10원 환급)</p>
-          <button onClick={handleGacha} disabled={credits < 50} className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full transition-all ${credits >= 50 ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(147,51,234,0.3)]' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>50 크레딧</button>
+          <div className="mt-auto flex gap-2 w-full">
+            <button onClick={() => handleGacha(1)} disabled={credits < 50} className={`flex-1 py-3 px-2 rounded-lg font-bold text-sm md:text-base transition-all ${credits >= 50 ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(147,51,234,0.3)]' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>1회 (50)</button>
+            <button onClick={() => handleGacha(10)} disabled={credits < 500} className={`flex-1 py-3 px-2 rounded-lg font-bold text-sm md:text-base transition-all ${credits >= 500 ? 'bg-fuchsia-600 hover:bg-fuchsia-500 shadow-[0_0_15px_rgba(192,38,211,0.3)]' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>10회 (500)</button>
+          </div>
         </div>
 
         {/* 프리미엄 뽑기 (천장 게이지 추가) */}
