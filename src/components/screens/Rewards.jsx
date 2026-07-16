@@ -287,7 +287,7 @@ export default function Rewards({
         <h2 className="text-4xl md:text-5xl font-black mb-4 text-fuchsia-400 tracking-wider text-center drop-shadow-lg animate-bounce">특수 보스 처치 보상!</h2>
         <p className="text-lg md:text-xl mb-10 text-slate-300 text-center">압도적인 적을 물리친 증표로<br/>새로운 특수 카드를 획득했습니다.</p>
         <div className="relative group mb-10 animate-draw flex justify-center items-center">
-          <div className="relative scale-125 md:scale-150 origin-center transition-transform hover:scale-150">
+          <div className="relative w-40 sm:w-48 md:w-56 scale-110 md:scale-125 origin-center transition-transform hover:scale-125 md:hover:scale-150">
             <Card card={specialBossRewardCard} />
             <div className="absolute inset-0 border-[3px] border-fuchsia-500/50 rounded-xl animate-pulse pointer-events-none" />
           </div>
