@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Maximize } from 'lucide-react';
-import { CARD_LIBRARY } from '../../constants/gameData';
+import { Maximize2 } from 'lucide-react';
+import { CARD_LIBRARY, BOSS_LOOT_CARDS } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 
 export default function Encyclopedia({
   unlockedCards = [], 
-  customCards = [], // ✨ 추가: 몬스터 전리품으로 얻은 카드들을 받습니다!
+  customCards = [],
   getCardDef, 
   shopUpgrades, 
   getFilteredCards, 
@@ -21,17 +21,21 @@ export default function Encyclopedia({
   const [filterEffect, setFilterEffect] = useState('all');
   const [filterRarity, setFilterRarity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
   const [filterUnlock, setFilterUnlock] = useState('all');
 
-  // ✨ 도감의 기준이 되는 "전체 카드 목록"을 기본 카드 + 획득한 전리품 카드로 확장합니다!
-  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards];
+  // ✨ BOSS_LOOT_CARDS만 도감에 추가
+  const LOOT_CARDS = BOSS_LOOT_CARDS.filter(card => card.rarity === 'loot');
 
-  // ✨ 확장된 FULL_CARD_LIBRARY를 기준으로 내가 보유한 카드를 필터링합니다. (175/174 버그 방지 및 전리품 누락 방지)
+  // ✨ 도감의 기준이 되는 "전체 카드 목록" (기본 + 커스텀 + 전리품)
+  const FULL_CARD_LIBRARY = [...CARD_LIBRARY, ...customCards, ...LOOT_CARDS];
+
   const validUnlockedCards = [...new Set(unlockedCards)].filter(id => FULL_CARD_LIBRARY.some(c => c.id === id));
   const validUnlockedRelics = [...new Set(unlockedRelics)].filter(id => RELIC_LIBRARY.some(r => r.id === id));
 
+  // 1. 기존 플레이어 카드 필터링
   let filteredCards = getFilteredCards(filterType, filterEffect, filterRarity, 'all', searchQuery);
+
+  // 2. 보유/미보유 필터 적용
   if (filterUnlock === 'unlocked') {
     filteredCards = filteredCards.filter(c => validUnlockedCards.includes(c.id));
   } else if (filterUnlock === 'locked') {
@@ -70,20 +74,19 @@ export default function Encyclopedia({
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-900 text-white pt-16 md:pt-4 p-4 md:p-10 relative">
       <button onClick={toggleFullScreen} className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-slate-800 px-3 py-2 rounded text-sm font-bold border border-slate-600">
-        <Maximize className="w-4 h-4"/> <span className="hidden md:inline">전체화면</span>
+        <Maximize2 className="w-4 h-4"/> <span className="hidden md:inline">전체화면</span>
       </button>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pl-0 md:pl-32 gap-4">
         <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-3 shrink-0">
           종합 도감 
           <span className="text-sm md:text-lg text-indigo-400 ml-2">
-            {/* ✨ 분모를 FULL_CARD_LIBRARY의 길이로 변경하여 전리품을 얻을수록 카운트가 늘어나게 했습니다! */}
             {tab === 'cards' ? `카드 (${validUnlockedCards.length}/${FULL_CARD_LIBRARY.length})` : `유물 (${validUnlockedRelics.length}/${RELIC_LIBRARY.length})`}
           </span>
         </h2>
         <div className="flex gap-2">
-          <button onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>카드 도감</button>
-          <button onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 shadow-lg' : 'bg-slate-700 hover:bg-slate-600'}`}>유물 도감</button>
+          <button onClick={() => { setTab('cards'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'cards' ? 'bg-indigo-600 text-white' : 'bg-slate-800 hover:bg-slate-700 border border-slate-600'}`}>카드</button>
+          <button onClick={() => { setTab('relics'); setFilterRarity('all'); setSearchQuery(''); setFilterUnlock('all'); }} className={`py-2 px-4 rounded-xl font-bold transition-colors ${tab === 'relics' ? 'bg-amber-600 text-white' : 'bg-slate-800 hover:bg-slate-700 border border-slate-600'}`}>유물</button>
           <button onClick={() => setGameState('MENU')} className="py-2 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl font-bold shadow-md ml-2">메인으로</button>
         </div>
       </div>
@@ -129,9 +132,18 @@ export default function Encyclopedia({
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-10 w-full max-w-6xl mx-auto px-2 md:px-4 mt-4">
         {tab === 'cards' ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-            {filteredCards.map(baseCard => (
-              <Card key={baseCard.id} card={getCardDef(baseCard.id, shopUpgrades)} isLocked={!validUnlockedCards.includes(baseCard.id)} />
-            ))}
+            {filteredCards.map(baseCard => {
+              const cardData = getCardDef(baseCard.id, shopUpgrades);
+              const isLocked = !validUnlockedCards.includes(baseCard.id);
+              
+              return cardData ? (
+                <Card 
+                  key={baseCard.id} 
+                  card={cardData} 
+                  isLocked={isLocked} 
+                />
+              ) : null;
+            })}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">

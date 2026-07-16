@@ -1,101 +1,80 @@
 import React, { useState } from 'react';
-import { HelpCircle, Sword, Shield, Zap, Skull, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function GameGuide({ isOpen, onClose }) {
-  const [expandedSection, setExpandedSection] = useState('rules');
+  const [activeTab, setActiveTab] = useState(null);
 
   if (!isOpen) return null;
 
-  const sections = [
-    {
-      id: 'rules',
-      title: '⚔️ 기본 전투 규칙',
-      icon: <Sword className="w-5 h-5 text-indigo-400" />,
-      content: (
-        <ul className="list-disc list-inside space-y-2 text-slate-300 text-sm md:text-base">
-          <li>매 턴 카드를 <span className="text-white font-bold">5장</span>씩 뽑으며 마나는 3으로 충전됩니다.</li>
-          <li><span className="text-blue-400 font-bold">방어도:</span> 적의 공격을 막아주지만, 내 턴 시작 시 0으로 초기화됩니다.</li>
-          <li><span className="text-red-400 font-bold">몬스터:</span> 5층마다 보스, 25/50/75/100층에는 강력한 전설 보스가 등장합니다.</li>
-        </ul>
-      )
-    },
-    {
-      id: 'debuffs',
-      title: '🧪 상태 효과 (디버프)',
-      icon: <Skull className="w-5 h-5 text-red-400" />,
-      content: (
-        <div className="space-y-3 text-sm md:text-base">
-          <p><span className="text-orange-400 font-bold">약화:</span> 가하는 피해량이 <span className="text-white font-bold">3%</span> 감소합니다. (중첩 가능)</p>
-          <p><span className="text-purple-400 font-bold">취약:</span> 받는 피해량이 <span className="text-white font-bold">30%</span> 증가합니다.</p>
-          <p><span className="text-green-400 font-bold">중독:</span> 턴 시작 시 수치만큼 피해를 입고 수치가 1 감소합니다.</p>
-          <p><span className="text-pink-400 font-bold">표식:</span> 타격받을 때마다 수치만큼 추가 고정 피해를 입습니다.</p>
-          <p><span className="text-yellow-600 font-bold">허약:</span> 방어도 획득량이 <span className="text-white font-bold">25%</span> 감소합니다.</p>
-          <p><span className="text-slate-400 font-bold">침묵:</span> 1턴 동안 스킬 카드를 사용할 수 없습니다.</p>
-          <p><span className="text-stone-400 font-bold">속박:</span> 1턴 동안 공격 카드를 사용할 수 없습니다.</p>
-        </div>
-      )
-    },
-    {
-      id: 'buffs',
-      title: '✨ 상태 효과 (버프)',
-      icon: <Zap className="w-5 h-5 text-yellow-400" />,
-      content: (
-        <div className="space-y-3 text-sm md:text-base">
-          <p><span className="text-red-400 font-bold">근력:</span> 공격 시 대미지가 수치만큼 영구적으로 증가합니다.</p>
-          <p><span className="text-blue-400 font-bold">민첩:</span> 방어 시 방어도가 수치만큼 영구적으로 증가합니다.</p>
-          <p><span className="text-emerald-400 font-bold">가시:</span> 적에게 공격받을 때 수치만큼 대미지를 반사합니다.</p>
-          <p><span className="text-cyan-400 font-bold">재생:</span> 턴 종료 시 수치만큼 체력을 회복하고 수치가 1 감소합니다.</p>
-          <p><span className="text-orange-500 font-bold">격노:</span> 공격 카드를 사용할 때마다 수치만큼 방어도를 획득합니다.</p>
-          <p><span className="text-indigo-300 font-bold">통찰:</span> 다음 턴 시작 시 수치만큼 카드를 추가로 뽑습니다.</p>
-          <p><span className="text-gray-300 font-bold">무형:</span> 받는 모든 타격 피해가 1로 고정됩니다. (1턴 후 해제)</p>
-        </div>
-      )
-    }
-  ];
+  const toggleTab = (tab) => {
+    setActiveTab(activeTab === tab ? null : tab);
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-[10000] flex items-center justify-center p-4 backdrop-blur-md" onClick={onClose}>
-      <div className="bg-slate-800 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-3xl border-2 border-indigo-500 shadow-2xl animate-draw p-6 md:p-8" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-          <h2 className="text-2xl md:text-3xl font-black text-indigo-400 flex items-center gap-2">
-            <HelpCircle className="w-8 h-8" /> 게임 가이드
-          </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white text-3xl font-bold transition-colors">×</button>
+    <div className="fixed inset-0 bg-black/90 z-[99999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border-2 border-indigo-500 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-[0_0_30px_rgba(99,102,241,0.3)] overflow-hidden" onClick={e => e.stopPropagation()}>
+        
+        <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-800">
+          <h2 className="text-2xl font-black text-indigo-400">게임 가이드</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full transition-colors text-slate-300">
+            <X size={24} />
+          </button>
         </div>
 
-        <div className="space-y-4">
-          {sections.map((section) => {
-            const isExpanded = expandedSection === section.id;
-            return (
-              <div key={section.id} className={`rounded-xl border transition-all ${isExpanded ? 'bg-slate-900/50 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:border-slate-500'}`}>
-                <button 
-                  onClick={() => setExpandedSection(isExpanded ? '' : section.id)}
-                  className="w-full p-4 flex items-center justify-between font-bold text-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    {section.icon}
-                    <span>{section.title}</span>
-                  </div>
-                  {isExpanded ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {isExpanded && (
-                  <div className="p-4 pt-0 border-t border-slate-700/50 animate-in fade-in slide-in-from-top-1">
-                    {section.content}
-                  </div>
-                )}
+        <div className="flex-1 overflow-y-auto p-4 custom-scroll text-slate-200">
+          
+          {/* 섹션 1: 기본 룰 */}
+          <div className="mb-4 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <button onClick={() => toggleTab('basics')} className="w-full p-4 flex justify-between items-center font-bold text-lg hover:bg-slate-700 transition-colors">
+              <span>📖 기본 게임플레이</span>
+              {activeTab === 'basics' ? <ChevronUp /> : <ChevronDown />}
+            </button>
+            {activeTab === 'basics' && (
+              <div className="p-4 bg-slate-900 text-sm leading-relaxed border-t border-slate-700">
+                - 플레이어는 매 턴 <strong>정해진 마나</strong>를 소모하여 카드를 사용합니다.<br/>
+                - 내 턴이 끝나면 적들의 <strong>행동(의도)</strong>이 실행됩니다.<br/>
+                - 덱을 20장 꽉 채워야 전투에 진입할 수 있습니다.<br/>
+                - 체력이 0이 되면 게임 오버이며, 클리어 시 스테이지에 따라 보상을 받습니다.
               </div>
-            );
-          })}
-        </div>
+            )}
+          </div>
 
-        <div className="mt-8 p-4 bg-indigo-900/20 rounded-xl border border-indigo-500/30 flex gap-3">
-          <Info className="w-5 h-5 text-indigo-400 shrink-0" />
-          <p className="text-xs text-indigo-200 leading-relaxed">
-            카드 도감이나 전투 중 카드 위의 <span className="text-indigo-400 font-bold">?</span> 아이콘에 마우스를 올리면 각 효과의 상세 규칙을 언제든 확인할 수 있습니다.
-          </p>
-        </div>
+          {/* 섹션 2: 버프 (Buffs) */}
+          <div className="mb-4 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <button onClick={() => toggleTab('buffs')} className="w-full p-4 flex justify-between items-center font-bold text-lg hover:bg-slate-700 transition-colors text-blue-400">
+              <span>🟢 버프 효과 (강화)</span>
+              {activeTab === 'buffs' ? <ChevronUp /> : <ChevronDown />}
+            </button>
+            {activeTab === 'buffs' && (
+              <div className="p-4 bg-slate-900 text-sm leading-relaxed border-t border-slate-700 space-y-2">
+                <div><span className="bg-red-900/50 text-red-400 px-2 py-1 rounded font-bold text-xs">근력 (Strength)</span> 공격 카드의 피해량이 증가합니다.</div>
+                <div><span className="bg-blue-900/50 text-blue-400 px-2 py-1 rounded font-bold text-xs">민첩 (Dexterity)</span> 방어 카드의 방어도 획득량이 증가합니다.</div>
+                <div><span className="bg-green-900/50 text-green-400 px-2 py-1 rounded font-bold text-xs">가시 (Thorns)</span> 피격 시 스택만큼 적에게 피해를 반사합니다.</div>
+                <div><span className="bg-pink-900/50 text-pink-400 px-2 py-1 rounded font-bold text-xs">재생 (Regen)</span> 턴 종료 시 스택만큼 체력을 회복합니다.</div>
+                <div><span className="bg-gray-700/50 text-white px-2 py-1 rounded font-bold text-xs">무형 (Intangible)</span> 받는 모든 피해가 1로 고정됩니다.</div>
+              </div>
+            )}
+          </div>
 
-        <button onClick={onClose} className="mt-8 w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-xl shadow-lg transition-all active:scale-95">확인</button>
+          {/* 섹션 3: 디버프 (Debuffs) */}
+          <div className="mb-4 bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <button onClick={() => toggleTab('debuffs')} className="w-full p-4 flex justify-between items-center font-bold text-lg hover:bg-slate-700 transition-colors text-red-400">
+              <span>🔴 디버프 효과 (약화)</span>
+              {activeTab === 'debuffs' ? <ChevronUp /> : <ChevronDown />}
+            </button>
+            {activeTab === 'debuffs' && (
+              <div className="p-4 bg-slate-900 text-sm leading-relaxed border-t border-slate-700 space-y-2">
+                <div><span className="bg-orange-900/50 text-orange-400 px-2 py-1 rounded font-bold text-xs">약화 (Weak)</span> 가하는 공격 피해량이 3% 감소합니다. (중첩당 시간 증가)</div>
+                <div><span className="bg-purple-900/50 text-purple-400 px-2 py-1 rounded font-bold text-xs">취약 (Vulnerable)</span> 받는 피해량이 30% 증가합니다.</div>
+                <div><span className="bg-emerald-900/50 text-emerald-400 px-2 py-1 rounded font-bold text-xs">독 (Poison)</span> 턴 시작 시 스택만큼 방어도를 무시하는 피해를 입습니다.</div>
+                <div><span className="bg-amber-900/50 text-amber-500 px-2 py-1 rounded font-bold text-xs">쇠약 (Frail)</span> 방어 카드 사용 시 획득하는 방어도가 25% 감소합니다.</div>
+                <div><span className="bg-slate-700 text-slate-300 px-2 py-1 rounded font-bold text-xs">침묵 (Silence)</span> 스킬/주문 카드를 사용할 수 없습니다.</div>
+                <div><span className="bg-red-950 text-red-500 px-2 py-1 rounded font-bold text-xs">속박 (Bind)</span> 공격 카드를 사용할 수 없습니다.</div>
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
     </div>
   );

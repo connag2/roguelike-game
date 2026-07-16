@@ -1,8 +1,9 @@
 // src/components/screens/Rewards.jsx
-import React from 'react';
-import { Trash2, AlertTriangle, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { Trash2, AlertTriangle, Star, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
-import { CARD_LIBRARY } from '../../constants/gameData';
+import { CARD_LIBRARY, BOSS_LOOT_CARDS } from '../../constants/gameData';
+import { RELIC_LIBRARY } from '../../constants/relicData';
 
 import scrollImg from '../../assets/images/items/scroll.svg';
 import potionImg from '../../assets/images/items/potion.svg';
@@ -26,11 +27,18 @@ export default function Rewards({
   handleSpecialBossRewardClaim,
   pendingRelicReward,         
   handleRelicRewardClaim,     
-  enemyDropCard,        // 🌟 [추가] 몬스터 드랍 카드 정보
-  setEnemyDropCard,     // 🌟 [추가] 몬스터 드랍 카드 초기화용
-  customCards,          // 🌟 [추가] 전리품 보관 풀
-  setCustomCards        // 🌟 [추가] 전리품 보관 함수
+  enemyDropCard,
+  setEnemyDropCard,
+  customCards,
+  setCustomCards,
+  playerRelics,           // ✨ 추가
+  unlockedRelics,         // ✨ 추가
+  handleEnemyDropClaim,   // ✨ 추가
+  handleSpecialBossRewardClaim: handleSpecialClaim // ✨ 수정
 }) {
+  const [expandedCards, setExpandedCards] = useState({});  // ✨ 추가: 카드 상세 정보 접기/펴기
+  const [selectedRelics, setSelectedRelics] = useState([]); // ✨ 추가: 유물 선택
+
   if (!combatState) return null;
 
   // 🌟 0. 유물 발견 보상 화면 (최우선 표시)
@@ -45,12 +53,12 @@ export default function Rewards({
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative overflow-hidden">
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-[100px] pointer-events-none animate-pulse`}></div>
-        <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-amber-500 mb-12 animate-[bounce_1s_ease-in-out_infinite] drop-shadow-[0_0_20px_rgba(251,191,36,0.8)]">
+        <h1 className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-amber-500 mb-12 animate-bounce drop-shadow-[0_0_20px_rgba(251,191,36,0.6)]">
           🌟 유물 발견! 🌟
         </h1>
         <div 
           onClick={handleRelicRewardClaim} 
-          className={`z-10 bg-slate-800/80 backdrop-blur-md p-8 md:p-10 rounded-3xl border-4 ${rBorder} shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-sm w-full text-center transform transition-all duration-300 hover:scale-110 cursor-pointer animate-[scale-in_0.5s_ease-out] flex flex-col items-center`}
+          className="z-10 bg-slate-800/80 backdrop-blur-md p-8 md:p-10 rounded-3xl border-4 border-amber-500 shadow-[0_0_50px_rgba(245,158,11,0.3)] max-w-sm w-full text-center transform transition-all hover:scale-105 cursor-pointer"
         >
           <img src={shieldImg} alt="Relic" className="w-20 h-20 mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.6)] animate-pulse" />
           <h2 className={`text-3xl md:text-4xl mb-6 ${rColor} drop-shadow-lg`}>{pendingRelicReward.name}</h2>
@@ -76,10 +84,10 @@ export default function Rewards({
           <button onClick={() => {
             const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
             const pool = CARD_LIBRARY.filter(c => {
-               const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
-               if (count >= 3) return false;
-               if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
-               return true;
+              const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
+              if (count >= 3) return false;
+              if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
+              return true;
             });
             const legendProb = Math.floor(combatState.stage / 10) * 0.01;
             let selected = [];
@@ -96,7 +104,7 @@ export default function Rewards({
             }
             setRewardCards(selected);
             setGameState('REWARD_CARD');
-          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group cursor-pointer">
             <img src={scrollImg} alt="Add Card" className="w-12 h-12 md:w-16 md:h-16 mb-4 drop-shadow-[0_0_10px_rgba(129,140,248,0.5)] group-hover:scale-110 transition-transform" />
             <span className="text-xl md:text-2xl font-bold">카드 추가</span>
           </button>
@@ -106,21 +114,18 @@ export default function Rewards({
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
             startNextStage(p, combatState.baseDeck);
-          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+          }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-green-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group cursor-pointer">
             <img src={potionImg} alt="Heal" className="w-12 h-12 md:w-16 md:h-16 mb-4 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] group-hover:scale-110 transition-transform" />
             <span className="text-xl md:text-2xl font-bold">회복 & 정화</span>
           </button>
 
-          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+          <button onClick={() => setGameState('REWARD_REMOVE')} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-red-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group cursor-pointer">
             <Trash2 className="w-12 h-12 md:w-16 md:h-16 mb-4 text-red-400 group-hover:scale-110 transition-transform"/>
             <span className="text-xl md:text-2xl font-bold">카드 삭제</span>
           </button>
 
-          {/* 🌟 [추가] 몬스터가 카드를 떨궜을 때만 나타나는 버튼 */}
           {enemyDropCard && (
-            <button onClick={() => {
-              setConfirmSelection({ action: 'add', card: enemyDropCard, isNew: !unlockedCards.includes(enemyDropCard.id) });
-            }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-emerald-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group">
+            <button onClick={handleEnemyDropClaim} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-emerald-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group cursor-pointer">
               <Star className="w-12 h-12 md:w-16 md:h-16 mb-4 text-emerald-400 group-hover:scale-110 transition-transform" />
               <span className="text-xl md:text-2xl font-bold text-emerald-400">전리품 획득</span>
               <span className="text-sm text-emerald-500 mt-2 font-bold truncate w-full px-2">{enemyDropCard.name}</span>
@@ -139,10 +144,32 @@ export default function Rewards({
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-wrap justify-center w-full max-w-4xl px-4">
           {rewardCards.map((card, idx) => {
             const isNew = !unlockedCards.includes(card.id);
+            const isExpanded = expandedCards[idx];
             return (
-              <div key={idx} className="relative group w-32 h-44 md:w-44 md:h-60">
-                <Card card={card} onClick={() => setConfirmSelection({ action: 'add', card, isNew })} />
-                {isNew && <span className="absolute -top-3 -right-3 bg-yellow-500 text-black px-2 py-1 rounded-full font-black text-[10px] md:text-xs animate-bounce z-30 shadow-lg">NEW!</span>}
+              <div key={idx} className="relative group">
+                <div className="w-32 h-44 md:w-44 md:h-60 relative">
+                  <Card card={card} onClick={() => setConfirmSelection({ action: 'add', card, isNew })} />
+                  {isNew && <span className="absolute -top-3 -right-3 bg-yellow-500 text-black px-2 py-1 rounded-full font-black text-[10px] md:text-xs animate-bounce z-30 shadow-lg">NEW!</span>}
+                  {/* ✨ 카드 상세 정보 토글 */}
+                  <button 
+                    onClick={() => setExpandedCards({...expandedCards, [idx]: !isExpanded})}
+                    className="absolute bottom-2 right-2 bg-slate-700 hover:bg-slate-600 p-1 rounded z-20"
+                  >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+                {/* ✨ 카드 상세 정보 (접기/펴기) */}
+                {isExpanded && (
+                  <div className="absolute top-full mt-2 bg-slate-800 border-2 border-indigo-500 p-3 rounded-lg w-64 z-50 shadow-xl">
+                    <p className="text-xs text-slate-300 break-keep mb-2">{card.desc}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {card.damage && <span className="text-red-400 text-xs bg-red-900/30 px-2 py-1 rounded">공격: {card.damage}</span>}
+                      {card.block && <span className="text-blue-400 text-xs bg-blue-900/30 px-2 py-1 rounded">방어: {card.block}</span>}
+                      {card.heal && <span className="text-green-400 text-xs bg-green-900/30 px-2 py-1 rounded">회복: {card.heal}</span>}
+                      {card.draw && <span className="text-purple-400 text-xs bg-purple-900/30 px-2 py-1 rounded">드로우: {card.draw}</span>}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -157,23 +184,21 @@ export default function Rewards({
                 <button onClick={() => {
                   const newDeck = [...combatState.baseDeck, { ...confirmSelection.card }];
                   let newUnlocked = unlockedCards;
-                  let newCustomCards = customCards; // 🌟 추가
+                  let newCustomCards = customCards;
 
-                  // 1. 도감 해금
                   if (confirmSelection.isNew || !unlockedCards.includes(confirmSelection.card.id)) {
                     newUnlocked = [...unlockedCards, confirmSelection.card.id];
                     setUnlockedCards(newUnlocked);
                   }
                   
-                  // 2. 전리품 카드일 경우 도감에 영구 저장 (중복 방지)
-                  if (confirmSelection.card.id.startsWith('drop_') && !customCards.some(c => c.id === confirmSelection.card.id)) {
+                  if ((confirmSelection.card.id.startsWith('loot_') || confirmSelection.card.rarity === 'loot') && !customCards.some(c => c.id === confirmSelection.card.id)) {
                     newCustomCards = [...customCards, confirmSelection.card];
                     setCustomCards(newCustomCards);
                   }
 
                   saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
                   setConfirmSelection(null);
-                  if (setEnemyDropCard) setEnemyDropCard(null); // 다음 스테이지를 위해 상태 초기화
+                  if (setEnemyDropCard) setEnemyDropCard(null);
                   startNextStage(combatState.player, newDeck);
                 }} className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-lg font-bold flex-1 shadow-lg shadow-indigo-500/30">추가</button>
               </div>
@@ -196,7 +221,7 @@ export default function Rewards({
           {combatState.baseDeck.map((card, idx) => (
             <div key={idx} className="relative group cursor-pointer w-28 h-40 md:w-36 md:h-48" onClick={() => setConfirmSelection({ action: 'remove', idx, card })}>
               <Card card={card} />
-              <div className="absolute inset-0 bg-red-900/0 group-hover:bg-red-900/70 rounded-xl transition-all flex items-center justify-center border-2 border-transparent group-hover:border-red-500 z-30">
+              <div className="absolute inset-0 bg-red-900/0 group-hover:bg-red-900/70 rounded-xl transition-all flex items-center justify-center border-2 border-transparent group-hover:border-red-500">
                  <Trash2 className="w-10 h-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
             </div>
@@ -237,7 +262,70 @@ export default function Rewards({
           </div>
           <div className="absolute inset-0 border-4 border-fuchsia-500/50 rounded-xl animate-pulse" />
         </div>
-        <button onClick={handleSpecialBossRewardClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-24 transition-transform hover:scale-105">수락하기</button>
+        <button onClick={handleSpecialClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-24 transition-all hover:scale-110">
+          획득하기
+        </button>
+      </div>
+    );
+  }
+
+  // ✨ [수정] 하드 300층 유물 3개 선택 (return을 if 블록 내에 이동)
+  if (gameState === 'HARD_CLEAR_RELIC_CHOICE') {
+    const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
+    
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 text-white p-4">
+        <div className="max-w-4xl w-full">
+          <h1 className="text-5xl font-black text-center mb-2 text-purple-300 drop-shadow-lg">🎉 하드 모드 완전 클리어!</h1>
+          <p className="text-center text-slate-300 mb-8">축하합니다! 유물 3개를 선택해서 획득하세요!</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {availableRelics.slice(0, 15).map((relic) => (
+              <div 
+                key={relic.id}
+                onClick={() => {
+                  if (!selectedRelics.includes(relic.id) && selectedRelics.length < 3) {
+                    setSelectedRelics([...selectedRelics, relic.id]);
+                  } else if (selectedRelics.includes(relic.id)) {
+                    setSelectedRelics(selectedRelics.filter(id => id !== relic.id));
+                  }
+                }}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  selectedRelics.includes(relic.id) 
+                    ? 'bg-purple-600/40 border-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.5)]' 
+                    : 'bg-slate-800 border-slate-600 hover:border-purple-400'
+                }`}
+              >
+                <div className="font-bold text-purple-300 text-lg">{relic.name}</div>
+                <div className="text-sm text-slate-300 mt-2">{relic.desc}</div>
+                {selectedRelics.includes(relic.id) && <div className="text-center text-purple-300 font-bold mt-2">✓ 선택됨</div>}
+              </div>
+            ))}
+          </div>
+          
+          <button
+            onClick={() => {
+              const selectedRelicObjects = RELIC_LIBRARY.filter(r => selectedRelics.includes(r.id));
+              const updatedRelics = [...(playerRelics || []), ...selectedRelicObjects];
+              let newUnlocked = [...(unlockedRelics || [])];
+              selectedRelicObjects.forEach(r => {
+                if (!newUnlocked.includes(r.id)) newUnlocked.push(r.id);
+              });
+              setUnlockedRelics(newUnlocked);
+              saveGame({ unlockedRelics: newUnlocked });
+              setSelectedRelics([]);
+              setGameState('GAME_CLEAR');
+            }}
+            disabled={selectedRelics.length !== 3}
+            className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+              selectedRelics.length === 3 
+                ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.5)]' 
+                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+            }`}
+          >
+            3개 선택 완료 ({selectedRelics.length}/3)
+          </button>
+        </div>
       </div>
     );
   }

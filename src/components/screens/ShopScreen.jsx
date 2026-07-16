@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Maximize, Zap, HelpCircle, CheckSquare } from 'lucide-react';
+import { Maximize, Zap, HelpCircle, CheckSquare, Star, CheckCircle, X } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { CARD_LIBRARY } from '../../constants/gameData';
@@ -21,10 +21,7 @@ export default function ShopScreen({
   setToastMsg,
   getCardDef,
   handleGacha,
-  handlePremiumGacha,
   gachaResult, setGachaResult,
-  premiumGachaResult, setPremiumGachaResult,
-  selectPremiumCard,
   setTutorialModalOpen
 }) {
   const [filterType, setFilterType] = useState('all');
@@ -34,8 +31,16 @@ export default function ShopScreen({
   const [hideMaxedUpgrades, setHideMaxedUpgrades] = useState(false);
   const [isUpgradesCollapsed, setIsUpgradesCollapsed] = useState(false);
   
-  // ✨ 일괄 강화를 위한 선택된 카드 상태 추가
+  // 일괄 강화를 위한 선택된 카드 상태
   const [selectedCards, setSelectedCards] = useState([]);
+
+  // ✨ 프리미엄 뽑기 관련 로컬 상태 (버그 방지 및 로직 독립)
+  const [localPremiumGachaResult, setLocalPremiumGachaResult] = useState(null);
+  const [showPityModal, setShowPityModal] = useState(false);
+  
+  // 천장 카운트 로드
+  const pityCount = shopUpgrades.pityCount || 0;
+  const PITY_TARGET = 30;
 
   const hpCost = 50 + (shopUpgrades.maxHp * 40);
 
@@ -52,13 +57,46 @@ export default function ShopScreen({
     return stats.base + (level * stats.inc);
   };
 
-  // ✨ 현재 레벨부터 5레벨(MAX)까지 필요한 총 비용 계산
+  // 현재 레벨부터 5레벨(MAX)까지 필요한 총 비용 계산
   const getMaxUpgradeCost = (rarity, currentLevel) => {
     let total = 0;
     for (let i = currentLevel; i < 5; i++) {
       total += getUpgradeCost(rarity, i);
     }
     return total;
+  };
+
+  // ✨ 카드 속성 판별 유틸리티 (버그 6)
+  const isManaDrawOnly = (c) => (c.manaGain || c.draw) && !c.damage && !c.block && !c.heal;
+  const isBuffDebuffOnly = (c) => (c.selfStrength || c.selfDex || c.enemyWeak || c.enemyVuln || c.enemyPoison) && !c.damage && !c.block && !c.heal && !c.manaGain && !c.draw;
+
+  // ✨ 특수 강화 도약 로직 계산 (버그 6)
+  const getNextLevelAndCost = (cardId, currentLevel) => {
+    const cardDef = CARD_LIBRARY.find(c => c.id === cardId);
+    if (!cardDef) return { nextLevel: currentLevel, cost: 0, isJump: false };
+
+    // 1. 마나/드로우 카드: 무조건 MAX(5)로 직행
+    if (isManaDrawOnly(cardDef)) {
+      let cost = 0;
+      for (let i = currentLevel; i < 5; i++) cost += getUpgradeCost(cardDef.rarity, i);
+      return { nextLevel: 5, cost, isJump: true, label: 'MAX 강화' };
+    } 
+    
+    // 2. 버프/디버프 카드: 0강일 땐 +4로 직행, 그 이후엔 MAX(5)
+    if (isBuffDebuffOnly(cardDef)) {
+      if (currentLevel === 0) {
+        let cost = 0;
+        for (let i = 0; i < 4; i++) cost += getUpgradeCost(cardDef.rarity, i);
+        return { nextLevel: 4, cost, isJump: true, label: '+4 강화' };
+      } else if (currentLevel < 5) {
+        let cost = 0;
+        for (let i = currentLevel; i < 5; i++) cost += getUpgradeCost(cardDef.rarity, i);
+        return { nextLevel: 5, cost, isJump: true, label: 'MAX 강화' };
+      }
+    }
+
+    // 기본: +1 레벨 상승
+    return { nextLevel: currentLevel + 1, cost: getUpgradeCost(cardDef.rarity, currentLevel), isJump: false, label: '1강화' };
   };
 
   const upgradableIds = unlockedCards.filter(id => {
@@ -81,64 +119,124 @@ export default function ShopScreen({
     return true;
   });
 
-  // ✨ 다중 선택 토글 로직
   const toggleSelectAll = () => {
-    if (selectedCards.length === upgradableIds.length) {
-      setSelectedCards([]); // 전체 해제
-    } else {
-      setSelectedCards(upgradableIds); // 전체 선택
-    }
+    if (selectedCards.length === upgradableIds.length) setSelectedCards([]); 
+    else setSelectedCards(upgradableIds); 
   };
 
   const toggleCardSelect = (id) => {
-    if (selectedCards.includes(id)) {
-      setSelectedCards(selectedCards.filter(cid => cid !== id));
-    } else {
-      setSelectedCards([...selectedCards, id]);
-    }
+    if (selectedCards.includes(id)) setSelectedCards(selectedCards.filter(cid => cid !== id));
+    else setSelectedCards([...selectedCards, id]);
   };
 
-  // ✨ 선택 일괄 강화 로직 (toMax 여부에 따라 1강 or 풀강)
+  // ✨ 선택 일괄 강화 로직 (비용 표시 및 알림창 추가)
   const handleBatchUpgrade = (toMax = false) => {
     if (selectedCards.length === 0) {
       setToastMsg('선택된 카드가 없습니다.');
       return;
     }
 
-    let currentCredits = credits;
+    let simulatedCredits = credits;
     let newUpgradedCards = [...shopUpgrades.upgradedCards];
     let totalSpent = 0;
-    let upgradeCount = 0;
+    let upgradeSteps = 0;
 
     selectedCards.forEach(id => {
       const cardDef = CARD_LIBRARY.find(c => c.id === id);
       let level = newUpgradedCards.filter(c => c === id).length;
-      const targetLevel = toMax ? 5 : Math.min(5, level + 1);
 
-      while (level < targetLevel) {
-        const cost = getUpgradeCost(cardDef.rarity, level);
-        if (currentCredits >= cost) {
-          currentCredits -= cost;
-          totalSpent += cost;
-          newUpgradedCards.push(id);
-          level++;
-          upgradeCount++;
+      while (level < 5) {
+        if (!toMax) {
+          // 선택 1단계 강화 (특수 도약 포함)
+          const { nextLevel, cost } = getNextLevelAndCost(id, level);
+          if (simulatedCredits >= cost) {
+            simulatedCredits -= cost;
+            totalSpent += cost;
+            for(let i=level; i<nextLevel; i++) newUpgradedCards.push(id);
+            upgradeSteps += (nextLevel - level);
+            level = nextLevel;
+          }
+          break; // toMax가 아니면 1번(혹은 1번의 도약)만 실행 후 중단
         } else {
-          break; // 돈이 모자라면 해당 카드의 강화를 멈춤
+          // 끝까지 (MAX) 일괄 강화
+          const cost = getUpgradeCost(cardDef.rarity, level);
+          if (simulatedCredits >= cost) {
+            simulatedCredits -= cost;
+            totalSpent += cost;
+            newUpgradedCards.push(id);
+            level++;
+            upgradeSteps++;
+          } else {
+            break; // 돈 부족 시 중단
+          }
         }
       }
     });
 
     if (totalSpent > 0) {
-      const nu = { ...shopUpgrades, upgradedCards: newUpgradedCards };
-      setCredits(currentCredits);
-      setShopUpgrades(nu);
-      saveGame({ credits: currentCredits, shopUpgrades: nu });
-      setToastMsg(`${upgradeCount}회 강화 성공! (-${totalSpent} 크레딧)`);
-      if (toMax || hideMaxedUpgrades) setSelectedCards([]); // 풀강이거나 풀강숨김 상태면 선택 초기화
+      // ✨ 유저가 요청한 강화 전 비용 알림
+      if (window.confirm(`선택한 카드들의 일괄 강화를 진행합니다.\n총 ${upgradeSteps} 레벨이 오르며, [ ${totalSpent} 크레딧 ]이 소모됩니다.\n진행하시겠습니까?`)) {
+        const nu = { ...shopUpgrades, upgradedCards: newUpgradedCards };
+        setCredits(simulatedCredits);
+        setShopUpgrades(nu);
+        saveGame({ credits: simulatedCredits, shopUpgrades: nu });
+        setToastMsg(`일괄 강화 성공! (-${totalSpent} 크레딧)`);
+        if (toMax || hideMaxedUpgrades) setSelectedCards([]); 
+      }
     } else {
-      setToastMsg('크레딧이 부족하여 강화할 수 없습니다.');
+      setToastMsg('크레딧이 부족하거나, 이미 최대로 강화된 카드들입니다.');
     }
+  };
+
+  // ✨ 프리미엄 가챠 로직 (버그 7 해결 및 천장 스택 적용)
+  const localHandlePremiumGacha = () => {
+    if (credits < 100) { setToastMsg('크레딧이 부족합니다.'); return; }
+    
+    setCredits(credits - 100);
+    const result = [];
+    for (let i = 0; i < 3; i++) {
+      const roll = Math.random();
+      let rarity = roll < 0.15 ? 'rare' : 'uncommon'; 
+      const pool = CARD_LIBRARY.filter(c => c.rarity === rarity || (rarity === 'rare' && c.rarity === 'special'));
+      const card = pool[Math.floor(Math.random() * pool.length)];
+      result.push(card);
+    }
+    setLocalPremiumGachaResult(result);
+    saveGame({ credits: credits - 100 });
+  };
+
+  // ✨ 프리미엄 가챠 선택 처리 로직 (버그 7: 환급 및 천장)
+  const selectLocalPremiumCard = (card) => {
+    const isDuplicate = unlockedCards.includes(card.id);
+    let newUnlocked = [...unlockedCards];
+    let refund = 0;
+    
+    if (isDuplicate) refund = 30; // 중복 환급
+    else newUnlocked.push(card.id);
+    
+    const newPityCount = pityCount + 1;
+    const newCredits = credits + refund;
+    const newUpgrades = { ...shopUpgrades, pityCount: newPityCount };
+    
+    setCredits(newCredits);
+    setUnlockedCards(newUnlocked);
+    setShopUpgrades(newUpgrades);
+    setLocalPremiumGachaResult(null);
+    saveGame({ credits: newCredits, unlockedCards: newUnlocked, shopUpgrades: newUpgrades });
+    
+    if (isDuplicate) setToastMsg(`중복 카드! 30 크레딧이 환급되었습니다. (천장 ${newPityCount}/${PITY_TARGET})`);
+    else setToastMsg(`${card.name} 획득! (천장 ${newPityCount}/${PITY_TARGET})`);
+  };
+
+  // ✨ 천장(Pity) 전설 카드 선택
+  const claimPityCard = (cardId) => {
+    const newUnlocked = [...unlockedCards, cardId];
+    const newUpgrades = { ...shopUpgrades, pityCount: 0 };
+    setUnlockedCards(newUnlocked);
+    setShopUpgrades(newUpgrades);
+    setShowPityModal(false);
+    saveGame({ unlockedCards: newUnlocked, shopUpgrades: newUpgrades });
+    setToastMsg('✨ 확정 전설 카드를 획득했습니다!');
   };
 
   return (
@@ -196,12 +294,32 @@ export default function ShopScreen({
           <button onClick={handleGacha} disabled={credits < 50} className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full transition-all ${credits >= 50 ? 'bg-purple-600 hover:bg-purple-500 shadow-[0_0_15px_rgba(147,51,234,0.3)]' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>50 크레딧</button>
         </div>
 
-        {/* 프리미엄 뽑기 */}
+        {/* 프리미엄 뽑기 (천장 게이지 추가) */}
         <div className="bg-slate-900/90 p-6 rounded-xl border-2 border-cyan-700/80 flex flex-col items-center text-center lg:col-span-2 shadow-[0_0_30px_rgba(34,211,238,0.15)] backdrop-blur-md">
-          <img src={shieldImg} alt="Premium Gacha" className="w-16 h-16 mb-4 animate-pulse drop-shadow-[0_0_20px_rgba(34,211,238,0.6)] hover:scale-110 transition-transform" />
-          <h3 className="text-2xl font-bold mb-2 text-cyan-300">프리미엄 뽑기</h3>
-          <p className="text-slate-300 mb-6 text-sm md:text-base">3장 중 1장 선택 획득<br/><span className="text-yellow-400 font-bold">전설/희귀 등장 확률 대폭 상승!</span></p>
-          <button onClick={handlePremiumGacha} disabled={credits < 100} className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full max-w-sm transition-all ${credits >= 100 ? 'bg-cyan-700 hover:bg-cyan-600 shadow-[0_0_20px_rgba(14,116,144,0.4)]' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>100 크레딧</button>
+          <img src={shieldImg} alt="Premium Gacha" className="w-16 h-16 mb-2 animate-pulse drop-shadow-[0_0_20px_rgba(34,211,238,0.6)] hover:scale-110 transition-transform" />
+          <h3 className="text-2xl font-bold mb-1 text-cyan-300">프리미엄 뽑기</h3>
+          <p className="text-slate-300 mb-4 text-sm md:text-base">3장 중 1장 선택 획득 (중복 시 30원 환급)<br/><span className="text-yellow-400 font-bold">전설/희귀 등장 확률 대폭 상승!</span></p>
+          
+          {/* ✨ 천장(Pity) UI 바 */}
+          <div className="w-full max-w-sm mb-4">
+            <div className="flex justify-between text-xs text-cyan-300 font-bold mb-1">
+              <span>전설 확정 천장 (30회)</span>
+              <span>{pityCount} / {PITY_TARGET}</span>
+            </div>
+            <div className="w-full bg-slate-800 rounded-full h-2.5 border border-slate-700 overflow-hidden shadow-inner">
+              <div className="bg-gradient-to-r from-cyan-500 to-fuchsia-500 h-full transition-all duration-300" style={{ width: `${Math.min(100, (pityCount / PITY_TARGET) * 100)}%` }}></div>
+            </div>
+          </div>
+
+          {pityCount >= PITY_TARGET ? (
+            <button onClick={() => setShowPityModal(true)} className="mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full max-w-sm transition-all bg-fuchsia-600 hover:bg-fuchsia-500 text-white shadow-[0_0_20px_rgba(192,38,211,0.5)] animate-pulse">
+              ✨ 전설 확정 선택! ✨
+            </button>
+          ) : (
+            <button onClick={localHandlePremiumGacha} disabled={credits < 100} className={`mt-auto py-3 px-8 rounded-lg font-bold text-lg w-full max-w-sm transition-all ${credits >= 100 ? 'bg-cyan-700 hover:bg-cyan-600 shadow-[0_0_20px_rgba(14,116,144,0.4)]' : 'bg-slate-800 text-slate-500 border border-slate-700'}`}>
+              100 크레딧 뽑기
+            </button>
+          )}
         </div>
 
         {/* 카드 강화 영역 */}
@@ -209,25 +327,24 @@ export default function ShopScreen({
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4 border-b border-slate-700 pb-4">
             <div>
               <h3 className="text-2xl font-bold flex items-center gap-2"><Zap className="w-6 h-6 text-yellow-400"/> 카드 영구 강화</h3>
-              <p className="text-slate-400 text-sm md:text-base">등급에 따라 강화 비용이 다르며, 최대 +5까지 강화됩니다.</p>
+              <p className="text-slate-400 text-sm md:text-base">카드 특성에 따라 비용과 단축 구간이 자동으로 적용됩니다.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {/* ✨ 일괄 강화 컨트롤 UI */}
               {!isUpgradesCollapsed && (
-                <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-lg border border-slate-600">
-                  <button onClick={toggleSelectAll} className="px-3 py-1.5 text-sm font-bold bg-slate-700 hover:bg-slate-600 rounded flex items-center gap-1 transition-colors">
+                <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-lg border border-slate-600 shadow-inner">
+                  <button onClick={toggleSelectAll} className="px-3 py-1.5 text-sm font-bold bg-slate-700 hover:bg-slate-600 rounded flex items-center gap-1 transition-colors border border-slate-600">
                     <CheckSquare className="w-4 h-4"/> {selectedCards.length === upgradableIds.length && upgradableIds.length > 0 ? '해제' : '전체선택'}
                   </button>
-                  <button onClick={() => handleBatchUpgrade(false)} disabled={selectedCards.length === 0} className="px-3 py-1.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-700 disabled:text-slate-500 rounded transition-colors">
-                    선택 1강
+                  <button onClick={() => handleBatchUpgrade(false)} disabled={selectedCards.length === 0} className="px-3 py-1.5 text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white disabled:bg-slate-700 disabled:text-slate-500 rounded transition-colors shadow-md">
+                    선택 1단계
                   </button>
-                  <button onClick={() => handleBatchUpgrade(true)} disabled={selectedCards.length === 0} className="px-3 py-1.5 text-sm font-bold bg-yellow-600 hover:bg-yellow-500 text-white disabled:bg-slate-700 disabled:text-slate-500 rounded transition-colors">
+                  <button onClick={() => handleBatchUpgrade(true)} disabled={selectedCards.length === 0} className="px-3 py-1.5 text-sm font-bold bg-yellow-600 hover:bg-yellow-500 text-white disabled:bg-slate-700 disabled:text-slate-500 rounded transition-colors shadow-md">
                     선택 MAX
                   </button>
                 </div>
               )}
 
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-bold bg-slate-800 px-3 py-2 rounded-lg border border-slate-600">
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-bold bg-slate-800 px-3 py-2 rounded-lg border border-slate-600 hover:bg-slate-700 transition-colors">
                 <input type="checkbox" checked={hideMaxedUpgrades} onChange={(e) => setHideMaxedUpgrades(e.target.checked)} className="w-4 h-4 accent-yellow-500" />
                 풀강 제외
               </label>
@@ -253,14 +370,13 @@ export default function ShopScreen({
                   const cardDef = getCardDef(id, shopUpgrades);
                   if (!cardDef) return null;
                   
-                  // ✨ 등급별 비용 계산 로직 반영
-                  const nextCost = getUpgradeCost(cardDef.rarity, level);
+                  // ✨ 도약 여부 및 비용이 계산된 객체 가져오기
+                  const { nextLevel, cost: stepCost, isJump, label } = getNextLevelAndCost(id, level);
                   const maxCost = getMaxUpgradeCost(cardDef.rarity, level);
                   const isSelected = selectedCards.includes(id);
 
                   return (
-                    <div key={id} className={`relative p-4 rounded-xl border-2 flex flex-col justify-between transition-colors ${isSelected ? 'border-yellow-400 bg-yellow-900/20' : level > 0 ? 'border-yellow-600/60 bg-yellow-900/10' : 'border-slate-700 bg-slate-800/50'}`}>
-                      {/* ✨ 개별 카드 선택용 체크박스 */}
+                    <div key={id} className={`relative p-4 rounded-xl border-2 flex flex-col justify-between transition-colors ${isSelected ? 'border-yellow-400 bg-yellow-900/30' : level > 0 ? 'border-yellow-600/60 bg-yellow-900/10' : 'border-slate-700 bg-slate-800/50'}`}>
                       {level < 5 && (
                         <div className="absolute top-3 right-3 z-10 cursor-pointer">
                            <input type="checkbox" checked={isSelected} onChange={() => toggleCardSelect(id)} className="w-5 h-5 accent-yellow-500 cursor-pointer" />
@@ -277,41 +393,44 @@ export default function ShopScreen({
 
                       {level < 5 ? (
                         <div className="flex gap-2 mt-auto">
-                          {/* 1강 버튼 */}
+                          {/* 1단계 (또는 도약) 버튼 */}
                           <button 
                             onClick={() => {
-                              if (credits >= nextCost) {
-                                const nc = credits - nextCost;
-                                const nu = { ...shopUpgrades, upgradedCards: [...shopUpgrades.upgradedCards, id] };
+                              if (credits >= stepCost) {
+                                const nc = credits - stepCost;
+                                const nu = { ...shopUpgrades, upgradedCards: [...shopUpgrades.upgradedCards] };
+                                for(let i = level; i < nextLevel; i++) nu.upgradedCards.push(id);
                                 setCredits(nc); setShopUpgrades(nu); saveGame({ credits: nc, shopUpgrades: nu });
-                                setToastMsg(`${cardDef.name} 1강 완료!`);
+                                setToastMsg(`${cardDef.name} ${label} 완료!`);
                               }
                             }}
-                            disabled={credits < nextCost}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center ${credits >= nextCost ? 'bg-indigo-600 hover:bg-indigo-500 shadow-md' : 'bg-slate-700 text-slate-500'}`}
+                            disabled={credits < stepCost}
+                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center ${credits >= stepCost ? (isJump ? 'bg-fuchsia-600 hover:bg-fuchsia-500 shadow-[0_0_10px_rgba(192,38,211,0.5)]' : 'bg-indigo-600 hover:bg-indigo-500 shadow-md') : 'bg-slate-700 text-slate-500'}`}
                           >
-                            <span>1강화</span>
-                            <span className="flex items-center gap-1 text-[10px]"><img src={coinImg} alt="c" className="w-2.5 h-2.5 opacity-80" /> {nextCost}</span>
+                            <span>{label}</span>
+                            <span className="flex items-center gap-1 text-[10px]"><img src={coinImg} alt="c" className="w-2.5 h-2.5 opacity-80" /> {stepCost}</span>
                           </button>
                           
-                          {/* 빠른 5강 (MAX) 버튼 */}
-                          <button 
-                            onClick={() => {
-                              if (credits >= maxCost) {
-                                const nc = credits - maxCost;
-                                const newUpgrades = [...shopUpgrades.upgradedCards];
-                                for(let i = level; i < 5; i++) newUpgrades.push(id);
-                                const nu = { ...shopUpgrades, upgradedCards: newUpgrades };
-                                setCredits(nc); setShopUpgrades(nu); saveGame({ credits: nc, shopUpgrades: nu });
-                                setToastMsg(`${cardDef.name} 풀강 완료!`);
-                              }
-                            }}
-                            disabled={credits < maxCost}
-                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center ${credits >= maxCost ? 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-md' : 'bg-slate-700 text-slate-500'}`}
-                          >
-                            <span>MAX</span>
-                            <span className="flex items-center gap-1 text-[10px]"><img src={coinImg} alt="c" className="w-2.5 h-2.5 opacity-80" /> {maxCost}</span>
-                          </button>
+                          {/* 빠른 5강 (MAX) 버튼 (이미 도약으로 MAX가 예정된 카드는 렌더링 생략) */}
+                          {(!isJump || nextLevel < 5) && (
+                            <button 
+                              onClick={() => {
+                                if (credits >= maxCost) {
+                                  const nc = credits - maxCost;
+                                  const newUpgrades = [...shopUpgrades.upgradedCards];
+                                  for(let i = level; i < 5; i++) newUpgrades.push(id);
+                                  const nu = { ...shopUpgrades, upgradedCards: newUpgrades };
+                                  setCredits(nc); setShopUpgrades(nu); saveGame({ credits: nc, shopUpgrades: nu });
+                                  setToastMsg(`${cardDef.name} 풀강 완료!`);
+                                }
+                              }}
+                              disabled={credits < maxCost}
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex flex-col items-center justify-center ${credits >= maxCost ? 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-[0_0_10px_rgba(202,138,4,0.4)]' : 'bg-slate-700 text-slate-500'}`}
+                            >
+                              <span>MAX</span>
+                              <span className="flex items-center gap-1 text-[10px]"><img src={coinImg} alt="c" className="w-2.5 h-2.5 opacity-80" /> {maxCost}</span>
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="w-full py-2.5 text-center text-sm font-bold text-yellow-500 bg-yellow-900/40 rounded-lg border border-yellow-700/50 mt-auto">MAX LEVEL</div>
@@ -367,36 +486,63 @@ export default function ShopScreen({
         </div>
       </div>
 
-      {/* 가챠 결과창 */}
+      {/* ✨ 가시성 조절 (크기 축소) 적용된 일반 가챠 결과창 */}
       {gachaResult && (
         <div className="fixed inset-0 bg-black/85 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md" onClick={() => setGachaResult(null)}>
-          <h2 className="text-3xl md:text-5xl font-black mb-8 text-purple-400 animate-bounce">✨ 신규 카드 획득! ✨</h2>
-          <div className="flex flex-wrap justify-center gap-4 md:gap-8">
+          <h2 className="text-3xl md:text-4xl font-black mb-8 text-purple-400 animate-bounce">✨ 신규 카드 획득! ✨</h2>
+          <div className="flex flex-wrap justify-center gap-2 md:gap-4">
             {gachaResult.map((card, idx) => (
-              <div key={idx} className="relative">
+              <div key={idx} className="relative transform scale-75 md:scale-90 origin-center">
                 {card.isDuplicate && <span className="absolute -top-4 -right-4 bg-slate-700 border border-slate-500 text-white px-3 py-1 rounded-full font-black text-xs shadow-lg z-10 animate-pulse flex items-center gap-1">중복 <img src={coinImg} alt="c" className="w-3 h-3"/>+10</span>}
                 <Card card={card} />
               </div>
             ))}
           </div>
-          <button onClick={() => setGachaResult(null)} className="mt-12 py-3 px-10 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-full text-xl font-bold shadow-[0_0_15px_rgba(79,70,229,0.5)]">확인</button>
+          <button onClick={() => setGachaResult(null)} className="mt-8 py-3 px-10 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-full text-xl font-bold shadow-[0_0_15px_rgba(79,70,229,0.5)]">확인</button>
         </div>
       )}
 
-      {/* 프리미엄 가챠 선택창 */}
-      {premiumGachaResult && (
+      {/* ✨ 가시성 조절 (크기 축소) 적용된 프리미엄 가챠 선택창 (로컬 상태 연동) */}
+      {localPremiumGachaResult && (
         <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md">
           <h2 className="text-3xl md:text-5xl font-black mb-2 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">프리미엄 뽑기</h2>
-          <p className="text-slate-300 text-lg mb-8">가장 마음에 드는 <span className="text-white font-bold bg-slate-800 px-2 py-0.5 rounded">1장</span>을 선택하세요!</p>
-          <div className="flex flex-wrap justify-center gap-4 md:gap-8">
-            {premiumGachaResult.map((card, idx) => (
-              <div key={idx} className="relative group hover:-translate-y-2 transition-transform cursor-pointer">
-                <Card card={card} onClick={() => selectPremiumCard(card)} />
-                {unlockedCards.includes(card.id) && <span className="absolute -top-3 -left-3 bg-slate-800 text-white px-2 py-1 rounded text-xs font-bold border border-slate-600 shadow-md z-10">보유 중</span>}
+          <p className="text-slate-300 text-lg mb-8">가장 마음에 드는 <span className="text-white font-bold bg-slate-800 px-2 py-0.5 rounded border border-slate-600">1장</span>을 선택하세요!</p>
+          <div className="flex flex-wrap justify-center gap-2 md:gap-4">
+            {localPremiumGachaResult.map((card, idx) => (
+              <div key={idx} className="relative group hover:-translate-y-2 transition-transform cursor-pointer transform scale-75 md:scale-90 origin-center" onClick={() => selectLocalPremiumCard(card)}>
+                <Card card={card} />
+                {unlockedCards.includes(card.id) && <span className="absolute -top-4 -right-4 bg-slate-800 text-yellow-400 px-3 py-1.5 rounded-full text-xs font-black border border-yellow-600 shadow-xl z-10 flex items-center gap-1">중복 시 <img src={coinImg} className="w-3 h-3" alt="c"/>30 반환</span>}
               </div>
             ))}
           </div>
-          <button onClick={() => setPremiumGachaResult(null)} className="mt-12 py-3 px-10 bg-slate-700 hover:bg-slate-600 transition-colors rounded-full text-lg font-bold border border-slate-500">포기</button>
+          <button onClick={() => setLocalPremiumGachaResult(null)} className="mt-8 py-3 px-10 bg-slate-700 hover:bg-slate-600 transition-colors rounded-full text-lg font-bold border border-slate-500">포기</button>
+        </div>
+      )}
+
+      {/* ✨ 천장 전설 카드 선택 모달 (크기 축소 및 그리드 배열) */}
+      {showPityModal && (
+        <div className="fixed inset-0 bg-black/95 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md" onClick={() => setShowPityModal(false)}>
+          <div className="bg-slate-900 border-2 border-fuchsia-500 rounded-2xl p-6 w-full max-w-[90vw] md:max-w-6xl h-[85vh] flex flex-col shadow-[0_0_50px_rgba(192,38,211,0.3)]" onClick={e=>e.stopPropagation()}>
+            <div className="flex justify-between items-center border-b border-slate-700 pb-4 mb-6">
+              <div>
+                <h2 className="text-2xl font-black text-fuchsia-400 flex items-center gap-2"><Star className="fill-fuchsia-400"/> 확정 전설 선택권</h2>
+                <p className="text-sm text-slate-400 mt-1">원하는 카드를 선택하세요. (보유 중인 카드는 선택 불가)</p>
+              </div>
+              <button onClick={() => setShowPityModal(false)} className="text-slate-400 hover:text-white"><X size={28}/></button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto hide-scrollbar grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 p-2 justify-items-center">
+              {CARD_LIBRARY.filter(c => c.rarity === 'rare' || c.rarity === 'special').map(card => {
+                const isOwned = unlockedCards.includes(card.id);
+                return (
+                  <div key={card.id} onClick={() => !isOwned && claimPityCard(card.id)} className={`relative cursor-pointer transition-transform hover:-translate-y-2 transform scale-75 origin-top ${isOwned ? 'opacity-40 grayscale hover:translate-y-0' : ''}`}>
+                    <Card card={card} />
+                    {isOwned && <div className="absolute inset-0 flex items-center justify-center z-10"><CheckCircle className="text-emerald-500 drop-shadow-lg w-16 h-16 bg-slate-900/50 rounded-full"/></div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </div>

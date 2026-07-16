@@ -37,7 +37,7 @@ export const calculateDamage = (baseDamage, attackerStrength = 0, attackerWeak =
 
   let dmg = base + strength;
   
-  // ✅ 수정됨 2: 약화(weak) 디버프 수치를 정상적인 감소폭(25%)으로 수정
+  // 약화(weak) 디버프 수치 정상적인 감소폭(25%)
   if (weak > 0) dmg = Math.floor(dmg * 0.75); 
   if (vuln > 0) dmg = Math.floor(dmg * 1.30); 
   dmg += mark;
@@ -131,57 +131,100 @@ export const getCardDef = (id, shopUpgrades) => {
   return base;
 };
 
-// ✨ 이전 의도(행동)를 받아와서 연속 방어를 하지 않게 해줍니다.
-export const generateEnemyIntent = (template, stage, previousIntent = null) => {
-  if (!template || !template.deck || template.deck.length === 0) {
-    return { name: '오류 방지', type: 'attack', value: 0, desc: '행동을 읽을 수 없습니다.' };
+// ✨ 덱 리필 시스템 및 다중 드로우(하드보스 전용) 처리
+export const generateEnemyIntent = (enemy, dmgMulti = 1) => {
+  if (!enemy.template || !enemy.template.deck || enemy.template.deck.length === 0) {
+    return [{ name: '오류 방지', type: 'attack', value: Math.floor(5 * dmgMulti), desc: '기본 공격을 합니다.', uid: Math.random().toString() }];
   }
   
-  let availableDeck = template.deck;
-  
-  if (previousIntent && previousIntent.type === 'defend') {
-    availableDeck = template.deck.filter(card => card.type !== 'defend');
-    if (availableDeck.length === 0) availableDeck = template.deck; 
-  }
+  // enemy 객체에 설정된 턴당 카드 사용 장수를 가져옵니다.
+  let cardsToDraw = enemy.cardsPerTurn || 1;
+  let drawnCards = [];
 
-  const baseCard = availableDeck[Math.floor(Math.random() * availableDeck.length)];
-  let newIntent = { ...baseCard };
-  let newDesc = baseCard.desc || '';
-  
-  if (baseCard.value !== undefined) {
-    newIntent.value = Number(baseCard.value) + Math.floor(stage * 0.75);
-    newDesc = newDesc.replace(baseCard.value.toString(), newIntent.value.toString());
-  } else {
-    delete newIntent.value; 
+  for (let i = 0; i < cardsToDraw; i++) {
+    // 덱이 비어있다면 템플릿에서 다시 가져와 셔플 (리필)
+    if (!enemy.drawPile || enemy.drawPile.length === 0) {
+      enemy.drawPile = shuffle([...enemy.template.deck]);
+    }
+    
+    // 카드 한 장 뽑기
+    const baseCard = enemy.drawPile.pop();
+    let newIntent = { ...baseCard, uid: Math.random().toString() + i };
+    let newDesc = baseCard.desc || '';
+    
+    // 스케일링
+    if (baseCard.value !== undefined) {
+      let finalValue = Number(baseCard.value);
+      if (baseCard.type && baseCard.type.includes('attack')) {
+        finalValue = Math.floor(finalValue * dmgMulti);
+      } 
+      else if (baseCard.type && baseCard.type.includes('defend')) {
+        finalValue = Math.floor(finalValue * (1 + (dmgMulti - 1) * 0.5));
+      }
+      newIntent.value = finalValue;
+      newDesc = newDesc.replace(baseCard.value.toString(), newIntent.value.toString());
+    } else {
+      delete newIntent.value; 
+    }
+    
+    if (baseCard.heal !== undefined) newIntent.heal = Number(baseCard.heal); 
+    newIntent.desc = newDesc;
+    
+    drawnCards.push(newIntent);
   }
   
-  if (baseCard.heal !== undefined) {
-    newIntent.heal = Number(baseCard.heal); 
-  }
-  
-  newIntent.desc = newDesc;
-  return newIntent;
+  return drawnCards; 
 };
 
-// ✨ 스테이지에 맞는 적 및 보스 스폰 로직
+// ✨ 스테이지에 맞는 스폰 및 모드별 스케일링 (특수 보스 + 무한 모드 적용)
 export const generateEnemies = (stage, mode = 'NORMAL') => {
   const s = Number(stage) || 1;
   let enemyTemplates = [];
+  
+  let hpMulti = 1 + (s * 0.01);
+  let dmgMulti = 1 + (s * 0.01);
+
   try {
-    if (mode === 'HARD') {
-      if (s === 300) {
-        enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
-      } else if (s === 250) {
-        enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
-      } else if (s % 50 === 0) {
-        enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
-      } else if (s % 10 === 0) {
+    if (mode === 'ENDLESS') {
+      hpMulti = 1 + (s * 0.03) + Math.pow(s / 35, 0.85);
+      dmgMulti = 1 + (s * 0.01) + Math.pow(s / 45, 0.55);
+      
+      if (s > 300) {
+        if (s % 50 === 0) {
+          const normalBoss = NORMAL_BOSSES[Math.floor(Math.random() * NORMAL_BOSSES.length)] || SPECIAL_BOSSES[100];
+          const hardBoss = HARD_MODE_BOSSES[Math.floor(Math.random() * HARD_MODE_BOSSES.length)] || SPECIAL_BOSSES[100];
+          enemyTemplates = [normalBoss, hardBoss];
+        } else {
+          const spawnCount = Math.floor(Math.random() * 2) + 2; 
+          for(let i=0; i<spawnCount; i++) enemyTemplates.push(ENEMIES[Math.floor(Math.random() * ENEMIES.length)]);
+        }
+      } else {
+        if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
+        else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
+        else if (s % 50 === 0) enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
+        else if (s % 10 === 0) {
+          const hardBossIndex = Math.min(Math.floor(s / 10) - 1, HARD_MODE_BOSSES.length - 1);
+          enemyTemplates = [HARD_MODE_BOSSES[hardBossIndex]]; 
+        } else {
+          enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
+        }
+      }
+    } 
+    else if (mode === 'HARD') {
+      hpMulti = 1 + (s * 0.03) + Math.pow(s / 40, 0.91);
+      dmgMulti = 1 + (s * 0.01) + Math.pow(s / 100, 0.51);
+
+      if (s === 300) enemyTemplates = [SPECIAL_BOSSES['H300'] || SPECIAL_BOSSES[100]]; 
+      else if (s === 250) enemyTemplates = [SPECIAL_BOSSES['H250_A'] || SPECIAL_BOSSES[50], SPECIAL_BOSSES['H250_B'] || SPECIAL_BOSSES[75]]; 
+      else if (s % 50 === 0) enemyTemplates = [SPECIAL_BOSSES[`H${s}`] || SPECIAL_BOSSES[s]]; 
+      else if (s % 10 === 0) {
         const hardBossIndex = Math.min(Math.floor(s / 10) - 1, HARD_MODE_BOSSES.length - 1);
         enemyTemplates = [HARD_MODE_BOSSES[hardBossIndex]]; 
       } else {
         enemyTemplates = [ENEMIES[Math.floor(Math.random() * ENEMIES.length)]];
       }
-    } else {
+    } 
+    else { // NORMAL
       if (s === 100) {
         enemyTemplates = [SPECIAL_BOSSES[100], SPECIAL_BOSSES[100], SPECIAL_BOSSES[100]];
       } else if ([25, 50, 75].includes(s)) {
@@ -201,31 +244,54 @@ export const generateEnemies = (stage, mode = 'NORMAL') => {
   if (enemyTemplates.length === 0) enemyTemplates = [ENEMIES[0]];
 
   return enemyTemplates.map((template, idx) => {
-    const isNamedBoss = mode === 'HARD' ? (s % 50 === 0) : [25, 50, 75, 100].includes(s);
-    const isNormalBoss = mode === 'HARD' ? (s % 10 === 0 && !isNamedBoss) : (s % 5 === 0 && !isNamedBoss);
+    let isNamedBoss = false;
+    let isNormalBoss = false;
+
+    if (mode === 'ENDLESS' && s > 300) {
+        if (s % 50 === 0) isNamedBoss = true;
+    } else if (mode === 'HARD' || mode === 'ENDLESS') {
+        isNamedBoss = (s % 50 === 0);
+        isNormalBoss = (s % 10 === 0 && !isNamedBoss);
+    } else {
+        isNamedBoss = [25, 50, 75, 100].includes(s);
+        isNormalBoss = (s % 5 === 0 && !isNamedBoss);
+    }
     
     let hpBase = Number(template.baseHp) || 50;
-    let hpFinal = Math.floor(hpBase + (s * 12));
+    let hpFinal = Math.floor(hpBase * hpMulti);
     
-    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 2.2);
-    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 1.6);
+    if (isNamedBoss) hpFinal = Math.floor(hpFinal * 1.0); 
+    else if (isNormalBoss) hpFinal = Math.floor(hpFinal * 0.5); 
     
     let name = template.name || '알 수 없는 적';
-    if ((mode === 'NORMAL' && s === 100) || (mode === 'HARD' && s === 250)) name += ` (${String.fromCharCode(65 + idx)})`; 
+    if (enemyTemplates.length > 1) name += ` (${String.fromCharCode(65 + idx)})`; 
 
-    return {
+    // ✨ 하드 보스에게만 턴당 2장 사용 권한 부여
+    let cardsPerTurn = 1;
+    if ((mode === 'HARD' || mode === 'ENDLESS') && (isNamedBoss || isNormalBoss)) {
+        cardsPerTurn = 2;
+    }
+
+    const newEnemy = {
       uid: Math.random().toString() + idx,
       name: name,
       hp: hpFinal,
       maxHp: hpFinal,
       block: 0,
       isBoss: isNamedBoss || isNormalBoss,
+      dmgMultiplier: dmgMulti,
       template,
-      intentCard: generateEnemyIntent(template, s),
+      cardsPerTurn, // 턴당 카드 장수 저장
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 },
       buffs: { strength: 0, intangible: 0, regen: 0, rage: 0 },
-      passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : []
+      passives: template.passives ? JSON.parse(JSON.stringify(template.passives)) : [],
+      drawPile: shuffle(template.deck ? [...template.deck] : []) // 몬스터 덱 초기화
     };
+
+    // ✨ 단일 intentCard 대신 배열 형태의 intentCards 할당
+    newEnemy.intentCards = generateEnemyIntent(newEnemy, dmgMulti);
+
+    return newEnemy;
   });
 };
 

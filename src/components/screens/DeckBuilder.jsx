@@ -1,6 +1,6 @@
 // src/components/screens/DeckBuilder.jsx
 import React, { useMemo, useState } from 'react';
-import { Eraser, Download, Upload, Save, Maximize, HelpCircle, Layers, X, ChevronDown } from 'lucide-react';
+import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { RELIC_LIBRARY } from '../../constants/relicData';
@@ -53,9 +53,10 @@ export default function DeckBuilder({
 
   return (
     <div className="flex flex-col h-[100dvh] bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white pt-16 md:pt-4 p-4 md:p-6 lg:p-8 relative overflow-hidden">
-      <button onClick={toggleFullScreen} className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded text-sm font-bold transition-colors border border-slate-600 backdrop-blur-sm shadow-md">
-        <Maximize className="w-4 h-4"/> <span className="hidden md:inline">전체화면</span>
-      </button>
+      <button onClick={toggleFullScreen} className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 px-3 py-2 rounded text-sm font-bold transition-colors border border-slate-600 md:border-0">
+  <Maximize2 className="w-4 h-4"/> 
+  <span className="hidden md:inline">전체화면</span>
+</button>
 
       {/* 헤더 영역 */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 pl-0 md:pl-32 gap-4 relative z-10 shrink-0">

@@ -200,6 +200,134 @@ export const CARD_LIBRARY = [
   { id: 'phantom_walk', name: '환영 보법', type: 'skill', cost: 3, rarity: 'mythic', selfIntangible: 1, exhaust: true, desc: '몸이 수많은 잔상으로 나뉘며 1턴 동안 무형 상태가 됩니다. (사용 후 소멸)' },
   { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'mythic', damage: 12, multiHit: 9, increasingDamage: 7, desc: '미친듯한 템포로 춤추듯 적을 찢어발깁니다. 12의 피해를 9번 연속 주며 타격 시마다 피해량이 7씩 증가합니다.' },
 ];
+// ==========================================
+// 전리품 (Loot) - 보스 처치 시 획득할 수 있는 보스 스킬 (플레이어 밸런스 적용 완료)
+// ==========================================
+
+export const BOSS_LOOT_CARDS = [
+  // ---------------- [ 노말 보스 (NORMAL_BOSSES) ] ----------------
+  // 1. 킹 슬라임
+  { id: 'loot_earthquake', name: '대지진', type: 'attack', cost: 2, rarity: 'loot', damage: 16, enemyWeak: 1, desc: '[킹 슬라임] 땅을 강하게 내리찍어 16의 피해를 주고 약화 1을 부여합니다.' },
+  { id: 'loot_harden', name: '굳어지기', type: 'skill', cost: 2, rarity: 'loot', block: 18, selfRegen: 1, desc: '[킹 슬라임] 몸을 단단하게 만들어 18의 방어도를 얻고 재생 1을 얻습니다.' },
+  { id: 'loot_acid_slime', name: '강산성 점액', type: 'attack', cost: 1, rarity: 'loot', damage: 8, enemyVuln: 2, desc: '[킹 슬라임] 맹독 산성액을 뿜어 8의 피해를 주고 장갑을 부식시켜 취약 2를 부여합니다.' },
+  
+  // 2. 고블린 족장
+  { id: 'loot_chain_stab', name: '연속 찌르기', type: 'attack', cost: 2, rarity: 'loot', damage: 5, multiHit: 3, desc: '[고블린 족장] 보이지 않는 속도로 세 번 연속 찔러 5의 피해를 3번 줍니다.' },
+  { id: 'loot_all_out_attack', name: '총공격 지시', type: 'skill', cost: 1, rarity: 'loot', enemyVuln: 2, draw: 1, desc: '[고블린 족장] 부하들에게 지시를 내려 적에게 취약 2를 부여하고 카드를 1장 뽑습니다.' },
+  { id: 'loot_iron_wall', name: '철벽 방어', type: 'skill', cost: 2, rarity: 'loot', block: 20, desc: '[고블린 족장] 거대한 황금 방패 뒤에 숨어 20의 방어도를 얻습니다.' },
+
+  // 3. 오크 대장군
+  { id: 'loot_decapitate', name: '참수', type: 'attack', cost: 3, rarity: 'loot', damage: 28, enemyWeak: 1, desc: '[오크 대장군] 대검을 크게 휘둘러 28의 피해를 주고 약화 1을 부여합니다.' },
+  { id: 'loot_bloodthirst', name: '피의 굶주림', type: 'attack', cost: 2, rarity: 'loot', damage: 14, heal: 4, desc: '[오크 대장군] 광기에 사로잡혀 14의 피해를 주고 체력을 4 회복합니다.' },
+  { id: 'loot_generals_spirit', name: '대장군의 기백', type: 'skill', cost: 2, rarity: 'loot', block: 15, selfStrength: 1, desc: '[오크 대장군] 압도적인 위압감을 뿜어내 15의 방어도를 얻고 근력을 1 얻습니다.' },
+
+  // 4. 뱀파이어 로드
+  { id: 'loot_life_drain', name: '생명 흡수', type: 'attack', cost: 2, rarity: 'loot', damage: 12, heal: 8, desc: '[뱀파이어 로드] 생명력을 강제로 빨아들여 12의 피해를 주고 체력을 8 회복합니다.' },
+  { id: 'loot_blood_fog', name: '피의 안개', type: 'skill', cost: 2, rarity: 'loot', enemyWeak: 2, enemyFrail: 2, desc: '[뱀파이어 로드] 피 안개로 질식시켜 적에게 약화 2, 허약 2를 부여합니다.' },
+  { id: 'loot_despair_gaze', name: '절망의 시선', type: 'skill', cost: 1, rarity: 'loot', enemyVuln: 2, draw: 1, desc: '[뱀파이어 로드] 영혼을 얼어붙게 만들어 취약 2를 부여하고 카드를 1장 뽑습니다.' },
+
+  // 5. 고대 드래곤
+  { id: 'loot_dragon_breath', name: '드래곤 브레스', type: 'attack', cost: 3, rarity: 'loot', damage: 35, enemyVuln: 2, desc: '[고대 드래곤] 거대한 화염의 숨결로 35의 피해를 주고 취약 2를 부여합니다.' },
+  { id: 'loot_scale_enhance', name: '비늘 강화', type: 'skill', cost: 2, rarity: 'loot', block: 25, selfDex: 1, desc: '[고대 드래곤] 마력을 방출해 25의 방어도를 얻고 민첩을 1 얻습니다.' },
+  { id: 'loot_overwhelming_fear', name: '압도적 공포', type: 'skill', cost: 2, rarity: 'loot', enemyWeak: 3, enemySilence: 1, desc: '[고대 드래곤] 진정한 포효를 내질러 약화 3과 침묵 1을 부여합니다.' },
+
+  // 6. 미노타우로스
+  { id: 'loot_horn_charge', name: '뿔 들이받기', type: 'attack', cost: 2, rarity: 'loot', damage: 20, selfDamage: 2, desc: '[미노타우로스] 지축을 울리며 돌진해 20의 피해를 주지만 반동으로 체력을 2 잃습니다.' },
+  { id: 'loot_berserk', name: '광폭화', type: 'skill', cost: 1, rarity: 'loot', selfStrength: 2, enemyVuln: 1, desc: '[미노타우로스] 분노로 근력을 2 얻지만 적에게 틈을 보여 취약 1을 얻습니다(적용:나).' },
+  { id: 'loot_axe_sweep', name: '도끼 휩쓸기', type: 'attack', cost: 2, rarity: 'loot', damage: 12, multiHit: 2, desc: '[미노타우로스] 거대한 도끼를 가로로 휘둘러 12의 피해를 2번 줍니다.' },
+
+  // 7. 마스터 리치
+  { id: 'loot_death_ray', name: '죽음의 광선', type: 'attack', cost: 2, rarity: 'loot', damage: 22, enemyFrail: 2, desc: '[마스터 리치] 녹색빛의 불길한 광선을 쏴 22의 피해를 주고 허약 2를 부여합니다.' },
+  { id: 'loot_cursed_bind', name: '저주받은 구속', type: 'skill', cost: 2, rarity: 'loot', enemyBind: 1, enemyPoison: 3, desc: '[마스터 리치] 썩어가는 손아귀를 소환해 속박 1과 중독 3을 부여합니다.' },
+  { id: 'loot_life_exploit', name: '생명력 착취', type: 'attack', cost: 2, rarity: 'loot', damage: 15, heal: 10, desc: '[마스터 리치] 영혼의 파편을 뜯어내 15의 피해를 주고 체력을 10 회복합니다.' },
+
+  // 8. 돌연변이 키메라
+  { id: 'loot_snake_tail', name: '독사 꼬리', type: 'attack', cost: 1, rarity: 'loot', damage: 8, enemyPoison: 4, desc: '[돌연변이 키메라] 독사가 머리를 내밀어 8의 피해를 주고 중독 4를 부여합니다.' },
+  { id: 'loot_lion_roar', name: '사자후', type: 'skill', cost: 1, rarity: 'loot', enemyWeak: 2, draw: 1, desc: '[돌연변이 키메라] 거대한 포효로 정신을 혼미하게 만들어 약화 2를 부여하고 카드를 1장 뽑습니다.' },
+  { id: 'loot_ruthless_tear', name: '무자비한 찢기', type: 'attack', cost: 2, rarity: 'loot', damage: 18, enemyVuln: 1, desc: '[돌연변이 키메라] 무자비하게 유린하여 18의 피해를 주고 취약 1을 부여합니다.' },
+
+  // 9. 타락한 성기사
+  { id: 'loot_holy_judgment', name: '신성한 심판', type: 'attack', cost: 2, rarity: 'loot', damage: 20, heal: 5, desc: '[타락한 성기사] 어둠에 물든 신성 마법으로 20의 피해를 주고 체력을 5 회복합니다.' },
+  { id: 'loot_corrupted_blessing', name: '타락한 축복', type: 'skill', cost: 1, rarity: 'loot', selfStrength: 2, selfDamage: 3, desc: '[타락한 성기사] 사악한 피의 축복을 받아 체력을 3 잃고 근력을 2 얻습니다.' },
+  { id: 'loot_absolute_defense_paladin', name: '절대 방어', type: 'skill', cost: 3, rarity: 'loot', block: 35, enemyWeak: 1, desc: '[타락한 성기사] 검은 오오라를 뿜어내는 실드로 35의 방어도를 얻고 약화 1을 부여합니다.' },
+
+  // 10. 지옥의 파수견
+  { id: 'loot_bite', name: '물어뜯기', type: 'attack', cost: 2, rarity: 'loot', damage: 9, multiHit: 2, desc: '[지옥의 파수견] 두 개의 머리가 달려들어 9의 피해를 2번 줍니다.' },
+  { id: 'loot_hell_flame', name: '지옥의 불꽃', type: 'attack', cost: 2, rarity: 'loot', damage: 15, enemyVuln: 2, enemyPoison: 2, desc: '[지옥의 파수견] 지옥불을 토해내 15의 피해를 주고 취약 2와 중독 2를 부여합니다.' },
+  { id: 'loot_hound_roar', name: '파수견의 포효', type: 'skill', cost: 1, rarity: 'loot', enemyWeak: 2, enemyFrail: 1, desc: '[지옥의 파수견] 화음이 맞지 않는 기괴한 포효로 약화 2와 허약 1을 부여합니다.' },
+
+  // (11~13 맹독의 여왕, 심연의 주시자, 고대 골렘 마스터 생략 없이 전부 밸런스 조정)
+  { id: 'loot_golem_smash', name: '대지 분쇄', type: 'attack', cost: 2, rarity: 'loot', damage: 24, enemyFrail: 1, desc: '[고대 골렘 마스터] 바위 주먹으로 땅을 으깨 24의 피해를 주고 허약 1을 부여합니다.' },
+  { id: 'loot_rock_shield', name: '바위 방패', type: 'skill', cost: 2, rarity: 'loot', block: 22, selfThorns: 2, desc: '[고대 골렘 마스터] 거대한 돌기둥을 솟아오르게 해 22의 방어도를 얻고 가시 2를 얻습니다.' },
+  { id: 'loot_poison_thorn', name: '맹독 가시', type: 'attack', cost: 2, rarity: 'loot', damage: 6, multiHit: 3, enemyPoison: 3, desc: '[맹독의 여왕] 독가시를 기관총처럼 쏴 6의 피해를 3번 주고 중독 3을 부여합니다.' },
+  { id: 'loot_abyssal_ray', name: '파멸의 광선', type: 'attack', cost: 3, rarity: 'loot', damage: 32, enemySilence: 1, desc: '[심연의 주시자] 공간을 일그러뜨리는 광선을 쏴 32의 피해를 주고 침묵 1을 부여합니다.' },
+
+
+  // ---------------- [ 하드 보스 (HARD_MODE_BOSSES) ] ----------------
+  // 1. 솜뭉치 유령 / 심술쟁이 요정
+  { id: 'loot_cotton_punch', name: '솜뭉치 펀치', type: 'attack', cost: 1, rarity: 'loot', damage: 10, draw: 1, desc: '[솜뭉치 유령] 가벼워 보이지만 묵직한 주먹으로 10의 피해를 주고 카드를 1장 뽑습니다.' },
+  { id: 'loot_fairy_prank', name: '요정의 장난', type: 'attack', cost: 1, rarity: 'loot', damage: 4, multiHit: 2, enemyWeak: 1, desc: '[심술쟁이 요정] 눈에 보이지 않게 날아다니며 4의 피해를 2번 주고 약화 1을 부여합니다.' },
+  
+  // 2. 서큐버스 자매 (리리, 롤라)
+  { id: 'loot_heart_breaker', name: '하트 브레이커', type: 'attack', cost: 2, rarity: 'loot', damage: 16, enemyVuln: 2, desc: '[서큐버스 리리] 파괴적인 하트를 터뜨려 16의 피해를 주고 취약 2를 부여합니다.' },
+  { id: 'loot_love_whip', name: '사랑의 채찍', type: 'attack', cost: 2, rarity: 'loot', damage: 8, multiHit: 3, enemyWeak: 1, desc: '[서큐버스 롤라] 사디스틱하게 채찍을 휘둘러 8의 피해를 3번 주고 약화 1을 부여합니다.' },
+  { id: 'loot_essence_drain', name: '정기 흡수', type: 'attack', cost: 2, rarity: 'loot', damage: 14, heal: 14, desc: '[서큐버스 롤라] 생명 에너지를 진득하게 빨아들여 14의 피해를 주고 체력을 14 회복합니다.' },
+
+  // 3. 화가 난 호박 기사 / 거대 꿀벌 여왕
+  { id: 'loot_pumpkin_headbutt', name: '호박 머리 박치기', type: 'attack', cost: 2, rarity: 'loot', damage: 22, selfDamage: 2, desc: '[호박 기사] 무식하게 박치기를 해 22의 피해를 주지만 체력을 2 잃습니다.' },
+  { id: 'loot_bee_sting', name: '독침 찌르기', type: 'attack', cost: 2, rarity: 'loot', damage: 15, enemyPoison: 5, desc: '[꿀벌 여왕] 거대한 독침을 박아넣어 15의 피해를 주고 중독 5를 부여합니다.' },
+  { id: 'loot_pheromone', name: '페로몬 살포', type: 'skill', cost: 1, rarity: 'loot', enemyMark: 3, draw: 2, desc: '[꿀벌 여왕] 타겟팅 페로몬을 흩날려 표식 3을 부여하고 카드를 2장 뽑습니다.' },
+
+  // 4. 달빛 늑대인간 / 광기의 연금술사
+  { id: 'loot_frenzied_claw', name: '광란의 발톱', type: 'attack', cost: 2, rarity: 'loot', damage: 12, multiHit: 2, desc: '[늑대인간] 이성을 잃고 발톱을 휘둘러 12의 피해를 2번 줍니다.' },
+  { id: 'loot_blood_thirst_wolf', name: '피의 갈증', type: 'skill', cost: 1, rarity: 'loot', selfStrength: 3, selfDamage: 4, desc: '[늑대인간] 피 냄새에 취해 체력을 4 잃고 근력을 3 얻습니다.' },
+  { id: 'loot_chemical_throw', name: '화학 물질 투척', type: 'attack', cost: 2, rarity: 'loot', damage: 20, enemyPoison: 3, desc: '[연금술사] 폭발성 플라스크를 던져 20의 피해를 주고 중독 3을 부여합니다.' },
+
+  // 5. 고대 유적 파수꾼 / 빙결의 마녀 / 심해의 악몽
+  { id: 'loot_laser_beam', name: '레이저 빔', type: 'attack', cost: 3, rarity: 'loot', damage: 32, enemyVuln: 2, desc: '[파수꾼] 고열의 붉은 레이저를 발사해 32의 피해를 주고 취약 2를 부여합니다.' },
+  { id: 'loot_ice_spear', name: '얼음 송곳', type: 'attack', cost: 2, rarity: 'loot', damage: 7, multiHit: 3, enemyFrail: 1, desc: '[마녀] 날카로운 얼음창을 연속 발사해 7의 피해를 3번 주고 허약 1을 부여합니다.' },
+  { id: 'loot_ink_spray', name: '먹물 뿜기', type: 'attack', cost: 2, rarity: 'loot', damage: 18, enemyFrail: 3, enemyWeak: 1, desc: '[심해의 악몽] 칠흑 같은 먹물을 내뿜어 18의 피해를 주고 허약 3, 약화 1을 부여합니다.' },
+
+  // 6. 타락한 성녀 / 강철 거수
+  { id: 'loot_holy_flame', name: '신성한 불꽃', type: 'attack', cost: 3, rarity: 'loot', damage: 35, enemyMark: 2, desc: '[타락한 성녀] 십자가 형상의 불길을 일으켜 35의 피해를 주고 표식 2를 부여합니다.' },
+  { id: 'loot_furnace', name: '초고열 용광로', type: 'skill', cost: 2, rarity: 'loot', selfStrength: 4, selfDamage: 5, desc: '[강철 거수] 체내 엔진을 과열시켜 체력을 5 잃고 근력을 4 얻습니다.' },
+
+  // 7. 핏빛 군단장 / 역병의 사도
+  { id: 'loot_beheading_strike', name: '참수격', type: 'attack', cost: 3, rarity: 'loot', damage: 45, enemyVuln: 2, selfDamage: 3, desc: '[핏빛 군단장] 필살의 일격으로 45의 피해를 주고 취약 2를 부여하지만 체력을 3 잃습니다.' },
+  { id: 'loot_rot_breath', name: '부패의 숨결', type: 'attack', cost: 2, rarity: 'loot', damage: 15, enemyPoison: 6, desc: '[역병의 사도] 썩은 숨을 뱉어내 15의 피해를 주고 중독 6을 부여합니다.' },
+
+  // 8. 그림자 군주 / 고대 용의 망령
+  { id: 'loot_shadow_slash', name: '그림자 베기', type: 'attack', cost: 3, rarity: 'loot', damage: 12, multiHit: 4, desc: '[그림자 군주] 시퍼런 칼날들이 솟구쳐 12의 피해를 4번 연속 줍니다.' },
+  { id: 'loot_wraith_explosion', name: '원혼 폭발', type: 'attack', cost: 3, rarity: 'loot', damage: 50, selfDamage: 8, enemyWeak: 2, desc: '[용의 망령] 원혼을 폭발시켜 50의 피해를 주고 약화 2를 부여하지만 내 체력을 8 잃습니다.' },
+
+  // 9. 지옥의 재판관 / 공허의 파괴자 / 종말의 전령
+  { id: 'loot_death_sentence', name: '사형 선고', type: 'skill', cost: 2, rarity: 'loot', enemyMark: 8, enemyVuln: 2, desc: '[지옥의 재판관] 지워지지 않는 죄인 낙인을 찍어 표식 8과 취약 2를 부여합니다.' },
+  { id: 'loot_dimension_crush', name: '차원 분쇄', type: 'attack', cost: 3, rarity: 'loot', damage: 55, enemySilence: 1, desc: '[공허의 파괴자] 공간 자체를 쪼개 55의 피해를 주고 침묵 1을 부여합니다.' },
+  { id: 'loot_doom_arrival', name: '종말의 도래', type: 'attack', cost: 3, rarity: 'loot', damage: 60, enemyFrail: 3, selfDamage: 10, desc: '[종말의 전령] 하늘이 무너지는 재앙으로 60의 피해와 허약 3을 주지만 내 체력을 10 잃습니다.' },
+
+
+  // ---------------- [ 특수 보스 (SPECIAL_BOSSES) & 스케일링 보스 ] ----------------
+  // 초월한 슬라임 (H50)
+  { id: 'loot_transcendent_fall', name: '초월 낙하', type: 'attack', cost: 3, rarity: 'loot', damage: 30, enemyWeak: 2, desc: '[초월한 슬라임] 구름 위까지 도약했다 떨어져 30의 피해를 주고 약화 2를 부여합니다.' },
+  { id: 'loot_slime_wave', name: '슬라임 웨이브', type: 'attack', cost: 2, rarity: 'loot', damage: 14, enemyWeak: 1, enemyBind: 1, desc: '[초월한 슬라임] 점액 해일을 일으켜 14의 피해를 주고 약화 1, 속박 1을 부여합니다.' },
+
+  // 기계화된 골렘 (H100)
+  { id: 'loot_annihilation_laser', name: '섬멸 레이저', type: 'attack', cost: 3, rarity: 'loot', damage: 12, multiHit: 3, enemyMark: 2, desc: '[기계화된 골렘] 세 가닥의 레이저가 교차하며 12의 피해를 3번 주고 표식 2를 부여합니다.' },
+  { id: 'loot_rocket_punch', name: '로켓 펀치', type: 'attack', cost: 2, rarity: 'loot', damage: 28, enemyVuln: 1, desc: '[기계화된 골렘] 부스터가 뿜어져 나오는 펀치로 28의 피해를 주고 취약 1을 부여합니다.' },
+
+  // 글리치 보스 @#!%# (H150)
+  { id: 'loot_fatal_error', name: 'Fatal Error', type: 'attack', cost: 3, rarity: 'loot', damage: 40, enemyVuln: 3, selfDamage: 5, desc: '[@#!%#] 끔찍한 노이즈와 함께 40의 피해를 주고 취약 3을 주지만 내 체력에 5의 피해를 입습니다.' },
+  { id: 'loot_memory_leak', name: 'Memory Leak', type: 'skill', cost: 2, rarity: 'loot', enemyPoison: 8, enemyWeak: 2, desc: '[@#!%#] 생명력을 갉아먹는 코드를 주입해 중독 8과 약화 2를 부여합니다.' },
+
+  // 종말의 정적 (H200)
+  { id: 'loot_world_of_nothingness', name: '무의 세계', type: 'skill', cost: 3, rarity: 'loot', enemySilence: 2, enemyBind: 1, desc: '[종말의 정적] 모든 소리와 색채를 빼앗아 적에게 침묵 2와 속박 1을 부여합니다.' },
+  { id: 'loot_silent_scream', name: '고요한 외침', type: 'attack', cost: 2, rarity: 'loot', damage: 20, enemyWeak: 3, desc: '[종말의 정적] 소리 없는 비명이 타격해 20의 피해를 주고 약화 3을 부여합니다.' },
+
+  // 태초의 아케인: 에이온 (H300)
+  { id: 'loot_big_bang', name: '빅뱅', type: 'attack', cost: 3, rarity: 'loot', damage: 15, multiHit: 4, enemyVuln: 2, desc: '[에이온] 우주 탄생의 에너지를 터뜨려 15의 피해를 4번 연속 주고 취약 2를 부여합니다.' },
+  { id: 'loot_galaxy_crush', name: '은하 분쇄', type: 'attack', cost: 3, rarity: 'loot', damage: 65, selfDamage: 12, enemySilence: 1, desc: '[에이온] 은하계를 내리꽂아 65의 파멸적 피해를 주고 침묵 1을 부여하지만 체력을 12 잃습니다.' },
+  { id: 'loot_absolute_power', name: '절대 권력', type: 'skill', cost: 3, rarity: 'loot', selfStrength: 5, manaGain: 3, selfDamage: 10, desc: '[에이온] 우주의 이치를 거슬러 체력을 10 잃지만 근력 5와 마나 3을 즉시 얻습니다.' }
+];
 
 export const ENEMIES = [
   { name: '슬라임', baseHp: 30, deck: [

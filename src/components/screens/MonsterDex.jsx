@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Skull, Maximize } from 'lucide-react';
+import { Skull, Maximize2 } from 'lucide-react';
 import Tooltip from '../common/Tooltip';
 import { ENEMIES, NORMAL_BOSSES, SPECIAL_BOSSES } from '../../constants/gameData';
 
@@ -88,7 +88,7 @@ export default function MonsterDex({
         </h2>
         <div className="flex gap-2">
           <button onClick={toggleFullScreen} className="bg-slate-800 p-2 rounded border border-slate-600 hover:bg-slate-700">
-            <Maximize className="w-5 h-5"/>
+            <Maximize2 className="w-5 h-5"/>
           </button>
           <button onClick={() => setGameState('MENU')} className="py-2 px-6 bg-indigo-600 hover:bg-indigo-500 rounded-lg font-bold shadow-lg transition-all">
             메인으로
