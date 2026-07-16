@@ -12,7 +12,8 @@ export function useBattle({
   credits, setCredits,
   maxStageReached, setMaxStageReached,
   setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared,
-  setEnemyDropCard
+  setEnemyDropCard,
+  setPendingRelicChoices
 }) {
 
   const checkRevive = useCallback((target, enemiesArray) => {
@@ -53,12 +54,27 @@ export function useBattle({
       setGameStats(newStats);
       setCredits(credits + earned);
 
-      let relicDropChance = isSpecialBoss ? 0.50 : isNormalBoss ? 0.20 : 0.05;
+      const isAnyBoss = isNormalBoss || isSpecialBoss || (prevCombat.stage > 0 && prevCombat.stage % 10 === 0);
+      const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
+
       let droppedRelic = null;
+      let droppedRelicChoices = [];
       
-      if (Math.random() < relicDropChance) {
-        const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
-        if (availableRelics.length > 0) droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
+      if (isAnyBoss) {
+        let choices = [];
+        let pool = [...availableRelics];
+        for (let i = 0; i < 3; i++) {
+          if (pool.length === 0) break;
+          const rIdx = Math.floor(Math.random() * pool.length);
+          choices.push(pool[rIdx]);
+          pool.splice(rIdx, 1);
+        }
+        droppedRelicChoices = choices;
+      } else {
+        let relicDropChance = 0.05;
+        if (Math.random() < relicDropChance && availableRelics.length > 0) {
+          droppedRelic = availableRelics[Math.floor(availableRelics.length * Math.random())];
+        }
       }
 
       // 🌟 [추가 로직] 적 및 보스 카드 무작위 드랍 시스템 (밸런스 패치 적용 + 전용 전리품)
@@ -184,7 +200,12 @@ export function useBattle({
 
       saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
       
-      if (droppedRelic) {
+      if (droppedRelicChoices && droppedRelicChoices.length > 0) {
+        if (typeof setPendingRelicChoices === 'function') {
+           setPendingRelicChoices(droppedRelicChoices);
+        }
+        setTimeout(() => setGameState('BOSS_RELIC_CHOICE'), 600);
+      } else if (droppedRelic) {
         setPendingRelicReward(droppedRelic);
         setTimeout(() => setGameState('RELIC_REWARD'), 600);
       } else {

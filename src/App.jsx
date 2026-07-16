@@ -70,6 +70,7 @@ export default function App() {
   const [premiumGachaResult, setPremiumGachaResult] = useState(null);
   const [specialBossRewardCard, setSpecialBossRewardCard] = useState(null);
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [pendingRelicChoices, setPendingRelicChoices] = useState(null);
   const [confirmSelection, setConfirmSelection] = useState(null);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [hardSkipModalOpen, setHardSkipModalOpen] = useState(false); 
@@ -329,7 +330,8 @@ export default function App() {
     credits, setCredits,
     maxStageReached, setMaxStageReached,
     setPendingRelicReward, setSpecialBossRewardCard, setNormalCleared,
-    setEnemyDropCard 
+    setEnemyDropCard,
+    setPendingRelicChoices
   });
 
   const handleRelicRewardClaim = () => {
@@ -342,6 +344,21 @@ export default function App() {
     saveGame({ unlockedRelics: newUnlocked });
     setToastMsg(`🌟 ${pendingRelicReward.name} 장착 완료!`);
     setPendingRelicReward(null);
+    if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
+    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); } 
+    else { setGameState('REWARDS'); }
+  };
+
+  const handleRelicChoiceClaim = (relic) => {
+    if (!relic) return;
+    const updatedRelics = [...(playerRelics || []), relic];
+    setPlayerRelics(updatedRelics);
+    let newUnlocked = [...(unlockedRelics || [])];
+    if (!newUnlocked.includes(relic.id)) newUnlocked.push(relic.id);
+    setUnlockedRelics(newUnlocked);
+    saveGame({ unlockedRelics: newUnlocked });
+    setToastMsg(`🌟 ${relic.name} 획득!`);
+    setPendingRelicChoices(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
     else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); } 
     else { setGameState('REWARDS'); }
@@ -848,6 +865,8 @@ export default function App() {
             specialBossRewardCard={specialBossRewardCard} 
             pendingRelicReward={pendingRelicReward} 
             handleRelicRewardClaim={handleRelicRewardClaim}
+            pendingRelicChoices={pendingRelicChoices}
+            handleRelicChoiceClaim={handleRelicChoiceClaim}
             enemyDropCard={enemyDropCard} 
             setEnemyDropCard={setEnemyDropCard} 
             customCards={customCards} 

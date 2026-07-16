@@ -27,6 +27,8 @@ export default function Rewards({
   handleSpecialBossRewardClaim,
   pendingRelicReward,         
   handleRelicRewardClaim,     
+  pendingRelicChoices,
+  handleRelicChoiceClaim,
   enemyDropCard,
   setEnemyDropCard,
   customCards,
@@ -68,6 +70,34 @@ export default function Rewards({
           <div className="mt-8 text-amber-400 font-bold animate-pulse text-sm">
             클릭하여 장착하기 (취소 불가)
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🌟 0.5 보스 유물 3지선다 화면
+  if (gameState === 'BOSS_RELIC_CHOICE' && pendingRelicChoices) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative overflow-hidden">
+        <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-amber-500 mb-8 animate-bounce drop-shadow-[0_0_20px_rgba(251,191,36,0.6)] text-center">
+          보스 격파 보상!
+        </h1>
+        <p className="text-xl text-amber-200 mb-8 font-bold">원하는 유물을 하나 선택하세요</p>
+        
+        <div className="flex flex-col md:flex-row gap-6 justify-center items-stretch w-full max-w-5xl z-10">
+          {pendingRelicChoices.map(relic => (
+            <div 
+              key={relic.id}
+              onClick={() => handleRelicChoiceClaim(relic)}
+              className="bg-slate-800/80 backdrop-blur-md p-6 rounded-2xl border-2 border-amber-500/50 hover:border-amber-400 shadow-[0_0_30px_rgba(245,158,11,0.2)] hover:shadow-[0_0_50px_rgba(245,158,11,0.5)] w-full md:w-1/3 text-center transform transition-all hover:-translate-y-2 cursor-pointer flex flex-col items-center group"
+            >
+              <img src={shieldImg} alt="Relic" className="w-16 h-16 mb-4 drop-shadow-[0_0_15px_rgba(251,191,36,0.4)] group-hover:animate-pulse" />
+              <h2 className="text-xl md:text-2xl font-bold text-amber-400 mb-4">{relic.name}</h2>
+              <p className="text-slate-300 text-sm bg-black/40 p-4 rounded-xl border border-white/5 flex-grow w-full break-keep flex items-center justify-center">
+                {relic.desc}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     );

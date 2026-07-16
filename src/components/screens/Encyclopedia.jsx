@@ -44,6 +44,10 @@ export default function Encyclopedia({
   
   const filteredRelics = RELIC_LIBRARY.filter(r => {
     if (filterRarity !== 'all' && r.rarity !== filterRarity) return false;
+    if (filterEffect !== 'all' && r.category) {
+      if (filterEffect.startsWith('buff') && r.category !== 'buff') return false;
+      if (filterEffect.startsWith('debuff') && r.category !== 'debuff') return false;
+    }
     if (searchQuery && !r.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (filterUnlock === 'unlocked' && !validUnlockedRelics.includes(r.id)) return false;
     if (filterUnlock === 'locked' && validUnlockedRelics.includes(r.id)) return false;
