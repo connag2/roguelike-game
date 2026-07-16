@@ -395,6 +395,12 @@ export default function App() {
             // ✨ 다중 인텐트 배열을 순회 (기본 1장, 하드 보스 2장)
             let intents = e.intentCards || [{ type: 'attack', value: 5, uid: 'fallback' }]; 
             
+            // ❄️ 동상(Frost) 적용: 수치만큼 이번 턴의 행동(인텐트) 횟수 감소
+            let frostAmount = e.debuffs?.frost || 0;
+            if (frostAmount > 0) {
+              intents = intents.slice(0, Math.max(0, intents.length - frostAmount));
+            }
+            
             for (const intent of intents) {
               const isAttack = intent.type.includes('attack');
               const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
