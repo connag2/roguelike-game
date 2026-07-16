@@ -142,6 +142,47 @@ export const getCardDef = (id, shopUpgrades) => {
   return base;
 };
 
+// ✨ 전투 중 실시간 버프/디버프가 반영된 카드 정의 반환
+export const getDynamicCardDef = (baseDef, player) => {
+  if (!baseDef || !player) return baseDef;
+  
+  const card = { ...baseDef };
+  let desc = card.desc || '';
+  
+  // 1. 공격 카드 피해량 계산 (근력, 약화)
+  if (card.damage && card.type === 'attack') {
+    const strength = player.buffs?.strength || 0;
+    const weak = player.debuffs?.weak || 0;
+    
+    let dynDamage = card.damage + strength;
+    if (weak > 0) dynDamage = Math.floor(dynDamage * 0.75);
+    dynDamage = Math.max(0, dynDamage);
+    
+    if (dynDamage !== card.damage) {
+      const colorClass = dynDamage > card.damage ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+      desc = desc.replace(`${card.damage}의 피해`, `<span class="${colorClass}">${dynDamage}</span>의 피해`);
+    }
+  }
+
+  // 2. 방어 카드 방어도 계산 (민첩, 쇠약/허약)
+  if (card.block) {
+    const dexterity = player.buffs?.dexterity || 0;
+    const frail = player.debuffs?.frail || 0;
+    
+    let dynBlock = card.block + dexterity;
+    if (frail > 0) dynBlock = Math.floor(dynBlock * 0.75);
+    dynBlock = Math.max(0, dynBlock);
+    
+    if (dynBlock !== card.block) {
+      const colorClass = dynBlock > card.block ? 'text-green-400 font-bold' : 'text-red-400 font-bold';
+      desc = desc.replace(`${card.block}의 방어`, `<span class="${colorClass}">${dynBlock}</span>의 방어`);
+    }
+  }
+  
+  card.desc = desc;
+  return card;
+};
+
 // ✨ 덱 리필 시스템 및 다중 드로우(하드보스 전용) 처리
 export const generateEnemyIntent = (enemy, dmgMulti = 1) => {
   if (!enemy.template || !enemy.template.deck || enemy.template.deck.length === 0) {

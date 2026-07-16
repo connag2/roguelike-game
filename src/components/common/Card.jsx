@@ -122,7 +122,7 @@ const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, o
       
       <div className="text-[11px] md:text-xs text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
         <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
-          <span className="text-center leading-normal">{card.desc}</span>
+          <span className="text-center leading-normal" dangerouslySetInnerHTML={{ __html: card.desc }}></span>
           <Tooltip desc={card.desc} />
         </div>
       </div>

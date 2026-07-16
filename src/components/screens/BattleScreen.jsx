@@ -1,6 +1,7 @@
 // src/components/screens/BattleScreen.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; 
+import { getDynamicCardDef } from '../../utils/gameLogic';
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 import CommonEffects from '../effects/CommonEffects';
@@ -522,7 +523,7 @@ export default function BattleScreen({
                          animationFillMode: 'backwards' 
                        }}>
                     <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400' : 'cursor-not-allowed brightness-75'}`}>
-                      <Card card={card} isLocked={false} />
+                      <Card card={getDynamicCardDef(card, player)} isLocked={false} />
                     </div>
                   </div>
 
