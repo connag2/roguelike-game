@@ -566,5 +566,348 @@ export const RELIC_LIBRARY = [
       "mana": 2,
       "draw": 2
     }
+  },
+  {
+    "id": "crystal_shield",
+    "name": "수정 방패",
+    "rarity": "uncommon",
+    "category": "buff",
+    "desc": "전투 시작 시 방어도를 8 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "block": 8
+    }
+  },
+  {
+    "id": "warrior_medal",
+    "name": "전사의 훈장",
+    "rarity": "uncommon",
+    "category": "buff",
+    "desc": "전투 시작 시 근력을 2, 재생을 1 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "strength": 2,
+      "regen": 1
+    }
+  },
+  {
+    "id": "berserker_helm",
+    "name": "광전사의 투구",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "전투 시작 시 근력을 3, 민첩을 -1 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "strength": 3,
+      "dexterity": -1
+    }
+  },
+  {
+    "id": "blessed_water",
+    "name": "축복받은 성수",
+    "rarity": "uncommon",
+    "category": "buff",
+    "desc": "전투 시작 시 재생을 3 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "regen": 3
+    }
+  },
+  {
+    "id": "stone_golem_core",
+    "name": "돌골렘의 심장",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "매 턴 시작 시 방어도를 7 얻습니다.",
+    "effect": {
+      "type": "START_TURN",
+      "block": 7
+    }
+  },
+  {
+    "id": "fairy_dust",
+    "name": "요정의 가루",
+    "rarity": "common",
+    "category": "buff",
+    "desc": "매 턴 시작 시 재생을 1 얻습니다.",
+    "effect": {
+      "type": "START_TURN",
+      "regen": 1
+    }
+  },
+  {
+    "id": "lion_mane",
+    "name": "사자의 갈기",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "전투 시작 시 근력을 2, 가시를 4 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "strength": 2,
+      "thorns": 4
+    }
+  },
+  {
+    "id": "elven_boots",
+    "name": "엘프의 장화",
+    "rarity": "rare",
+    "category": "buff",
+    "desc": "전투 시작 시 민첩을 3 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "dexterity": 3
+    }
+  },
+  {
+    "id": "golden_fleece",
+    "name": "황금 양털",
+    "rarity": "mythic",
+    "category": "buff",
+    "desc": "매 턴 시작 시 방어도 5, 근력 1, 민첩 1, 통찰 1을 얻습니다.",
+    "effect": {
+      "type": "START_TURN_ADVANCED",
+      "block": 5,
+      "strength": 1,
+      "dexterity": 1,
+      "insight": 1
+    }
+  },
+  {
+    "id": "moonlight_ring",
+    "name": "달빛 반지",
+    "rarity": "special",
+    "category": "buff",
+    "desc": "전투 시작 시 통찰을 3 얻습니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "insight": 3
+    }
+  },
+  {
+    "id": "toxic_gas_mask",
+    "name": "방독면",
+    "rarity": "uncommon",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 중독 3을 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyPoison": 3
+    }
+  },
+  {
+    "id": "lava_stone",
+    "name": "용암석",
+    "rarity": "uncommon",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 화상 3을 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyBurn": 3
+    }
+  },
+  {
+    "id": "barbed_wire",
+    "name": "가시 철조망",
+    "rarity": "uncommon",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 출혈 3을 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyBleed": 3
+    }
+  },
+  {
+    "id": "ice_cube",
+    "name": "얼음 큐브",
+    "rarity": "uncommon",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 동상 3을 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyFrost": 3
+    }
+  },
+  {
+    "id": "voodoo_doll",
+    "name": "부두 인형",
+    "rarity": "rare",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 약화 2, 취약 2를 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyWeak": 2,
+      "enemyVuln": 2
+    }
+  },
+  {
+    "id": "gag_ball",
+    "name": "재갈",
+    "rarity": "special",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 침묵 2를 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemySilence": 2
+    }
+  },
+  {
+    "id": "iron_shackles",
+    "name": "강철 수갑",
+    "rarity": "special",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 속박 2를 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyBind": 2
+    }
+  },
+  {
+    "id": "plague_rat",
+    "name": "역병 쥐",
+    "rarity": "rare",
+    "category": "debuff",
+    "desc": "매 턴 시작 시 적 전체에게 중독 1, 화상 1, 출혈 1을 부여합니다.",
+    "effect": {
+      "type": "START_TURN_ADVANCED",
+      "poison": 1,
+      "burn": 1,
+      "bleed": 1
+    }
+  },
+  {
+    "id": "cursed_eye",
+    "name": "저주받은 눈",
+    "rarity": "rare",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 취약 3을 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyVuln": 3
+    }
+  },
+  {
+    "id": "nightmare_catcher",
+    "name": "악몽 포집기",
+    "rarity": "rare",
+    "category": "debuff",
+    "desc": "전투 시작 시 적 전체에게 약화 3을 부여합니다.",
+    "effect": {
+      "type": "START_COMBAT",
+      "enemyWeak": 3
+    }
+  },
+  {
+    "id": "merchant_vip_card",
+    "name": "상인 VIP 카드",
+    "rarity": "rare",
+    "category": "utility",
+    "desc": "전투 승리 시 크레딧을 15 더 얻습니다.",
+    "effect": {
+      "type": "END_COMBAT_CREDITS",
+      "bonus": 15
+    }
+  },
+  {
+    "id": "vampire_bat",
+    "name": "흡혈 박쥐",
+    "rarity": "rare",
+    "category": "utility",
+    "desc": "전투 승리 시 체력을 10 회복합니다.",
+    "effect": {
+      "type": "END_COMBAT_HEAL",
+      "heal": 10
+    }
+  },
+  {
+    "id": "mana_battery",
+    "name": "마나 배터리",
+    "rarity": "rare",
+    "category": "utility",
+    "desc": "매 턴 시작 시 마나를 2 얻습니다.",
+    "effect": {
+      "type": "START_TURN",
+      "mana": 2
+    }
+  },
+  {
+    "id": "magic_scroll",
+    "name": "마법 스크롤",
+    "rarity": "uncommon",
+    "category": "utility",
+    "desc": "매 턴 시작 시 카드를 1장, 통찰을 1 얻습니다.",
+    "effect": {
+      "type": "START_TURN",
+      "draw": 1,
+      "insight": 1
+    }
+  },
+  {
+    "id": "golden_pig",
+    "name": "황금 돼지 저금통",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "전투 승리 시 크레딧을 30 더 얻습니다.",
+    "effect": {
+      "type": "END_COMBAT_CREDITS",
+      "bonus": 30
+    }
+  },
+  {
+    "id": "time_stop_watch",
+    "name": "시간 정지 회중시계",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "매 턴 시작 시 마나 1, 드로우 1, 통찰 2를 얻습니다.",
+    "effect": {
+      "type": "START_TURN_MYTHIC",
+      "mana": 1,
+      "draw": 1,
+      "insight": 2
+    }
+  },
+  {
+    "id": "blood_stone",
+    "name": "선혈의 돌",
+    "rarity": "special",
+    "category": "utility",
+    "desc": "전투 시작 시 체력을 10 회복합니다.",
+    "effect": {
+      "type": "START_COMBAT_HEAL",
+      "heal": 10
+    }
+  },
+  {
+    "id": "mystic_lens",
+    "name": "신비의 렌즈",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "매 턴 시작 시 카드를 3장 더 뽑습니다.",
+    "effect": {
+      "type": "START_TURN",
+      "draw": 3
+    }
+  },
+  {
+    "id": "philosopher_stone_fragment",
+    "name": "현자의 돌 조각",
+    "rarity": "rare",
+    "category": "utility",
+    "desc": "매 턴 시작 시 마나 2를 얻지만, 체력을 3 잃습니다.",
+    "effect": {
+      "type": "START_TURN_MYTHIC",
+      "mana": 2,
+      "selfDamage": 3
+    }
+  },
+  {
+    "id": "infinite_pouch",
+    "name": "무한의 주머니",
+    "rarity": "rare",
+    "category": "utility",
+    "desc": "매 턴 카드를 1장 더 뽑습니다.",
+    "effect": {
+      "type": "START_TURN",
+      "draw": 1
+    }
   }
 ];
