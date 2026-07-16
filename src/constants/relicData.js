@@ -974,5 +974,41 @@ export const RELIC_LIBRARY = [
       "chance": 0.1,
       "mana": 1
     }
+  },
+  {
+    "id": "relic_omniscience",
+    "name": "전지전능의 눈알",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "신화 카드 [전지전능]을 사용할 때 체력을 20 회복합니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "specificCardId": "omniscience",
+      "heal": 20
+    }
+  },
+  {
+    "id": "relic_phantom_walk",
+    "name": "환영의 망토",
+    "rarity": "mythic",
+    "category": "utility",
+    "desc": "신화 카드 [환영 보법]을 사용할 때 마나를 3 회복합니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "specificCardId": "phantom_walk",
+      "mana": 3
+    }
+  },
+  {
+    "id": "relic_furioso",
+    "name": "퓨리오소의 가면",
+    "rarity": "mythic",
+    "category": "buff",
+    "desc": "신화 카드 [Furioso]를 사용할 때 근력을 3 얻습니다.",
+    "effect": {
+      "type": "PLAY_CARD",
+      "specificCardId": "furioso",
+      "strength": 3
+    }
   }
 ];

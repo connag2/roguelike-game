@@ -286,11 +286,11 @@ export default function Rewards({
         <div className="absolute inset-0 bg-fuchsia-600/10 animate-pulse pointer-events-none" />
         <h2 className="text-4xl md:text-5xl font-black mb-4 text-fuchsia-400 tracking-wider text-center drop-shadow-lg animate-bounce">특수 보스 처치 보상!</h2>
         <p className="text-lg md:text-xl mb-10 text-slate-300 text-center">압도적인 적을 물리친 증표로<br/>새로운 특수 카드를 획득했습니다.</p>
-        <div className="relative group w-48 h-64 md:w-64 md:h-80 mb-10 animate-draw">
-          <div className="scale-125 md:scale-150 origin-top h-full w-full">
+        <div className="relative group mb-10 animate-draw flex justify-center items-center">
+          <div className="relative scale-125 md:scale-150 origin-center transition-transform hover:scale-150">
             <Card card={specialBossRewardCard} />
+            <div className="absolute inset-0 border-[3px] border-fuchsia-500/50 rounded-xl animate-pulse pointer-events-none" />
           </div>
-          <div className="absolute inset-0 border-4 border-fuchsia-500/50 rounded-xl animate-pulse" />
         </div>
         <button onClick={handleSpecialClaim} className="px-10 py-4 bg-fuchsia-700 hover:bg-fuchsia-600 rounded-full font-bold text-xl md:text-2xl shadow-fuchsia-500/40 shadow-2xl mt-24 transition-all hover:scale-110">
           획득하기

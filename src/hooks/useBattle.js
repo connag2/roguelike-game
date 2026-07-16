@@ -90,15 +90,23 @@ export function useBattle({
           let selectedCard = null;
 
           if (isThisEnemyBoss) {
-            // ✨ 보스 이름이 포함된 고유 전리품 필터링
-            const specificLoots = BOSS_LOOT_CARDS.filter(c => c.desc && c.desc.includes(`[${enemy.template.name}]`));
-            
-            if (specificLoots.length > 0) {
-              selectedCard = specificLoots[Math.floor(Math.random() * specificLoots.length)];
-            } else {
-              // 전용 전리품이 없다면 덱에서 하나 드랍
-              const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
-              selectedCard = enemy.template.deck[randomIdx];
+            // ✨ 100층 이상에서 10% 확률로 퓨리오소 드랍
+            if (prevCombat.stage >= 100 && Math.random() < 0.10) {
+              const furiosoCard = CARD_LIBRARY.find(c => c.id === 'furioso');
+              if (furiosoCard) selectedCard = furiosoCard;
+            }
+
+            if (!selectedCard) {
+              // ✨ 보스 이름이 포함된 고유 전리품 필터링
+              const specificLoots = BOSS_LOOT_CARDS.filter(c => c.desc && c.desc.includes(`[${enemy.template.name}]`));
+              
+              if (specificLoots.length > 0) {
+                selectedCard = specificLoots[Math.floor(Math.random() * specificLoots.length)];
+              } else {
+                // 전용 전리품이 없다면 덱에서 하나 드랍
+                const randomIdx = Math.floor(Math.random() * enemy.template.deck.length);
+                selectedCard = enemy.template.deck[randomIdx];
+              }
             }
           } else {
             // 패턴 중 하나를 무작위 선택
@@ -288,6 +296,9 @@ export function useBattle({
       if (playerRelics && playerRelics.length > 0) {
         playerRelics.forEach(relic => {
           if (relic.effect?.type === 'PLAY_CARD') {
+             // ✨ 특정 카드 ID 조건이 있는 경우 해당 카드일 때만 발동
+             if (relic.effect.specificCardId && relic.effect.specificCardId !== card.id) return;
+
              if (!relic.effect.cardType || relic.effect.cardType === card.type) {
                 const chance = relic.effect.chance || 1.0;
                 if (Math.random() <= chance) {
