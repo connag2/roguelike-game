@@ -562,7 +562,8 @@ export default function App() {
     setCredits(prev => prev - 100);
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
-      let rarity = roll < 0.03 ? 'rare' : 'uncommon'; 
+      // ✨ 레어 확률 3% -> 1.5%, 그리고 최고 도달 층수 10층 이상일 때만 등장
+      let rarity = (roll < 0.015 && maxStageReached >= 10) ? 'rare' : 'uncommon'; 
       const pool = CARD_LIBRARY.filter(c => c.rarity === rarity || (rarity === 'rare' && c.rarity === 'special'));
       const card = pool[Math.floor(Math.random() * pool.length)];
       result.push(card);

@@ -90,8 +90,8 @@ export function useBattle({
           let selectedCard = null;
 
           if (isThisEnemyBoss) {
-            // ✨ 100층 이상에서 10% 확률로 퓨리오소 드랍
-            if (prevCombat.stage >= 100 && Math.random() < 0.10) {
+            // ✨ 100층 이상에서 5% 확률로 퓨리오소 드랍 (기존 10%에서 너프)
+            if (prevCombat.stage >= 100 && Math.random() < 0.05) {
               const furiosoCard = CARD_LIBRARY.find(c => c.id === 'furioso');
               if (furiosoCard) selectedCard = furiosoCard;
             }
@@ -171,17 +171,17 @@ export function useBattle({
         const roll = Math.random();
         
         if (isSpecialBoss) {
-          if (roll < 0.01) return CARD_LIBRARY.find(c => c.id === 'furioso');
+          if (roll < 0.005 && maxStageReached >= 30) return CARD_LIBRARY.find(c => c.id === 'furioso');
           
           if ((prevCombat.mode === 'NORMAL' && st === 100) || (prevCombat.mode === 'HARD' && st === 300)) {
-            return roll < 0.25 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
+            return roll < 0.10 ? CARD_LIBRARY.find(c => c.id === 'furioso') : CARD_LIBRARY.find(c => c.id === 'slime_snot');
           }
           
           const specialCards = ['spider_queen_poison', 'twerking', 'power_of_asura'];
           return CARD_LIBRARY.find(c => c.id === specialCards[Math.floor(Math.random() * specialCards.length)]);
         }
         
-        if (isNormalBoss && roll < 0.10) {
+        if (isNormalBoss && roll < 0.05 && maxStageReached >= 10) {
           const strongCards = ['vampire_sword', 'absolute_defense', 'execute', 'snipe'];
           return CARD_LIBRARY.find(c => c.id === strongCards[Math.floor(Math.random() * strongCards.length)]);
         }

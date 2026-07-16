@@ -132,8 +132,8 @@ export const CARD_LIBRARY = [
   { id: 'lucky_coin', name: '행운의 동전', type: 'skill', cost: 1, rarity: 'uncommon', gamble: true, gambleWinChance: 0.5, winManaGain: 3, desc: '동전을 높이 튕깁니다. 앞면이 나오면 마나를 3 얻습니다. 실패 시 아무 효과도 없습니다.' },
   // 전설 (Rare)
   { id: 'vampire_sword', name: '뱀파이어의 검', type: 'attack', cost: 2, rarity: 'rare', damage: 20, heal: 10, enemyWeak: 1, desc: '피를 갈구하는 마검을 휘둘러 20의 피해를 주고 체력을 10 회복하며 약화 1을 부여합니다.' },
-  { id: 'absolute_defense', name: '절대 방어', type: 'skill', cost: 2, rarity: 'rare', block: 30, enemyWeak: 2, desc: '어떤 타격도 허용하지 않는 철벽의 자세로 30의 방어도를 얻고 적을 좌절시켜 약화 2를 부여합니다.' },
-  { id: 'execute', name: '처형', type: 'attack', cost: 2, rarity: 'rare', damage: 30, enemyVuln: 2, desc: '자비 없이 적의 숨통을 끊어버릴 기세로 참수합니다. 30의 피해를 주고 취약 2를 부여합니다.' },
+  { id: 'absolute_defense', name: '절대 방어', type: 'skill', cost: 2, rarity: 'rare', block: 25, enemyWeak: 2, desc: '어떤 타격도 허용하지 않는 철벽의 자세로 25의 방어도를 얻고 적을 좌절시켜 약화 2를 부여합니다.' },
+  { id: 'execute', name: '처형', type: 'attack', cost: 2, rarity: 'rare', damage: 25, enemyVuln: 2, desc: '자비 없이 적의 숨통을 끊어버릴 기세로 참수합니다. 25의 피해를 주고 취약 2를 부여합니다.' },
   { id: 'snipe', name: '저격', type: 'attack', cost: 3, rarity: 'rare', damage: 60, enemyVuln: 2, desc: '숨을 참고 완벽한 타이밍에 흉부를 꿰뚫는 일격을 날려 60의 피해를 주고 취약 2를 부여합니다.' },
   { id: 'onslaught', name: '맹공', type: 'attack', cost: 3, rarity: 'rare', damage: 12, multiHit: 5, enemyVuln: 1, desc: '폭풍처럼 휘몰아치는 5연격을 가해 12의 피해를 5번 연속 주고 취약 1을 부여합니다.' },
   { id: 'berserker_axe', name: '광전사의 도끼', type: 'attack', cost: 2, rarity: 'rare', damage: 40, selfDamage: 3, enemyVuln: 2, desc: '피를 흩뿌리며 광기 어린 도끼질을 해 40의 피해를 주지만 체력을 3 잃고 적에게 취약 2를 부여합니다.' },
@@ -205,9 +205,9 @@ export const CARD_LIBRARY = [
   { id: 'slime_snot', name: '슬라임의 콧물', type: 'skill', cost: 0, rarity: 'special', heal: 20, block: 20, draw: 2, manaGain: 2, desc: '매우 끈적하고 역겹지만 기적의 효능을 가진 콧물을 뒤집어씁니다! 체력과 방어도를 20 얻고 카드 2장과 마나 2를 얻습니다.' },
   
   // 신화 (Mythic)
-  { id: 'omniscience', name: '전지전능', type: 'skill', cost: 3, rarity: 'mythic', draw: 5, manaGain: 5, selfInsight: 5, enemyWeak: 5, enemyVuln: 5, desc: '우주의 모든 이치를 꿰뚫어 보는 제3의 눈을 뜹니다. 카드를 5장 뽑고 마나 5, 통찰 5를 얻습니다. 적에게 약화 5, 취약 5를 부여합니다.' },
+  { id: 'omniscience', name: '전지전능', type: 'skill', cost: 3, rarity: 'mythic', draw: 5, manaGain: 4, selfInsight: 5, enemyWeak: 3, enemyVuln: 3, desc: '우주의 모든 이치를 꿰뚫어 보는 제3의 눈을 뜹니다. 카드를 5장 뽑고 마나 4, 통찰 5를 얻습니다. 적에게 약화 3, 취약 3을 부여합니다.' },
   { id: 'phantom_walk', name: '환영 보법', type: 'skill', cost: 3, rarity: 'mythic', selfIntangible: 1, exhaust: true, desc: '몸이 수많은 잔상으로 나뉘며 1턴 동안 무형 상태가 됩니다. (사용 후 소멸)' },
-  { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'mythic', damage: 12, multiHit: 9, increasingDamage: 7, desc: '미친듯한 템포로 춤추듯 적을 찢어발깁니다. 12의 피해를 9번 연속 주며 타격 시마다 피해량이 7씩 증가합니다.' },
+  { id: 'furioso', name: 'Furioso (퓨리오소)', type: 'attack', cost: 3, rarity: 'mythic', damage: 12, multiHit: 8, increasingDamage: 6, desc: '미친듯한 템포로 춤추듯 적을 찢어발깁니다. 12의 피해를 8번 연속 주며 타격 시마다 피해량이 6씩 증가합니다.' },
 ];
 // ==========================================
 // 전리품 (Loot) - 보스 처치 시 획득할 수 있는 보스 스킬 (플레이어 밸런스 적용 완료)
