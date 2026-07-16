@@ -442,11 +442,11 @@ export function useBattle({
         }
       }
 
-      // 6. 적 전멸 시 승리 처리
-      if (newEnemies.length === 0) {
-        handleVictory(prev, p);
-      } else if (p.hp <= 0) {
+      // 6. 플레이어 사망을 승리보다 우선 처리 (동시 사망 시 패배)
+      if (p.hp <= 0) {
         setGameState('GAME_OVER');
+      } else if (newEnemies.length === 0) {
+        handleVictory(prev, p);
       }
 
       return { ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw, exhaustPile: newExhaust, enemies: newEnemies };
