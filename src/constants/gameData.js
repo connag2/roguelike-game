@@ -530,7 +530,7 @@ export const ENEMIES = [
  
 export const NORMAL_BOSSES = [
   { name: '킹 슬라임', baseHp: 187, deck: [
-    { name: '대지진', type: 'attack', value: 23, desc: '산더미 같은 덩치를 하늘 높이 띄웠다가 땅을 강하게 내리찍어 충격파로 25의 피해를 줍니다.' }, 
+    { name: '대지진', type: 'attack', value: 23, desc: '산더미 같은 덩치를 하늘 높이 띄웠다가 땅을 강하게 내리찍어 충격파로 25의 피해를 줍니다.' , cutscene: true }, 
     { name: '굳어지기', type: 'defend', value: 27, desc: '몸통의 표면 장력을 극대화하여 바위처럼 단단하게 만들어 30의 방어도를 얻습니다.' }, 
     { name: '강산성 점액', type: 'attack_debuff', value: 14, debuff: 'weak', turns: 3, desc: '부글부글 끓어오르는 맹독 산성액을 뿜어내어 15의 피해를 주고 장갑을 부식시켜 약화 3을 부여합니다.' }
   ]}, 
@@ -550,9 +550,9 @@ export const NORMAL_BOSSES = [
     { name: '절망의 시선', type: 'debuff', debuff: 'vulnerable', turns: 4, desc: '눈을 마주친 자의 영혼을 얼어붙게 만드는 시선으로 취약 4를 부여합니다.' }
   ]}, 
   { name: '고대 드래곤', baseHp: 1250, deck: [
-    { name: '드래곤 브레스', type: 'attack', value: 54, desc: '턱 밑에서부터 모아온 거대한 화염의 숨결을 토해내 모든 것을 태워버리는 60의 피해를 줍니다.' }, 
+    { name: '드래곤 브레스', type: 'attack', value: 54, desc: '턱 밑에서부터 모아온 거대한 화염의 숨결을 토해내 모든 것을 태워버리는 60의 피해를 줍니다.' , cutscene: true }, 
     { name: '비늘 강화', type: 'defend', value: 72, desc: '마력을 방출해 강철보다 단단한 비늘을 한층 더 경화시켜 80의 방어도를 얻습니다.' }, 
-    { name: '압도적 공포', type: 'debuff', debuff: 'weak', turns: 5, desc: '최상위 포식자의 진정한 포효를 내질러 존재만으로 공포에 떨게 만듭니다. 약화 5를 부여합니다.' }
+    { name: '압도적 공포', type: 'debuff', debuff: 'weak', turns: 5, desc: '최상위 포식자의 진정한 포효를 내질러 존재만으로 공포에 떨게 만듭니다. 약화 5를 부여합니다.' , cutscene: true }
   ]},
   { name: '미노타우로스', baseHp: 375, deck: [
     { name: '뿔 들이받기', type: 'attack', value: 41, desc: '거대한 두 개의 뿔을 앞세우고 지축을 울리며 돌진해 45의 피해를 줍니다.' }, 
@@ -560,7 +560,7 @@ export const NORMAL_BOSSES = [
     { name: '도끼 휩쓸기', type: 'attack', value: 27, desc: '주위를 통째로 베어버리듯 거대한 도끼를 가로로 휘둘러 30의 피해를 줍니다.' }
   ]},
   { name: '마스터 리치', baseHp: 625, deck: [
-    { name: '죽음의 광선', type: 'attack', value: 45, desc: '마른 뼈에서 녹색빛의 불길한 광선을 응축해 쏘아 50의 피해를 줍니다.' }, 
+    { name: '죽음의 광선', type: 'attack', value: 45, desc: '마른 뼈에서 녹색빛의 불길한 광선을 응축해 쏘아 50의 피해를 줍니다.' , cutscene: true }, 
     { name: '저주받은 구속', type: 'debuff', debuff: 'bind', turns: 1, desc: '바닥에서 썩어가는 손아귀들을 소환해 발목을 잡아당겨 속박 1을 부여합니다.' }, 
     { name: '생명력 착취', type: 'attack_heal', value: 27, heal: 30, desc: '영혼의 파편을 강제로 뜯어내 30의 피해를 주고 썩은 뼈에 생기를 불어넣어 30 회복합니다.' }
   ]},
@@ -570,7 +570,7 @@ export const NORMAL_BOSSES = [
     { name: '무자비한 찢기', type: 'attack', value: 36, desc: '사자와 염소의 뿔, 그리고 발톱으로 무자비하게 유린하여 40의 피해를 줍니다.' }
   ]},
   { name: '타락한 성기사', baseHp: 562, deck: [
-    { name: '신성한 심판', type: 'attack', value: 32, desc: '어둠에 물든 신성 마법을 대검에 둘러 내리쳐 35의 피해를 줍니다.' }, 
+    { name: '신성한 심판', type: 'attack', value: 32, desc: '어둠에 물든 신성 마법을 대검에 둘러 내리쳐 35의 피해를 줍니다.' , cutscene: true }, 
     { name: '타락한 축복', type: 'buff', buff: 'strength', buffValue: 3, turns: 1, desc: '사악한 신에게 기도를 올려 피의 축복을 받아 근력을 3 얻습니다.' }, 
     { name: '절대 방어', type: 'defend', value: 45, desc: '검은 오오라를 뿜어내는 거대한 타워 실드로 전면을 완벽히 막아 50의 방어도를 얻습니다.' }
   ]},
@@ -580,7 +580,7 @@ export const NORMAL_BOSSES = [
     { name: '포효', type: 'debuff', debuff: 'weak', turns: 3, desc: '세 머리가 화음이 맞지 않는 기괴한 포효를 지르며 약화 3을 부여합니다.' }
   ]},
   { name: '고대 골렘 마스터', baseHp: 875, deck: [
-    { name: '대지 분쇄', type: 'attack', value: 41, desc: '집채만한 바위 주먹으로 땅을 으깨버리듯 강타해 45의 피해를 줍니다.' }, 
+    { name: '대지 분쇄', type: 'attack', value: 41, desc: '집채만한 바위 주먹으로 땅을 으깨버리듯 강타해 45의 피해를 줍니다.' , cutscene: true }, 
     { name: '바위 방패', type: 'defend', value: 54, desc: '지면에서 거대한 돌기둥을 솟아오르게 해 방벽을 치고 60의 방어도를 얻습니다.' }, 
     { name: '압도', type: 'debuff', debuff: 'weak', turns: 4, desc: '지축을 울리는 발걸음만으로도 상대의 전의를 꺾어버려 약화 4를 부여합니다.' }
   ]},
@@ -590,7 +590,7 @@ export const NORMAL_BOSSES = [
     { name: '산성 늪', type: 'attack_debuff', value: 23, debuff: 'vulnerable', turns: 4, desc: '발밑을 부글거리는 산성 늪으로 만들어 25의 피해를 주고 피부를 녹여 취약 4를 부여합니다.' }
   ]},
   { name: '심연의 주시자', baseHp: 1062, deck: [
-    { name: '파멸의 광선', type: 'attack', value: 50, desc: '거대한 단일 안구에서 공간을 일그러뜨리는 보라색 광선을 쏴 55의 피해를 줍니다.' }, 
+    { name: '파멸의 광선', type: 'attack', value: 50, desc: '거대한 단일 안구에서 공간을 일그러뜨리는 보라색 광선을 쏴 55의 피해를 줍니다.' , cutscene: true }, 
     { name: '정신 붕괴', type: 'debuff', debuff: 'silence', turns: 1, desc: '뇌리에 직접 끔찍한 환상을 욱여넣어 미치게 만듭니다. 침묵 1을 부여합니다.' }, 
     { name: '공허의 장막', type: 'defend', value: 63, desc: '존재를 비틀어 물리적 공격이 닿지 않는 공허의 장막을 쳐 70의 방어도를 얻습니다.' }
   ]}
@@ -770,8 +770,8 @@ export const SPECIAL_BOSSES = {
     baseHp: 11250, 
     passives: [{ id: 'silence_aura', name: '침묵의 오라', desc: '항상 플레이어의 스킬을 방해합니다.' }], 
     deck: [
-      { name: '무의 세계', type: 'debuff', debuff: 'silence', turns: 2, desc: '모든 소리와 색채를 빼앗는 회색 결계를 펼쳐 침묵 2를 부여합니다.' },
-      { name: '종말의 일격', type: 'attack', value: 108, desc: '시계의 초침이 멈추는 소리와 함께 인지할 수 없는 참격을 날려 120의 피해를 줍니다.' },
+      { name: '무의 세계', type: 'debuff', debuff: 'silence', turns: 2, desc: '모든 소리와 색채를 빼앗는 회색 결계를 펼쳐 침묵 2를 부여합니다.' , cutscene: true },
+      { name: '종말의 일격', type: 'attack', value: 108, desc: '시계의 초침이 멈추는 소리와 함께 인지할 수 없는 참격을 날려 120의 피해를 줍니다.' , cutscene: true },
       { name: '고요한 외침', type: 'attack_debuff', value: 36, debuff: 'weak', turns: 3, desc: '소리 없는 비명이 영혼을 직접 타격해 40의 피해를 주고 전의를 꺾어 약화 3을 부여합니다.' },
       { name: '생명력 흡수', type: 'attack_heal', value: 45, heal: 500, desc: '주변의 모든 생동감을 빨아들여 사막처럼 메마르게 해 50의 피해를 주고 체력을 500 회복합니다.' },
       { name: '정신 붕괴', type: 'attack_debuff', value: 27, multi: 3, debuff: 'vulnerable', turns: 3, desc: '끝없는 심연의 환각을 보여주며 30의 피해를 3번 주고 미쳐버리게 해 취약 3을 부여합니다.' },
@@ -786,7 +786,7 @@ export const SPECIAL_BOSSES = {
     passives: [{ id: 'blood_thirst', name: '피의 갈증', desc: '공격 시 체력을 회복합니다.' }], 
     deck: [
       { name: '채찍질', type: 'attack', value: 27, multi: 3, desc: '가시 박힌 채찍이 눈에 보이지 않게 휘둘러지며 30의 피해를 3번 연속 줍니다.' },
-      { name: '피의 향연', type: 'attack_heal', value: 54, heal: 300, desc: '황홀할 정도로 잔인하게 피를 들이마셔 60의 피해를 주고 체력을 300 회복합니다.' },
+      { name: '피의 향연', type: 'attack_heal', value: 54, heal: 300, desc: '황홀할 정도로 잔인하게 피를 들이마셔 60의 피해를 주고 체력을 300 회복합니다.' , cutscene: true },
       { name: '치명적인 발톱', type: 'attack_debuff', value: 41, debuff: 'frail', turns: 3, desc: '아름답지만 치명적인 손톱으로 동맥을 그어버려 45의 피해를 주고 허약 3을 부여합니다.' },
       { name: '가학적 쾌감', type: 'buff', buff: 'strength', amount: 8, desc: '비명소리를 들으며 희열에 차올라 웃음을 터뜨리며 근력을 8 얻습니다.' },
       { name: '광란의 춤', type: 'attack', value: 18, multi: 5, desc: '피바람 속에서 춤을 추듯 우아하게 다가와 20의 피해를 5번 연속 줍니다.' },

@@ -417,171 +417,176 @@ export default function App() {
   // ✨ 적 턴 (다중 카드 사용 로직 적용)
   useEffect(() => {
     if (gameState !== 'BATTLE' || !combatState || combatState.turn !== 'ENEMY') return;
-    const timer = setTimeout(() => {
-      setCombatState(prev => {
-        try {
-          let p = { ...prev.player, buffs: { ...prev.player.buffs }, debuffs: { ...prev.player.debuffs } };
-          // 🔥 화상 피해 먼저 적용
-          if ((p.debuffs?.burn || 0) > 0) { 
-             p.hp -= p.debuffs.burn; 
-             if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
-             if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
-          }
-          
-          ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
-          ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => { p.buffs[k] = decayStack(p.buffs[k] || 0, false); });
+    
+    let isCancelled = false;
 
-          if ((p.debuffs?.poison || 0) > 0) { 
-            p.hp -= p.debuffs.poison; 
-            if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
-            p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); 
-          }
-
-          let newEnemies = prev.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: 0 }));
-          
-          newEnemies.forEach(e => {
-            if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
-            if (e.debuffs?.burn > 0) { e.hp -= e.debuffs.burn; checkRevive(e, null); } // 🔥 화상 틱 데미지
-            if (e.hp <= 0) return;
-            if ((e.buffs?.regen || 0) > 0) { e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen); }
-
-            if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
-            
-            // ✨ 다중 인텐트 배열을 순회 (기본 1장, 하드 보스 2장)
-            let intents = e.intentCards || [{ type: 'attack', value: 5, uid: 'fallback' }]; 
-            
-            // ❄️ 동상(Frost) 적용: 수치만큼 이번 턴의 행동(인텐트) 횟수 감소
-            let frostAmount = e.debuffs?.frost || 0;
-            if (frostAmount > 0) {
-              intents = intents.slice(0, Math.max(0, intents.length - frostAmount));
-            }
-            
-            for (const intent of intents) {
-              const isAttack = intent.type.includes('attack');
-              const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
-              
-              let canAct = true;
-              if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
-              if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
-
-              if (canAct) {
-                if ((e.debuffs?.bleed || 0) > 0) {
-                  e.hp -= e.debuffs.bleed;
-                  checkRevive(e, null);
-                }
-                if (e.hp <= 0) break;
-                
-                if (intent.type.includes('attack')) {
-                  let dmg = intent.value + (e.buffs.strength || 0);
-                  if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
-                  if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
-                  if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
-                  if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
-
-                  // ⚔️ 방어 태세 시 받는 피해량 -50%, 공격 태세 시 +25%
-                  if (p.stance === 'defensive') dmg = Math.floor(dmg * 0.5);
-                  if (p.stance === 'offensive') dmg = Math.floor(dmg * 1.25);
-
-                  for(let i=0; i<(intent.multi || 1); i++) {
-                    let actualDmg = dmg;
-                    // 🐾 하수인이 피해 대신 흡수
-                    if (p.minion) {
-                      if (p.minion.hp > actualDmg) {
-                        p.minion.hp -= actualDmg;
-                        actualDmg = 0;
-                      } else {
-                        actualDmg -= p.minion.hp;
-                        p.minion = null;
-                      }
-                    }
-                    if (p.block >= actualDmg) p.block -= actualDmg; else { 
-                      p.hp -= (actualDmg - p.block); 
-                      p.block = 0; 
-                      if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
-                    }
-                    if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
-                  }
-                }
-                
-                // 가시 등에 의해 몬스터가 사망했다면 남은 카드 중단
-                if (e.hp <= 0) break; 
-                
-                if (intent.type.includes('debuff')) {
-                  ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark', 'burn', 'bleed', 'frost'].forEach(dbf => {
-                    if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
-                  });
-                }
-                
-                if (intent.type.includes('defend')) {
-                  let gainedBlock = intent.value;
-                  if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
-                  e.block += gainedBlock;
-                }
-                
-                if (intent.type.includes('buff') && intent.buff === 'strength') {
-                  e.buffs.strength += (intent.buffValue || intent.amount || 0);
-                }
-                
-                if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
-              }
-            } // intent 반복문 종료
-
-            ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
-            ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
-
-            // ✨ 다음 턴의 카드 드로우 (enemy 객체 자체를 넘깁니다)
-            e.intentCards = generateEnemyIntent(e, e.dmgMultiplier || 1);
-          });
-
-          newEnemies = newEnemies.filter(e => e.hp > 0);
-          if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
-          if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); return { ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] }; }
-          
-          p.block = 0; p.mana = p.maxMana;
-          if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
-          p.buffs.intangible = decayStack(p.buffs.intangible || 0, true);
-
-          // 🐾 하수인 턴 시작 효과
-          if (p.minion) {
-            if (p.minion.id === 'golem') {
-              p.block += 5;
-            } else if (p.minion.id === 'fairy') {
-              p.hp = Math.min(p.maxHp, p.hp + 3);
-            }
-          }
-
-          let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
-          (playerRelics || []).forEach(r => {
-            if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
-            if (r.effect?.type === 'START_TURN_ADVANCED') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.poison) newEnemies.forEach(e => e.debuffs.poison += r.effect.poison); if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
-            if (r.effect?.type === 'START_TURN_CONDITION' && r.effect.condition === 'HP_50' && p.hp <= p.maxHp / 2) { if (r.effect.strength) turnStrength += r.effect.strength; }
-            if (r.effect?.type === 'START_TURN_MYTHIC') { turnMana += r.effect.mana; turnDraw += r.effect.draw; turnStrength += r.effect.strength; }
-            if (r.effect?.type === 'START_COMBAT_AND_TURN') { if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
-          });
-          
-          p.hp -= selfDamage;
-          if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; } 
-          p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
-          turnDraw += (p.buffs?.insight || 0);
-
-          let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
-          let drawAmount = Math.max(0, 5 + turnDraw - (p.debuffs?.frost || 0));
-          for (let i = 0; i < drawAmount; i++) {
-            if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
-            if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
-            if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
-          }
-          return { ...prev, player: p, enemies: newEnemies, hand: newHand, drawPile: newDraw, discardPile: newDiscard, turn: 'PLAYER' };
-
-        } catch (error) {
-          console.error("턴 넘어가기 에러 발생 (강제 복구 시도):", error);
-          setToastMsg("시스템 경고: 턴 처리 중 오류가 발생했습니다. 플레이어 턴으로 강제 복구됩니다.");
-          return { ...prev, turn: 'PLAYER' };
-        }
+    const mutate = (updater) => {
+      return new Promise(resolve => {
+        setCombatState(prev => {
+          const next = updater(prev);
+          resolve(next);
+          return next;
+        });
       });
-    }, fastMode ? 500 : 1500);
-    return () => clearTimeout(timer);
-  }, [gameState, combatState?.turn, fastMode, checkRevive]);
+    };
+
+    const processEnemyTurn = async () => {
+      await new Promise(r => setTimeout(r, fastMode ? 200 : 500));
+      if (isCancelled) return;
+
+      let currentState = null;
+      setCombatState(prev => { currentState = prev; return prev; });
+      if (!currentState) return;
+      
+      let p = { ...currentState.player, buffs: { ...currentState.player.buffs }, debuffs: { ...currentState.player.debuffs } };
+      
+      // 🔥 화상 및 도트 적용
+      if ((p.debuffs?.burn || 0) > 0) { 
+         p.hp -= p.debuffs.burn; 
+         if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
+         if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
+      }
+      
+      ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
+      ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => { p.buffs[k] = decayStack(p.buffs[k] || 0, false); });
+
+      if ((p.debuffs?.poison || 0) > 0) { 
+        p.hp -= p.debuffs.poison; 
+        if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
+        p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); 
+      }
+
+      let newEnemies = currentState.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: 0 }));
+      
+      for(let i=0; i<newEnemies.length; i++) {
+        let e = newEnemies[i];
+        if (e.debuffs?.poison > 0) { e.hp -= e.debuffs.poison; e.debuffs.poison = Math.max(0, e.debuffs.poison - 1); checkRevive(e, null); }
+        if (e.debuffs?.burn > 0) { e.hp -= e.debuffs.burn; checkRevive(e, null); } 
+        if (e.hp <= 0) continue;
+        if ((e.buffs?.regen || 0) > 0) { e.hp = Math.min(e.maxHp, e.hp + e.buffs.regen); }
+        if (e.passives?.some(ps => ps.id === 'scaling_strength')) e.buffs.strength = (e.buffs.strength || 0) + 3;
+        
+        let intents = e.intentCards || [{ type: 'attack', value: 5, uid: 'fallback' }]; 
+        let frostAmount = e.debuffs?.frost || 0;
+        if (frostAmount > 0) intents = intents.slice(0, Math.max(0, intents.length - frostAmount));
+        
+        for (const intent of intents) {
+          const isAttack = intent.type.includes('attack');
+          const isSkill = intent.type.includes('debuff') || intent.type.includes('defend') || intent.type.includes('buff') || intent.type.includes('heal');
+          
+          let canAct = true;
+          if (isAttack && (e.debuffs?.bind || 0) > 0) canAct = false;
+          if (isSkill && (e.debuffs?.silence || 0) > 0) canAct = false;
+
+          if (canAct) {
+            if ((e.debuffs?.bleed || 0) > 0) {
+              e.hp -= e.debuffs.bleed;
+              checkRevive(e, null);
+            }
+            if (e.hp <= 0) break;
+
+            // 🎬 컷씬 체크
+            if (intent.cutscene) {
+              await mutate(prev => ({ ...prev, cutsceneData: { name: e.name, skillName: intent.name } }));
+              await new Promise(r => setTimeout(r, 1500)); // 컷씬 지속 시간
+              await mutate(prev => ({ ...prev, cutsceneData: null }));
+            }
+            
+            if (intent.type.includes('attack')) {
+              let dmg = intent.value + (e.buffs.strength || 0);
+              if (p.debuffs.vulnerable > 0) dmg = Math.floor(dmg * 1.3);
+              if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
+              if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
+              if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
+              if (p.stance === 'defensive') dmg = Math.floor(dmg * 0.5);
+              if (p.stance === 'offensive') dmg = Math.floor(dmg * 1.25);
+
+              for(let k=0; k<(intent.multi || 1); k++) {
+                let actualDmg = dmg;
+                if (p.minion) {
+                  if (p.minion.hp > actualDmg) { p.minion.hp -= actualDmg; actualDmg = 0; } 
+                  else { actualDmg -= p.minion.hp; p.minion = null; }
+                }
+                if (p.block >= actualDmg) p.block -= actualDmg; else { 
+                  p.hp -= (actualDmg - p.block); p.block = 0; 
+                  if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
+                }
+                if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
+
+                await mutate(prev => ({ ...prev, player: p, enemies: [...newEnemies], hitEffect: { targetUid: 'player', type: 'hit' } }));
+                await new Promise(r => setTimeout(r, fastMode ? 100 : 200));
+                await mutate(prev => ({ ...prev, hitEffect: null }));
+                if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
+              }
+            } else {
+              await new Promise(r => setTimeout(r, 150));
+            }
+            
+            if (e.hp <= 0) break; 
+            
+            if (intent.type.includes('debuff')) {
+              ['weak', 'vulnerable', 'silence', 'bind', 'frail', 'poison', 'mark', 'burn', 'bleed', 'frost'].forEach(dbf => {
+                if (intent.debuff === dbf) p.debuffs[dbf] = (p.debuffs[dbf] || 0) + (intent.turns || 1);
+              });
+            }
+            if (intent.type.includes('defend')) {
+              let gainedBlock = intent.value;
+              if ((e.debuffs?.frail || 0) > 0) gainedBlock = Math.floor(gainedBlock * 0.75);
+              e.block += gainedBlock;
+            }
+            if (intent.type.includes('buff') && intent.buff === 'strength') e.buffs.strength += (intent.buffValue || intent.amount || 0);
+            if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
+          }
+        } 
+
+        ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
+        ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
+        e.intentCards = generateEnemyIntent(e, e.dmgMultiplier || 1);
+      }
+
+      newEnemies = newEnemies.filter(e => e.hp > 0);
+      if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
+      if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); await mutate(prev => ({ ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] })); return; }
+      
+      p.block = 0; p.mana = p.maxMana;
+      if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
+      p.buffs.intangible = decayStack(p.buffs.intangible || 0, true);
+
+      if (p.minion) {
+        if (p.minion.id === 'golem') { p.block += 5; } 
+        else if (p.minion.id === 'fairy') { p.hp = Math.min(p.maxHp, p.hp + 3); }
+      }
+
+      let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
+      (playerRelics || []).forEach(r => {
+        if (r.effect?.type === 'START_TURN') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.draw) turnDraw += r.effect.draw; }
+        if (r.effect?.type === 'START_TURN_ADVANCED') { if (r.effect.block) turnBlock += r.effect.block; if (r.effect.poison) newEnemies.forEach(e => e.debuffs.poison += r.effect.poison); if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
+        if (r.effect?.type === 'START_TURN_CONDITION' && r.effect.condition === 'HP_50' && p.hp <= p.maxHp / 2) { if (r.effect.strength) turnStrength += r.effect.strength; }
+        if (r.effect?.type === 'START_TURN_MYTHIC') { turnMana += r.effect.mana; turnDraw += r.effect.draw; turnStrength += r.effect.strength; }
+        if (r.effect?.type === 'START_COMBAT_AND_TURN') { if (r.effect.selfDamage) selfDamage += r.effect.selfDamage; }
+      });
+      
+      p.hp -= selfDamage;
+      if (p.hp <= 0) { setGameState('GAME_OVER'); return; } 
+      p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
+      turnDraw += (p.buffs?.insight || 0);
+
+      await mutate(prev => {
+        const newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
+        let drawAmount = Math.max(0, 5 + turnDraw - (p.debuffs?.frost || 0));
+        for (let i = 0; i < drawAmount; i++) {
+          if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
+          if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard.length = 0; }
+          if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
+        }
+        return { ...prev, player: p, enemies: newEnemies, turn: 'PLAYER', hand: newHand, drawPile: newDraw, discardPile: newDiscard };
+      });
+    };
+    
+    processEnemyTurn();
+    
+    return () => { isCancelled = true; };
+  }, [gameState, combatState?.turn, fastMode, checkRevive, setGameState, playerRelics]);
 
   const openDeckBuilder = () => { setTempDeckCounts({ ...deckCounts }); setGameState('DECK_BUILDING'); };
   const openEncyclopedia = () => { setGameState('ENCYCLOPEDIA'); };

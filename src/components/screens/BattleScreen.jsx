@@ -187,6 +187,17 @@ export default function BattleScreen({
         </div>
       )}
 
+      {combatState?.cutsceneData && (
+        <div className="fixed inset-0 z-[10010] pointer-events-none flex items-center justify-center bg-black/60 backdrop-blur-md transition-all duration-300">
+          <div className="w-full bg-gradient-to-r from-transparent via-red-950/90 to-transparent py-16 flex flex-col justify-center items-center shadow-[0_0_100px_rgba(220,38,38,0.8)] border-y-4 border-red-500/50">
+            <h2 className="text-3xl md:text-5xl font-black text-slate-300 drop-shadow-[0_0_10px_white] mb-4 animate-pulse">{combatState.cutsceneData.name}</h2>
+            <h1 className="text-6xl md:text-9xl font-black italic tracking-tighter text-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,1)] transform scale-110">
+              {combatState.cutsceneData.skillName}
+            </h1>
+          </div>
+        </div>
+      )}
+
       {playEffect?.name !== 'mana_potion' && playEffect?.name !== 'purify_effect' && <TierEffects playEffect={playEffect} />}
       <StatusEffects playEffect={playEffect} />
       <UniqueEffects playEffect={playEffect} />
@@ -319,7 +330,7 @@ export default function BattleScreen({
           
           {/* 플레이어 */}
           <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn && !discardingHand ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
-            <div className="w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)]">
+            <div className={`w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)] ${combatState?.hitEffect?.targetUid === 'player' ? 'animate-hit-shake animate-hit-flash' : ''}`}>
               <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
               
               {player.block > 0 && (
@@ -441,7 +452,7 @@ export default function BattleScreen({
                     })}
                   </div>
 
-                  <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'}`}>
+                  <div className={`rounded-full flex justify-center items-center mb-2 border-2 md:border-4 shadow-lg relative transition-transform hover:scale-105 ${enemy.isBoss ? 'bg-red-950 border-red-500 w-24 h-24 md:w-36 md:h-36' : 'bg-slate-800 border-red-900/50 w-16 h-16 md:w-24 md:h-24'} ${combatState?.hitEffect?.targetUid === enemy.uid ? 'animate-hit-shake animate-hit-flash' : ''}`}>
                     <img src={getEnemyImage(enemy.name)} alt={enemy.name} className={`${enemy.isBoss ? 'w-16 h-16 md:w-24 md:h-24' : 'w-10 h-10 md:w-16 md:h-16'} drop-shadow-[0_0_15px_rgba(220,38,38,0.5)]`} />
                     {enemy.block > 0 && <div className="absolute -top-1 -right-1 bg-slate-600 w-7 h-7 md:w-8 md:h-8 rounded-full flex justify-center items-center font-black border border-slate-400 text-[10px] md:text-xs shadow-md">{enemy.block}</div>}
                     {isTarget && playEffect && playEffect.name !== 'mana_potion' && playEffect.name !== 'purify_effect' && <CommonEffects key={playEffect.id} playEffect={playEffect} fastMode={fastMode} />}

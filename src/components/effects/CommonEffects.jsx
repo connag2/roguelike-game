@@ -16,14 +16,14 @@ export default function CommonEffects({ playEffect, fastMode }) {
   const renderSlash = (color = 'bg-slate-200', angle = 'rotate-45', height = 'h-[3px]', extra = '') => (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
       <div className={`w-[200%] ${height} ${color} slash-hit ${angle} ${extra}`} 
-           style={{ animationDuration: fastMode ? '0.1s' : '0.2s' }} />
+           style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
     </div>
   );
 
   const renderPierce = (color = 'bg-slate-300') => (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
       <div className={`w-8 h-8 rounded-full ${color} pierce-hit`} 
-           style={{ animationDuration: fastMode ? '0.1s' : '0.2s' }} />
+           style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
     </div>
   );
 
@@ -31,7 +31,7 @@ export default function CommonEffects({ playEffect, fastMode }) {
   const renderShield = (color = 'text-blue-400', Icon = Shield, extra = '') => (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
       <Icon className={`w-3/4 h-3/4 ${color} shield-pop ${extra}`} 
-            style={{ animationDuration: fastMode ? '0.2s' : '0.3s' }} />
+            style={{ animationDuration: fastMode ? '0.3s' : '0.5s' }} />
     </div>
   );
 
@@ -40,10 +40,10 @@ export default function CommonEffects({ playEffect, fastMode }) {
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
       {/* 중앙 아이콘 팝업 */}
       <Icon className={`absolute w-1/2 h-1/2 ${color} energy-recharge`} 
-            style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
+            style={{ animationDuration: fastMode ? '0.3s' : '0.6s' }} />
       {/* 바깥으로 퍼져나가는 기운 링 */}
       <div className={`absolute w-3/4 h-3/4 border-[6px] rounded-full border-current ${color} energy-ring`}
-           style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
+           style={{ animationDuration: fastMode ? '0.3s' : '0.6s' }} />
     </div>
   );
 
@@ -51,7 +51,7 @@ export default function CommonEffects({ playEffect, fastMode }) {
   const renderHeal = (Icon = Plus) => (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
       <Icon className="w-1/2 h-1/2 text-green-400 heal-pulse" 
-            style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
+            style={{ animationDuration: fastMode ? '0.3s' : '0.6s' }} />
     </div>
   );
 
@@ -59,39 +59,42 @@ export default function CommonEffects({ playEffect, fastMode }) {
   const renderPoison = () => (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-[9999]">
       <Droplet className="w-1/2 h-1/2 text-green-500 poison-splash" 
-               style={{ animationDuration: fastMode ? '0.2s' : '0.4s' }} />
+               style={{ animationDuration: fastMode ? '0.3s' : '0.6s' }} />
     </div>
   );
 
   return (
     <>
       <style>{`
-        /* 타격 (불투명하게 나타나 확실히 베어짐) */
+        /* 타격 (부드럽고 뚜렷하게 베어짐) */
         @keyframes sharpSlash { 
-          0% { transform: scaleX(0) scaleY(1); opacity: 0; }
-          20% { transform: scaleX(0.8) scaleY(2); opacity: 1; }
-          80% { transform: scaleX(1.3) scaleY(0.5); opacity: 1; }
-          100% { transform: scaleX(1.5) scaleY(0.1); opacity: 0; }
+          0% { transform: scaleX(0) scaleY(1); opacity: 0; filter: blur(0px); }
+          15% { transform: scaleX(0.5) scaleY(2); opacity: 0.8; filter: blur(1px); }
+          30% { transform: scaleX(1) scaleY(1.5); opacity: 1; filter: blur(2px); }
+          60% { transform: scaleX(1.3) scaleY(0.5); opacity: 1; filter: blur(1px); }
+          100% { transform: scaleX(1.5) scaleY(0.1); opacity: 0; filter: blur(0px); }
         }
-        .slash-hit { animation: sharpSlash linear forwards; }
+        .slash-hit { animation: sharpSlash cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
 
-        /* 찌르기 (강하게 찔러짐) */
+        /* 찌르기 (잔상 남기며 찌름) */
         @keyframes pierceHit {
           0% { transform: scale(0.1); opacity: 0; }
-          30% { transform: scale(1.5); opacity: 1; }
-          80% { transform: scale(0.8); opacity: 1; }
+          20% { transform: scale(1.6); opacity: 0.9; }
+          40% { transform: scale(1.2); opacity: 1; }
+          70% { transform: scale(0.8); opacity: 1; }
           100% { transform: scale(0.5); opacity: 0; }
         }
-        .pierce-hit { animation: pierceHit ease-out forwards; }
+        .pierce-hit { animation: pierceHit cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
         /* 방어 (선명하게 팝업) */
         @keyframes shieldPop {
           0% { transform: scale(0.5); opacity: 0; }
-          30% { transform: scale(1.1); opacity: 1; }
-          80% { transform: scale(1); opacity: 1; }
+          30% { transform: scale(1.15); opacity: 1; }
+          60% { transform: scale(0.95); opacity: 1; }
+          85% { transform: scale(1.05); opacity: 0.8; }
           100% { transform: scale(1.1); opacity: 0; }
         }
-        .shield-pop { animation: shieldPop ease-out forwards; }
+        .shield-pop { animation: shieldPop cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
         /* ⚡ 마나/에너지 회복 (모였다가 흡수되는 느낌) */
         @keyframes energyRecharge {
