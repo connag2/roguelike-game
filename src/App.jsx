@@ -22,6 +22,8 @@ import UpdateHistory from './components/screens/UpdateHistory';
 import GameGuide from './components/screens/GameGuide';
 import AdminPanel from './components/admin/AdminPanel';
 import ClassSelectScreen from './components/screens/ClassSelectScreen';
+import TownScreen from './components/screens/TownScreen';
+import EventScreen from './components/screens/EventScreen';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -61,6 +63,7 @@ export default function App() {
   const [seenEnemies, setSeenEnemies] = useState([]);
   const [usedCoupons, setUsedCoupons] = useState([]);
   const [selectedClass, setSelectedClass] = useState('adventurer'); // ⚔️ 추가된 직업 상태
+  const [townUpgrades, setTownUpgrades] = useState({ inn: 0, blacksmith: 0, alchemist: 0 }); // ⛺ 추가된 마을 건물 레벨
   
   const [gameStats, setGameStats] = useState({ totalKills: 0, totalBossKills: 0, totalCreditsEarned: 0, totalRuns: 0 });
 
@@ -146,6 +149,7 @@ export default function App() {
         if (d.customCards) setCustomCards(d.customCards); 
         if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones);
         if (d.selectedClass) setSelectedClass(d.selectedClass);
+        if (d.townUpgrades) setTownUpgrades(d.townUpgrades);
       }
     } catch (e) {
       console.error("세이브 데이터 로드 실패", e);
@@ -153,7 +157,7 @@ export default function App() {
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -267,7 +271,20 @@ export default function App() {
       });
     }
 
-    const basePlayerHp = classData.baseHp + (shopUpgrades.maxHp * 20);
+    // ⛺ 대장간(Blacksmith) 마을 업그레이드: 레벨당 카드 1장 무작위 강화
+    if (townUpgrades?.blacksmith > 0) {
+      let upgCount = townUpgrades.blacksmith;
+      const unupgraded = fullDeck.filter(c => !c.name.includes('+'));
+      shuffle(unupgraded);
+      for (let i = 0; i < Math.min(upgCount, unupgraded.length); i++) {
+        unupgraded[i].name += '+';
+        if (unupgraded[i].damage) unupgraded[i].damage += 3;
+        if (unupgraded[i].block) unupgraded[i].block += 3;
+      }
+    }
+
+    // ⛺ 여관(Inn) 마을 업그레이드: 레벨당 최대 체력 +5
+    const basePlayerHp = classData.baseHp + (shopUpgrades.maxHp * 20) + ((townUpgrades?.inn || 0) * 5);
     const enemies = generateEnemies(stage, mode);
     updateSeenEnemies(enemies);
 
@@ -278,10 +295,21 @@ export default function App() {
     }
     setPlayerRelics(initialRelics);
 
+    // ⛺ 연금술사(Alchemist) 마을 업그레이드: 시작 시 무작위 버프 부여
+    let alchemistBuffs = { regen: 0, insight: 0, strength: 0 };
+    if (townUpgrades?.alchemist > 0) {
+       for(let i=0; i<townUpgrades.alchemist; i++) {
+          const r = Math.random();
+          if (r < 0.33) alchemistBuffs.regen += 1;
+          else if (r < 0.66) alchemistBuffs.insight += 1;
+          else alchemistBuffs.strength += 1;
+       }
+    }
+
     let initialPlayer = { 
       hp: basePlayerHp, maxHp: basePlayerHp, mana: classData.baseMana, maxMana: classData.baseMana, block: 0, 
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, bleed: 0, frost: 0, burn: 0 }, 
-      buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0, insight: classData.id === 'mage' ? 1 : 0 },
+      buffs: { strength: alchemistBuffs.strength, dexterity: 0, thorns: 0, intangible: 0, regen: alchemistBuffs.regen, rage: 0, insight: (classData.id === 'mage' ? 1 : 0) + alchemistBuffs.insight },
       classId: classData.id
     };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
@@ -308,16 +336,21 @@ export default function App() {
 
   const startNextStage = (newPlayer, newBaseDeck) => {
     const nextStage = combatState.stage + 1;
-    const enemies = generateEnemies(nextStage, combatState.mode);
-    updateSeenEnemies(enemies);
+    const isBoss = nextStage % 10 === 0;
+    // 20% chance for an event, but not on boss stages or stage 1
+    const isEvent = !isBoss && nextStage > 1 && Math.random() < 0.2;
+
+    const enemies = isEvent ? [] : generateEnemies(nextStage, combatState.mode);
+    if (!isEvent) updateSeenEnemies(enemies);
+
     const newDraw = shuffle([...newBaseDeck]);
     const newHand = [];
     for(let i=0; i<5; i++) if(newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
 
     let refreshedPlayer = { 
       ...newPlayer, block: 0, mana: newPlayer.maxMana, 
-      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
-      buffs: newPlayer.buffs 
+      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, bleed: 0, frost: 0, burn: 0 }, 
+      buffs: { ...newPlayer.buffs, strength: newPlayer.buffs?.strength || 0, regen: newPlayer.buffs?.regen || 0, insight: newPlayer.buffs?.insight || 0 }
     };
     refreshedPlayer = applyStartCombatRelics(refreshedPlayer, playerRelics); 
 
@@ -326,7 +359,7 @@ export default function App() {
       drawPile: newDraw, hand: newHand, discardPile: [], turn: 'PLAYER', player: refreshedPlayer
     });
     setRewardCards([]);
-    setGameState('BATTLE');
+    setGameState(isEvent ? 'EVENT' : 'BATTLE');
   };
 
   const updateSeenEnemies = (list) => {
@@ -829,6 +862,10 @@ export default function App() {
         {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={toggleFullScreen} selectedClass={selectedClass} setSelectedClass={setSelectedClass} />}
         
         {gameState === 'CLASS_SELECT' && <ClassSelectScreen setGameState={setGameState} selectedClass={selectedClass} setSelectedClass={setSelectedClass} saveGame={saveGame} />}
+        
+        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} />}
+        
+        {gameState === 'TOWN' && <TownScreen setGameState={setGameState} credits={credits} setCredits={setCredits} saveGame={saveGame} townUpgrades={townUpgrades} setTownUpgrades={setTownUpgrades} />}
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
         

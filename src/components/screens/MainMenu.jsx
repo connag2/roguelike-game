@@ -45,9 +45,14 @@ export default function MainMenu({
           </button>
         </div>
 
-        <button onClick={openShop} className="py-3 px-6 bg-yellow-600 hover:bg-yellow-500 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 shadow-[0_0_10px_rgba(217,119,6,0.5)]">
-          <img src={merchantImg} alt="Shop" className="w-6 h-6 drop-shadow-md" /> 상점
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={() => setGameState('TOWN')} className="py-3 px-4 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 shadow-[0_0_10px_rgba(16,185,128,0.5)]">
+            ⛺ 마을
+          </button>
+          <button onClick={openShop} className="py-3 px-4 bg-yellow-600 hover:bg-yellow-500 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 shadow-[0_0_10px_rgba(217,119,6,0.5)]">
+            <img src={merchantImg} alt="Shop" className="w-5 h-5 drop-shadow-md" /> 상점
+          </button>
+        </div>
 
         <div className="grid grid-cols-3 gap-2 mt-1 mb-2">
           <button onClick={() => setTutorialModalOpen(true)} className="py-3 bg-blue-800 hover:bg-blue-700 rounded-lg text-base font-bold transition-all flex flex-col justify-center items-center gap-1 border border-blue-600">
