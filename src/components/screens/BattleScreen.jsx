@@ -10,6 +10,7 @@ import StatusEffects from '../effects/StatusEffects';
 import UniqueEffects from '../effects/UniqueEffects';
 import Tooltip from '../common/Tooltip'; 
 import WeatherLayer from '../common/WeatherLayer';
+import UltimateCutscene from '../effects/UltimateCutscene';
 
 import heroImg from '../../assets/images/characters/hero.svg';
 import slimeImg from '../../assets/images/monsters/slime.svg';
@@ -29,6 +30,7 @@ export default function BattleScreen({
   const [discardingHand, setDiscardingHand] = useState(false);
 
   const [targetIndex, setTargetIndex] = useState(0);
+  const [showUltimate, setShowUltimate] = useState(null);
 
   // ✨ 추가: 적이 죽어서 몬스터 배열 길이가 타겟 인덱스보다 작아질 경우 방지
   useEffect(() => {
@@ -84,6 +86,13 @@ export default function BattleScreen({
 
     setAnimatingCardIndex(idx);
     await new Promise(r => setTimeout(r, 20)); 
+
+    // 🌟 궁극기(신화) 카드 컷신 연출
+    if (card.rarity === 'mythic' && !fastMode) {
+      setShowUltimate(card);
+      await new Promise(r => setTimeout(r, 2800)); // 컷신 종료 대기
+      setShowUltimate(null);
+    }
     
     playCard(idx, targetIndex);
     setAnimatingCardIndex(null);
@@ -202,6 +211,10 @@ export default function BattleScreen({
         </div>
       )}
 
+      {showUltimate && (
+        <UltimateCutscene cardName={showUltimate.name} heroImg={heroImg} onComplete={() => setShowUltimate(null)} />
+      )}
+
       {viewingPile && (
         <div className="fixed inset-0 bg-black/95 z-[10000] flex flex-col p-4 md:p-10 backdrop-blur-xl" onClick={() => setViewingPile(null)}>
           <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-700">
@@ -315,9 +328,31 @@ export default function BattleScreen({
                   <span className="relative z-10 text-white text-xs md:text-sm">{player.block}</span>
                 </div>
               )}
-              
+
+              {/* 🐾 하수인 위젯 */}
+              {player.minion && (
+                <div className="absolute -left-10 -top-8 md:-left-16 md:-top-12 flex flex-col items-center animate-bounce z-40">
+                  <div className="w-10 h-10 md:w-14 md:h-14 bg-slate-800 rounded-full border-2 border-emerald-400 flex justify-center items-center shadow-[0_0_15px_rgba(52,211,153,0.5)] text-lg md:text-2xl">
+                    {player.minion.id === 'golem' ? '🪨' : '🧚'}
+                  </div>
+                  <div className="bg-slate-900 px-2 py-0.5 rounded-full text-[8px] md:text-[10px] font-black text-emerald-300 mt-1 border border-emerald-500 shadow-md">
+                    {player.minion.hp}/{player.minion.maxHp}
+                  </div>
+                </div>
+              )}
             </div>
             <h3 className="text-sm md:text-xl font-black mb-1 text-indigo-400 tracking-tighter uppercase italic">PLAYER</h3>
+            
+            {/* ⚔️ 태세 표시 */}
+            {player.stance && player.stance !== 'normal' && (
+              <div className={`mb-2 px-3 py-0.5 rounded-full text-[10px] md:text-xs font-black border flex items-center gap-1 ${
+                player.stance === 'offensive' ? 'bg-red-900/60 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' 
+                : 'bg-blue-900/60 text-blue-400 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+              }`}>
+                {player.stance === 'offensive' ? '⚔️ 공격 태세 (+50% / +25%)' : '🛡️ 방어 태세 (-25% / -50%)'}
+              </div>
+            )}
+
             <div className="w-full max-w-[120px] md:max-w-[200px] bg-slate-950 h-4 md:h-5 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
               <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
               <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>

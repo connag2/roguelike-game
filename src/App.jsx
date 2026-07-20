@@ -310,7 +310,9 @@ export default function App() {
       hp: basePlayerHp, maxHp: basePlayerHp, mana: classData.baseMana, maxMana: classData.baseMana, block: 0, 
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, bleed: 0, frost: 0, burn: 0 }, 
       buffs: { strength: alchemistBuffs.strength, dexterity: 0, thorns: 0, intangible: 0, regen: alchemistBuffs.regen, rage: 0, insight: (classData.id === 'mage' ? 1 : 0) + alchemistBuffs.insight },
-      classId: classData.id
+      classId: classData.id,
+      minion: null,
+      stance: 'normal'
     };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
 
@@ -350,7 +352,9 @@ export default function App() {
     let refreshedPlayer = { 
       ...newPlayer, block: 0, mana: newPlayer.maxMana, 
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, bleed: 0, frost: 0, burn: 0 }, 
-      buffs: { ...newPlayer.buffs, strength: newPlayer.buffs?.strength || 0, regen: newPlayer.buffs?.regen || 0, insight: newPlayer.buffs?.insight || 0 }
+      buffs: { ...newPlayer.buffs, strength: newPlayer.buffs?.strength || 0, regen: newPlayer.buffs?.regen || 0, insight: newPlayer.buffs?.insight || 0 },
+      minion: null,
+      stance: 'normal'
     };
     refreshedPlayer = applyStartCombatRelics(refreshedPlayer, playerRelics); 
 
@@ -475,9 +479,24 @@ export default function App() {
                   if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
                   if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
 
+                  // ⚔️ 방어 태세 시 받는 피해량 -50%, 공격 태세 시 +25%
+                  if (p.stance === 'defensive') dmg = Math.floor(dmg * 0.5);
+                  if (p.stance === 'offensive') dmg = Math.floor(dmg * 1.25);
+
                   for(let i=0; i<(intent.multi || 1); i++) {
-                    if (p.block >= dmg) p.block -= dmg; else { 
-                      p.hp -= (dmg - p.block); 
+                    let actualDmg = dmg;
+                    // 🐾 하수인이 피해 대신 흡수
+                    if (p.minion) {
+                      if (p.minion.hp > actualDmg) {
+                        p.minion.hp -= actualDmg;
+                        actualDmg = 0;
+                      } else {
+                        actualDmg -= p.minion.hp;
+                        p.minion = null;
+                      }
+                    }
+                    if (p.block >= actualDmg) p.block -= actualDmg; else { 
+                      p.hp -= (actualDmg - p.block); 
                       p.block = 0; 
                       if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
                     }
@@ -522,6 +541,15 @@ export default function App() {
           p.block = 0; p.mana = p.maxMana;
           if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
           p.buffs.intangible = decayStack(p.buffs.intangible || 0, true);
+
+          // 🐾 하수인 턴 시작 효과
+          if (p.minion) {
+            if (p.minion.id === 'golem') {
+              p.block += 5;
+            } else if (p.minion.id === 'fairy') {
+              p.hp = Math.min(p.maxHp, p.hp + 3);
+            }
+          }
 
           let turnBlock = 0, turnMana = 0, turnDraw = 0, turnStrength = 0, selfDamage = 0;
           (playerRelics || []).forEach(r => {

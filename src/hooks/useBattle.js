@@ -351,6 +351,12 @@ export function useBattle({
         if (card.selfRegen) p.buffs.regen = clampStack((p.buffs.regen || 0) + card.selfRegen);
         if (card.selfRage) p.buffs.rage = clampStack((p.buffs.rage || 0) + card.selfRage);
         if (card.selfInsight) p.buffs.insight = clampStack((p.buffs.insight || 0) + card.selfInsight);
+        
+        // ⚔️ 태세 전환 및 🐾 하수인 소환 로직
+        if (card.id === 'offensive_stance') p.stance = 'offensive';
+        if (card.id === 'defensive_stance') p.stance = 'defensive';
+        if (card.id === 'summon_golem') p.minion = { id: 'golem', name: '바위 골렘', hp: 40, maxHp: 40 };
+        if (card.id === 'summon_fairy') p.minion = { id: 'fairy', name: '숲의 요정', hp: 15, maxHp: 15 };
       } else {
         setToastMsg("도박 실패...");
         if (card.loseSelfDamage) p.hp -= (Number(card.loseSelfDamage) || 0);
@@ -371,6 +377,11 @@ export function useBattle({
       // 5. 적에게 가하는 대미지 및 디버프 처리 (다단히트 포함)
       if (newEnemies.length > 0) {
         let currentDamage = Number(card.damage) || 0;
+        
+        // ⚔️ 공격 시 태세 반영 (공격 태세: +50%, 방어 태세: -25%)
+        if (p.stance === 'offensive' && currentDamage > 0) currentDamage = Math.floor(currentDamage * 1.5);
+        if (p.stance === 'defensive' && currentDamage > 0) currentDamage = Math.floor(currentDamage * 0.75);
+
         const hits = (card.damage && isWin) ? (card.multiHit || 1) : 1;
         
         // ✨ 추가: 현재 타겟 인덱스 저장

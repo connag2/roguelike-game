@@ -49,6 +49,27 @@ export const PLAYER_CLASSES = [
 
 // --- 플레이어 카드 라이브러리 ---
 export const CARD_LIBRARY = [
+  {
+    id: 'summon_golem', name: '바위 골렘 소환', cost: 3, rarity: 'rare', type: 'skill',
+    desc: '든든한 바위 골렘을 소환합니다. (체력 40). 골렘은 플레이어 대신 피해를 입으며, 매 턴 방어도를 5 제공합니다.',
+    target: 'self'
+  },
+  {
+    id: 'summon_fairy', name: '숲의 요정 소환', cost: 2, rarity: 'rare', type: 'skill',
+    desc: '치유의 요정을 소환합니다. (체력 15). 요정은 플레이어 대신 피해를 입으며, 매 턴 체력을 3 회복시킵니다.',
+    target: 'self'
+  },
+  {
+    id: 'offensive_stance', name: '공격 태세', cost: 1, rarity: 'uncommon', type: 'skill',
+    desc: '전투 태세를 [공격]으로 전환합니다. 가하는 피해량이 50% 증가하지만, 받는 피해량도 25% 증가합니다.',
+    target: 'self'
+  },
+  {
+    id: 'defensive_stance', name: '방어 태세', cost: 1, rarity: 'uncommon', type: 'skill',
+    desc: '전투 태세를 [방어]로 전환합니다. 받는 피해량이 50% 감소하지만, 가하는 피해량도 25% 감소합니다.',
+    target: 'self'
+  },
+
   // 일반 (Common)
   { id: 'flame_slash', name: '화염 베기', type: 'attack', cost: 1, rarity: 'common', damage: 6, enemyBurn: 2, desc: '검에 불꽃을 머금고 베어 6의 피해를 주고 화상 2를 부여합니다.' },
   { id: 'frost_arrow', name: '빙결 화살', type: 'attack', cost: 1, rarity: 'common', damage: 5, enemyFrost: 2, desc: '얼어붙은 화살을 쏘아 5의 피해를 주고 동상 2를 부여합니다.' },
