@@ -396,12 +396,10 @@ export default function App() {
     setToastMsg(`🌟 ${pendingRelicReward.name} 장착 완료!`);
     setPendingRelicReward(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
-    else { 
-      if (combatState.mode === 'NORMAL' && combatState.stage >= 100 && !normalCleared) {
-        setNormalCleared(true); saveGame({ normalCleared: true });
-      }
-      setGameState('REWARDS'); 
-    }
+    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { 
+      setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); 
+    } 
+    else { setGameState('REWARDS'); }
   };
 
   const handleRelicChoiceClaim = (relic) => {
@@ -415,12 +413,10 @@ export default function App() {
     setToastMsg(`🌟 ${relic.name} 획득!`);
     setPendingRelicChoices(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
-    else { 
-      if (combatState.mode === 'NORMAL' && combatState.stage >= 100 && !normalCleared) {
-        setNormalCleared(true); saveGame({ normalCleared: true });
-      }
-      setGameState('REWARDS'); 
-    }
+    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { 
+      setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); 
+    } 
+    else { setGameState('REWARDS'); }
   };
 
   // ✨ 적 턴 (다중 카드 사용 로직 적용)
@@ -1018,10 +1014,10 @@ export default function App() {
                 setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
                 setSpecialBossRewardCard(null); 
                 
-                if (combatState.mode === 'NORMAL' && combatState.stage >= 100 && !normalCleared) {
+                if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
                   setNormalCleared(true);
                   saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards, normalCleared: true });
-                  setGameState('REWARDS');
+                  setGameState('GAME_CLEAR');
                 } else if (combatState.mode === 'HARD' && combatState.stage >= 300) {
                   setGameState('HARD_CLEAR_RELIC_CHOICE');
                   saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });

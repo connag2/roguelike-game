@@ -32,7 +32,7 @@ export function useBattle({
 
   const handleVictory = useCallback((prevCombat, p) => {
     try {
-      const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : (prevCombat.stage > 0 && prevCombat.stage % 25 === 0);
+      const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : [25, 50, 75, 100].includes(prevCombat.stage);
       const isNormalBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 10 === 0 && !isSpecialBoss) : (prevCombat.stage % 5 === 0 && !isSpecialBoss);
       
       let newStats = { ...gameStats, totalKills: (gameStats?.totalKills || 0) + 1 };
@@ -218,20 +218,19 @@ export function useBattle({
         setTimeout(() => setGameState('RELIC_REWARD'), 600);
       } else {
         if (finalBossCard) {
-          if (prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) {
-            setNormalCleared(true);
-            saveGame({ normalCleared: true });
-          }
           setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
-        } else if (prevCombat.mode === 'HARD' && prevCombat.stage >= 300) { 
-          setToastMsg('🎉 하드 모드 완전 클리어! 유물 3개를 선택하세요!');
-          setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), 600);
-          return;
-        } else {
-          if (prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) {
+        } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
+          if (prevCombat.mode === 'NORMAL') {
             setNormalCleared(true);
             saveGame({ normalCleared: true });
           }
+          else if (prevCombat.mode === 'HARD' && prevCombat.stage >= 300) {
+            setToastMsg('🎉 하드 모드 완전 클리어! 유물 3개를 선택하세요!');
+            setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), 600);
+            return;
+          }
+          setGameState('GAME_CLEAR'); 
+        } else {
           setTimeout(() => setGameState('REWARDS'), 600);
         }
       }
