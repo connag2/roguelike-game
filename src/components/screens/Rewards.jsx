@@ -33,13 +33,14 @@ export default function Rewards({
   setEnemyDropCard,
   customCards,
   setCustomCards,
-  playerRelics,           // ✨ 추가
-  unlockedRelics,         // ✨ 추가
-  handleEnemyDropClaim,   // ✨ 추가
-  handleSpecialBossRewardClaim: handleSpecialClaim // ✨ 수정
+  playerRelics,
+  unlockedRelics,
+  handleEnemyDropClaim,
+  handleSpecialBossRewardClaim: handleSpecialClaim
 }) {
-  const [expandedCards, setExpandedCards] = useState({});  // ✨ 추가: 카드 상세 정보 접기/펴기
-  const [selectedRelics, setSelectedRelics] = useState([]); // ✨ 추가: 유물 선택
+  const [expandedCards, setExpandedCards] = useState({});
+  const [selectedRelics, setSelectedRelics] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   if (!combatState) return null;
 
@@ -140,6 +141,8 @@ export default function Rewards({
           </button>
 
           <button onClick={() => {
+            if (isProcessing) return;
+            setIsProcessing(true);
             const p = { ...combatState.player };
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
@@ -212,6 +215,8 @@ export default function Rewards({
               <div className="flex gap-4 w-full">
                 <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 transition-colors rounded-lg font-bold flex-1">취소</button>
                 <button onClick={() => {
+                  if (isProcessing) return;
+                  setIsProcessing(true);
                   const newDeck = [...combatState.baseDeck, { ...confirmSelection.card }];
                   let newUnlocked = unlockedCards;
                   let newCustomCards = customCards;
@@ -266,6 +271,8 @@ export default function Rewards({
               <div className="flex gap-4 w-full">
                 <button onClick={() => setConfirmSelection(null)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 transition-colors rounded-lg font-bold flex-1">취소</button>
                 <button onClick={() => {
+                  if (isProcessing) return;
+                  setIsProcessing(true);
                   const newDeck = [...combatState.baseDeck];
                   newDeck.splice(confirmSelection.idx, 1);
                   setConfirmSelection(null);

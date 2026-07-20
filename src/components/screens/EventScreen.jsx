@@ -2,108 +2,124 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Heart, Zap, Coins, ArrowRight } from 'lucide-react';
 import { shuffle } from '../../utils/gameLogic';
 
-const EVENTS = [
-  {
-    id: 'mystic_shrine',
-    title: '신비한 제단',
-    desc: '숲의 깊은 곳에서 고대의 에너지가 흐르는 제단을 발견했습니다. 제단은 당신의 생명력을 요구하는 듯 합니다.',
-    image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1000&auto=format&fit=crop',
-    options: [
-      {
-        text: '체력을 15 잃고 최대 체력을 10 증가시킵니다.',
-        action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
-          setPlayer({ ...player, hp: player.hp - 15, maxHp: player.maxHp + 10 });
-          setToast('최대 체력이 증가했습니다!');
+const getEvents = (stage) => {
+  const hpPenalty1 = 15 + Math.floor(stage * 0.5);
+  const maxHpGain = 10 + Math.floor(stage * 0.2);
+  const hpPenalty2 = 10 + Math.floor(stage * 0.3);
+  const creditGain = 50 + Math.floor(stage * 1.5);
+  const upgradeCost = 30 + Math.floor(stage * 0.5);
+  const healCost = 20 + Math.floor(stage * 0.3);
+  const healAmount = 20 + Math.floor(stage * 0.5);
+  const curseMaxHpLoss = 10 + Math.floor(stage * 0.2);
+  const curseCreditGain = 100 + Math.floor(stage * 3);
+
+  return [
+    {
+      id: 'mystic_shrine',
+      title: '신비한 제단',
+      desc: '숲의 깊은 곳에서 고대의 에너지가 흐르는 제단을 발견했습니다. 제단은 당신의 생명력을 요구하는 듯 합니다.',
+      image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=1000&auto=format&fit=crop',
+      options: [
+        {
+          text: `체력을 ${hpPenalty1} 잃고 최대 체력을 ${maxHpGain} 증가시킵니다.`,
+          action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
+            setPlayer({ ...player, hp: player.hp - hpPenalty1, maxHp: player.maxHp + maxHpGain });
+            setToast('최대 체력이 증가했습니다!');
+          },
+          req: (player) => player.hp > hpPenalty1
         },
-        req: (player) => player.hp > 15
-      },
-      {
-        text: '체력을 10 잃고 50 크레딧을 얻습니다.',
-        action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
-          setPlayer({ ...player, hp: player.hp - 10 });
-          setCredits(credits + 50);
-          setToast('50 크레딧을 획득했습니다!');
+        {
+          text: `체력을 ${hpPenalty2} 잃고 ${creditGain} 크레딧을 얻습니다.`,
+          action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
+            setPlayer({ ...player, hp: player.hp - hpPenalty2 });
+            setCredits(credits + creditGain);
+            setToast(`${creditGain} 크레딧을 획득했습니다!`);
+          },
+          req: (player) => player.hp > hpPenalty2
         },
-        req: (player) => player.hp > 10
-      },
-      {
-        text: '제단을 무시하고 지나갑니다.',
-        action: () => {}
-      }
-    ]
-  },
-  {
-    id: 'wandering_merchant',
-    title: '떠돌이 상인',
-    desc: '기괴한 가면을 쓴 상인이 짐을 풀고 앉아 있습니다. 그는 당신을 보며 의미심장한 웃음을 짓습니다.',
-    image: 'https://images.unsplash.com/photo-1533081014849-c188b8cc8400?q=80&w=1000&auto=format&fit=crop',
-    options: [
-      {
-        text: '30 크레딧을 지불하고 덱의 무작위 카드 1장을 강화합니다.',
-        action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
-          setCredits(credits - 30);
-          const unupgraded = deck.filter(c => !c.name.includes('+'));
-          if (unupgraded.length > 0) {
-            shuffle(unupgraded);
-            unupgraded[0].name += '+';
-            if (unupgraded[0].damage) unupgraded[0].damage += 3;
-            if (unupgraded[0].block) unupgraded[0].block += 3;
-            setDeck([...deck]);
-            setToast(`${unupgraded[0].name} 카드가 강화되었습니다!`);
-          } else {
-            setToast('강화할 카드가 없습니다!');
-          }
+        {
+          text: '제단을 무시하고 지나갑니다.',
+          action: () => {}
+        }
+      ]
+    },
+    {
+      id: 'wandering_merchant',
+      title: '떠돌이 상인',
+      desc: '기괴한 가면을 쓴 상인이 짐을 풀고 앉아 있습니다. 그는 당신을 보며 의미심장한 웃음을 짓습니다.',
+      image: 'https://images.unsplash.com/photo-1533081014849-c188b8cc8400?q=80&w=1000&auto=format&fit=crop',
+      options: [
+        {
+          text: `${upgradeCost} 크레딧을 지불하고 덱의 무작위 카드 1장을 강화합니다.`,
+          action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
+            setCredits(credits - upgradeCost);
+            const unupgraded = deck.filter(c => !c.name.includes('+'));
+            if (unupgraded.length > 0) {
+              shuffle(unupgraded);
+              unupgraded[0].name += '+';
+              if (unupgraded[0].damage) unupgraded[0].damage += 3 + Math.floor(stage * 0.1);
+              if (unupgraded[0].block) unupgraded[0].block += 3 + Math.floor(stage * 0.1);
+              setDeck([...deck]);
+              setToast(`${unupgraded[0].name} 카드가 강화되었습니다!`);
+            } else {
+              setToast('강화할 카드가 없습니다!');
+            }
+          },
+          req: (player, credits) => credits >= upgradeCost
         },
-        req: (player, credits) => credits >= 30
-      },
-      {
-        text: '20 크레딧을 지불하고 체력을 20 회복합니다.',
-        action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
-          setCredits(credits - 20);
-          setPlayer({ ...player, hp: Math.min(player.maxHp, player.hp + 20) });
-          setToast('체력을 회복했습니다!');
+        {
+          text: `${healCost} 크레딧을 지불하고 체력을 ${healAmount} 회복합니다.`,
+          action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
+            setCredits(credits - healCost);
+            setPlayer({ ...player, hp: Math.min(player.maxHp, player.hp + healAmount) });
+            setToast('체력을 회복했습니다!');
+          },
+          req: (player, credits) => credits >= healCost
         },
-        req: (player, credits) => credits >= 20
-      },
-      {
-        text: '상인을 지나쳐 길을 재촉합니다.',
-        action: () => {}
-      }
-    ]
-  },
-  {
-    id: 'cursed_treasure',
-    title: '저주받은 보물상자',
-    desc: '낡은 보물상자에서 불길한 보랏빛 기운이 스며나옵니다. 열면 무언가 끔찍한 대가를 치러야 할 것 같습니다.',
-    image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?q=80&w=1000&auto=format&fit=crop',
-    options: [
-      {
-        text: '최대 체력을 10 잃고 100 크레딧을 얻습니다.',
-        action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
-          setPlayer({ ...player, hp: Math.max(1, player.hp - 10), maxHp: Math.max(10, player.maxHp - 10) });
-          setCredits(credits + 100);
-          setToast('저주를 받았지만 큰 돈을 얻었습니다!');
+        {
+          text: '상인을 지나쳐 길을 재촉합니다.',
+          action: () => {}
+        }
+      ]
+    },
+    {
+      id: 'cursed_treasure',
+      title: '저주받은 보물상자',
+      desc: '낡은 보물상자에서 불길한 보랏빛 기운이 스며나옵니다. 열면 무언가 끔찍한 대가를 치러야 할 것 같습니다.',
+      image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?q=80&w=1000&auto=format&fit=crop',
+      options: [
+        {
+          text: `최대 체력을 ${curseMaxHpLoss} 잃고 ${curseCreditGain} 크레딧을 얻습니다.`,
+          action: (player, deck, credits, setPlayer, setDeck, setCredits, setRelics, relics, setToast) => {
+            setPlayer({ ...player, hp: Math.max(1, player.hp - curseMaxHpLoss), maxHp: Math.max(10, player.maxHp - curseMaxHpLoss) });
+            setCredits(credits + curseCreditGain);
+            setToast('저주를 받았지만 큰 돈을 얻었습니다!');
+          },
+          req: (player) => player.maxHp > (curseMaxHpLoss + 10)
         },
-        req: (player) => player.maxHp > 20
-      },
-      {
-        text: '보물상자를 건드리지 않습니다.',
-        action: () => {}
-      }
-    ]
-  }
-];
+        {
+          text: '보물상자를 건드리지 않습니다.',
+          action: () => {}
+        }
+      ]
+    }
+  ];
+};
 
 export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState }) {
   const [eventData, setEventData] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
-    // 무작위 이벤트 선택
-    const randomEvent = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+    const stage = combatState?.stage || 1;
+    const availableEvents = getEvents(stage);
+    const randomEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
     setEventData(randomEvent);
-  }, []);
+  }, [combatState?.stage]);
 
   const handleOption = (option) => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     let p = { ...combatState.player };
     let d = [ ...combatState.baseDeck ];
     

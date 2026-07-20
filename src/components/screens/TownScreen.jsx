@@ -9,31 +9,31 @@ export default function TownScreen({
     {
       id: 'inn',
       name: '여관 (Inn)',
-      desc: '편안한 휴식으로 최대 체력을 증가시킵니다.',
-      effect: '레벨당 시작 최대 체력 +5',
+      desc: '편안한 휴식으로 최대 체력을 크게 증가시킵니다.',
+      effect: '레벨당 시작 최대 체력 +30',
       icon: <Heart className="w-8 h-8 text-red-400" />,
       maxLevel: 5,
-      costBase: 100,
-      costMult: 1.5
+      costBase: 200,
+      costMult: 2
     },
     {
       id: 'blacksmith',
       name: '대장간 (Blacksmith)',
-      desc: '시작 시 기본 덱의 카드들을 무작위로 강화합니다.',
-      effect: '레벨당 시작 시 카드 1장 강화',
+      desc: '시작 시 기본 덱의 카드들을 무작위로 여러 장 강화합니다.',
+      effect: '레벨당 시작 시 덱의 무작위 카드 2장 강화',
       icon: <Hammer className="w-8 h-8 text-orange-400" />,
-      maxLevel: 3,
-      costBase: 200,
+      maxLevel: 5,
+      costBase: 300,
       costMult: 2
     },
     {
       id: 'alchemist',
       name: '연금술사의 집 (Alchemist)',
-      desc: '알 수 없는 영약의 힘으로 무작위 버프를 얻고 시작합니다.',
-      effect: '레벨당 무작위 버프 1스택 (재생, 통찰, 힘)',
+      desc: '강력한 영약의 힘으로 무작위 버프를 얻고 시작합니다.',
+      effect: '레벨당 시작 시 무작위 버프 1스택 (재생, 통찰, 근력 중)',
       icon: <Shield className="w-8 h-8 text-emerald-400" />,
-      maxLevel: 3,
-      costBase: 300,
+      maxLevel: 5,
+      costBase: 500,
       costMult: 2
     }
   ];

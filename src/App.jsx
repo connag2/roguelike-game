@@ -273,7 +273,7 @@ export default function App() {
 
     // ⛺ 대장간(Blacksmith) 마을 업그레이드: 레벨당 카드 1장 무작위 강화
     if (townUpgrades?.blacksmith > 0) {
-      let upgCount = townUpgrades.blacksmith;
+      let upgCount = townUpgrades.blacksmith * 2;
       const unupgraded = fullDeck.filter(c => !c.name.includes('+'));
       shuffle(unupgraded);
       for (let i = 0; i < Math.min(upgCount, unupgraded.length); i++) {
@@ -284,7 +284,7 @@ export default function App() {
     }
 
     // ⛺ 여관(Inn) 마을 업그레이드: 레벨당 최대 체력 +5
-    const basePlayerHp = classData.baseHp + (shopUpgrades.maxHp * 20) + ((townUpgrades?.inn || 0) * 5);
+    const basePlayerHp = classData.baseHp + (shopUpgrades.maxHp * 20) + ((townUpgrades?.inn || 0) * 30);
     const enemies = generateEnemies(stage, mode);
     updateSeenEnemies(enemies);
 
@@ -396,8 +396,12 @@ export default function App() {
     setToastMsg(`🌟 ${pendingRelicReward.name} 장착 완료!`);
     setPendingRelicReward(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
-    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); } 
-    else { setGameState('REWARDS'); }
+    else { 
+      if (combatState.mode === 'NORMAL' && combatState.stage >= 100 && !normalCleared) {
+        setNormalCleared(true); saveGame({ normalCleared: true });
+      }
+      setGameState('REWARDS'); 
+    }
   };
 
   const handleRelicChoiceClaim = (relic) => {
@@ -411,8 +415,12 @@ export default function App() {
     setToastMsg(`🌟 ${relic.name} 획득!`);
     setPendingRelicChoices(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
-    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); } 
-    else { setGameState('REWARDS'); }
+    else { 
+      if (combatState.mode === 'NORMAL' && combatState.stage >= 100 && !normalCleared) {
+        setNormalCleared(true); saveGame({ normalCleared: true });
+      }
+      setGameState('REWARDS'); 
+    }
   };
 
   // ✨ 적 턴 (다중 카드 사용 로직 적용)
@@ -1010,10 +1018,10 @@ export default function App() {
                 setCombatState(prev=>({...prev, baseDeck: [...prev.baseDeck, specialBossRewardCard]})); 
                 setSpecialBossRewardCard(null); 
                 
-                if (combatState.mode === 'NORMAL' && combatState.stage >= 100) {
+                if (combatState.mode === 'NORMAL' && combatState.stage >= 100 && !normalCleared) {
                   setNormalCleared(true);
                   saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards, normalCleared: true });
-                  setGameState('GAME_CLEAR');
+                  setGameState('REWARDS');
                 } else if (combatState.mode === 'HARD' && combatState.stage >= 300) {
                   setGameState('HARD_CLEAR_RELIC_CHOICE');
                   saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
