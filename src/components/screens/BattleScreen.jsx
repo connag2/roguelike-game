@@ -9,6 +9,7 @@ import TierEffects from '../effects/TierEffects';
 import StatusEffects from '../effects/StatusEffects';
 import UniqueEffects from '../effects/UniqueEffects';
 import Tooltip from '../common/Tooltip'; 
+import WeatherLayer from '../common/WeatherLayer';
 
 import heroImg from '../../assets/images/characters/hero.svg';
 import slimeImg from '../../assets/images/monsters/slime.svg';
@@ -117,6 +118,7 @@ export default function BattleScreen({
 
   return (
     <div className={`flex flex-col h-[100dvh] bg-slate-900 text-white p-2 md:p-4 relative overflow-hidden ${isShaking ? 'animate-shake' : ''}`}>
+      <WeatherLayer stage={combatState?.stage || 1} />
       
       <style>{`
         @keyframes slashHit { 0% { transform: scaleX(0) scaleY(1); opacity: 0; } 10% { transform: scaleX(0.5) scaleY(3); opacity: 1; } 100% { transform: scaleX(1.5) scaleY(0); opacity: 0; } }

@@ -14,6 +14,39 @@ export const MANA_CARD_IDS = [
 
 export const BASE_CARDS = ['strike', 'defend', 'heavy_strike', 'shield_bash', 'heal', 'mana_potion', 'focus', 'purify'];
 
+// --- 플레이어 직업 (클래스) 데이터 ---
+export const PLAYER_CLASSES = [
+  {
+    id: 'adventurer',
+    name: '모험가',
+    desc: '다양한 카드를 유연하게 다루는 기본 직업입니다.',
+    baseHp: 100,
+    baseMana: 3,
+    passive: null,
+    baseDeck: [] // 덱을 자유롭게 구성
+  },
+  {
+    id: 'warrior',
+    name: '광전사',
+    desc: '체력을 잃을 때마다 분노를 쌓는 근접 공격수입니다.',
+    baseHp: 120,
+    baseMana: 3,
+    passive: 'bloodlust',
+    passiveDesc: '[피의 갈망] 체력 감소 시마다 격노 1 획득',
+    baseDeck: ['strike', 'strike', 'strike', 'heavy_strike', 'rage_strike', 'defend', 'defend', 'defend', 'shield_bash', 'blood_ritual']
+  },
+  {
+    id: 'mage',
+    name: '마법사',
+    desc: '마나를 모아 강력한 원거리 마법을 구사합니다.',
+    baseHp: 80,
+    baseMana: 4, // 매 턴 4 마나
+    passive: 'mana_spring',
+    passiveDesc: '[마나의 샘] 매 전투 시작 시 통찰 1 획득',
+    baseDeck: ['flame_slash', 'frost_arrow', 'defend', 'frozen_shield', 'meditate', 'mana_potion', 'focus', 'purify', 'magic_missile', 'fireball']
+  }
+];
+
 // --- 플레이어 카드 라이브러리 ---
 export const CARD_LIBRARY = [
   // 일반 (Common)

@@ -11,7 +11,7 @@ export default function MainMenu({
   credits, getTotalCards, openDeckBuilder, openEncyclopedia, 
   openMonsterDex, openShop, setTutorialModalOpen, setGameState, 
   startBattle, normalCleared, maxStageReached, setSkipModalOpen,
-  setHardSkipModalOpen, toggleFullScreen 
+  setHardSkipModalOpen, toggleFullScreen, selectedClass 
 }) {
   const hardCleared = maxStageReached > 300 || (maxStageReached === 300 && normalCleared);
 
@@ -61,9 +61,18 @@ export default function MainMenu({
           </button>
         </div>
         
-        <hr className="border-slate-700 mb-2" />
+        {/* ✨ 직업 선택 버튼 (75층 이상 해금) */}
+        {maxStageReached >= 75 && (
+          <div className="w-full mt-2 mb-2">
+            <button onClick={() => setGameState('CLASS_SELECT')} className="w-full py-3 bg-indigo-900 hover:bg-indigo-800 border border-indigo-500 rounded-lg text-lg font-black transition-all flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.4)]">
+              ✨ 직업 선택: {selectedClass === 'adventurer' ? '모험가' : selectedClass === 'warrior' ? '광전사' : '마법사'}
+            </button>
+          </div>
+        )}
         
-        <button onClick={() => startBattle('NORMAL')} disabled={getTotalCards() !== 20} className={`py-3 px-6 rounded-lg text-lg font-bold transition-all ${getTotalCards() === 20 ? 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>
+        <hr className="border-slate-700 mb-2 mt-2" />
+        
+        <button onClick={() => startBattle('NORMAL')} disabled={selectedClass === 'adventurer' && getTotalCards() !== 20} className={`py-3 px-6 rounded-lg text-lg font-bold transition-all ${selectedClass !== 'adventurer' || getTotalCards() === 20 ? 'bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>
           일반 모드 (100층)
         </button>
 
@@ -73,7 +82,7 @@ export default function MainMenu({
           </button>
         )}
 
-        <button onClick={() => startBattle('HARD')} disabled={!normalCleared || getTotalCards() !== 20} className={`mt-2 py-2 px-6 rounded-lg text-base font-bold transition-all flex flex-col items-center ${normalCleared && getTotalCards() === 20 ? 'bg-red-700 hover:bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>
+        <button onClick={() => startBattle('HARD')} disabled={!normalCleared || (selectedClass === 'adventurer' && getTotalCards() !== 20)} className={`mt-2 py-2 px-6 rounded-lg text-base font-bold transition-all flex flex-col items-center ${normalCleared && (selectedClass !== 'adventurer' || getTotalCards() === 20) ? 'bg-red-700 hover:bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'bg-slate-800 text-slate-500 cursor-not-allowed'}`}>
           하드 모드 (300층)
           {!normalCleared && <span className="text-[10px] text-red-400 mt-1">일반 100층 클리어 시 개방</span>}
         </button>
@@ -84,7 +93,7 @@ export default function MainMenu({
           </button>
         )}
 
-        <button onClick={() => startBattle('ENDLESS')} disabled={!hardCleared || getTotalCards() !== 20} className={`mt-2 py-3 px-6 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 ${hardCleared && getTotalCards() === 20 ? 'bg-fuchsia-700 hover:bg-fuchsia-600 shadow-[0_0_15px_rgba(192,38,211,0.5)]' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}>
+        <button onClick={() => startBattle('ENDLESS')} disabled={!hardCleared || (selectedClass === 'adventurer' && getTotalCards() !== 20)} className={`mt-2 py-3 px-6 rounded-lg text-lg font-bold transition-all flex justify-center items-center gap-2 ${hardCleared && (selectedClass !== 'adventurer' || getTotalCards() === 20) ? 'bg-fuchsia-700 hover:bg-fuchsia-600 shadow-[0_0_15px_rgba(192,38,211,0.5)]' : 'bg-slate-800 text-slate-600 cursor-not-allowed'}`}>
           <Infinity className="w-5 h-5"/> 무한 모드
           {!hardCleared && <span className="absolute text-[10px] text-fuchsia-400 mt-10">하드 300층 돌파 시 개방</span>}
         </button>

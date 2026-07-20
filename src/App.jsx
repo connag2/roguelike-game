@@ -4,7 +4,7 @@ import { auth, db, appId } from './config/firebase';
 import { onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
-import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS, BOSS_LOOT_CARDS } from './constants/gameData';
+import { CARD_LIBRARY, BASE_CARDS, GAME_RULES, MANA_CARD_IDS, BOSS_LOOT_CARDS, PLAYER_CLASSES } from './constants/gameData';
 import { RELIC_LIBRARY } from './constants/relicData';
 import { shuffle, decayStack, getCardDef, generateEnemies, generateEnemyIntent } from './utils/gameLogic';
 import { useBattle } from './hooks/useBattle'; 
@@ -21,6 +21,7 @@ import Statistics from './components/screens/Statistics';
 import UpdateHistory from './components/screens/UpdateHistory';
 import GameGuide from './components/screens/GameGuide';
 import AdminPanel from './components/admin/AdminPanel';
+import ClassSelectScreen from './components/screens/ClassSelectScreen';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -59,6 +60,7 @@ export default function App() {
   const [maxStageReached, setMaxStageReached] = useState(1);
   const [seenEnemies, setSeenEnemies] = useState([]);
   const [usedCoupons, setUsedCoupons] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('adventurer'); // ⚔️ 추가된 직업 상태
   
   const [gameStats, setGameStats] = useState({ totalKills: 0, totalBossKills: 0, totalCreditsEarned: 0, totalRuns: 0 });
 
@@ -143,6 +145,7 @@ export default function App() {
         if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
         if (d.customCards) setCustomCards(d.customCards); 
         if (d.claimedMilestones) setClaimedMilestones(d.claimedMilestones);
+        if (d.selectedClass) setSelectedClass(d.selectedClass);
       }
     } catch (e) {
       console.error("세이브 데이터 로드 실패", e);
@@ -150,7 +153,7 @@ export default function App() {
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -249,12 +252,22 @@ export default function App() {
       return;
     }
 
+    const classData = PLAYER_CLASSES.find(c => c.id === selectedClass) || PLAYER_CLASSES[0];
+
     let fullDeck = [];
-    Object.keys(deckCounts).forEach(id => {
-      const def = enhancedGetCardDef(id, shopUpgrades);
-      for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
-    });
-    const basePlayerHp = 100 + (shopUpgrades.maxHp * 20);
+    if (classData.id === 'adventurer') {
+      Object.keys(deckCounts).forEach(id => {
+        const def = enhancedGetCardDef(id, shopUpgrades);
+        for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
+      });
+    } else {
+      classData.baseDeck.forEach(id => {
+        const def = enhancedGetCardDef(id, shopUpgrades);
+        if (def) fullDeck.push({ ...def });
+      });
+    }
+
+    const basePlayerHp = classData.baseHp + (shopUpgrades.maxHp * 20);
     const enemies = generateEnemies(stage, mode);
     updateSeenEnemies(enemies);
 
@@ -266,9 +279,10 @@ export default function App() {
     setPlayerRelics(initialRelics);
 
     let initialPlayer = { 
-      hp: basePlayerHp, maxHp: basePlayerHp, mana: 3, maxMana: 3, block: 0, 
-      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0 }, 
-      buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0, insight: 0 } 
+      hp: basePlayerHp, maxHp: basePlayerHp, mana: classData.baseMana, maxMana: classData.baseMana, block: 0, 
+      debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, bleed: 0, frost: 0, burn: 0 }, 
+      buffs: { strength: 0, dexterity: 0, thorns: 0, intangible: 0, regen: 0, rage: 0, insight: classData.id === 'mage' ? 1 : 0 },
+      classId: classData.id
     };
     initialPlayer = applyStartCombatRelics(initialPlayer, initialRelics); 
 
@@ -374,13 +388,18 @@ export default function App() {
           // 🔥 화상 피해 먼저 적용
           if ((p.debuffs?.burn || 0) > 0) { 
              p.hp -= p.debuffs.burn; 
+             if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
              if (p.hp <= 0) { setGameState('GAME_OVER'); return prev; }
           }
           
           ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { p.debuffs[k] = decayStack(p.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
           ['strength', 'dexterity', 'thorns', 'regen', 'rage', 'insight'].forEach(k => { p.buffs[k] = decayStack(p.buffs[k] || 0, false); });
 
-          if ((p.debuffs?.poison || 0) > 0) { p.hp -= p.debuffs.poison; p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); }
+          if ((p.debuffs?.poison || 0) > 0) { 
+            p.hp -= p.debuffs.poison; 
+            if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
+            p.debuffs.poison = Math.max(0, p.debuffs.poison - 1); 
+          }
 
           let newEnemies = prev.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: 0 }));
           
@@ -424,7 +443,11 @@ export default function App() {
                   if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
 
                   for(let i=0; i<(intent.multi || 1); i++) {
-                    if (p.block >= dmg) p.block -= dmg; else { p.hp -= (dmg - p.block); p.block = 0; }
+                    if (p.block >= dmg) p.block -= dmg; else { 
+                      p.hp -= (dmg - p.block); 
+                      p.block = 0; 
+                      if (p.classId === 'warrior') p.buffs.rage = (p.buffs.rage || 0) + 1;
+                    }
                     if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
                   }
                 }
@@ -803,7 +826,9 @@ export default function App() {
           </div>
         )}
 
-        {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={toggleFullScreen} />}
+        {gameState === 'MENU' && <MainMenu credits={credits} getTotalCards={getTotalCards} openDeckBuilder={openDeckBuilder} openEncyclopedia={openEncyclopedia} openMonsterDex={openMonsterDex} openShop={openShop} setTutorialModalOpen={setTutorialModalOpen} setGameState={setGameState} startBattle={startBattle} normalCleared={normalCleared} maxStageReached={maxStageReached} setSkipModalOpen={setSkipModalOpen} setHardSkipModalOpen={setHardSkipModalOpen} toggleFullScreen={toggleFullScreen} selectedClass={selectedClass} setSelectedClass={setSelectedClass} />}
+        
+        {gameState === 'CLASS_SELECT' && <ClassSelectScreen setGameState={setGameState} selectedClass={selectedClass} setSelectedClass={setSelectedClass} saveGame={saveGame} />}
         
         {gameState === 'UPDATE_HISTORY' && <UpdateHistory setGameState={setGameState} usedCoupons={usedCoupons} couponInput={couponInput} setCouponInput={setCouponInput} handleCoupon={handleCoupon} />}
         
