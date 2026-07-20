@@ -19,7 +19,7 @@ export default function ClassSelectScreen({ setGameState, selectedClass, setSele
 
         <p className="text-slate-300 mb-8 text-center md:text-left">
           다양한 직업을 선택하여 색다른 시너지와 플레이 스타일을 경험해 보세요.<br />
-          <span className="text-sm text-slate-500">(모험가 외의 직업은 고정된 덱으로 시작합니다)</span>
+          <span className="text-sm text-slate-500">(모든 직업은 덱 빌더에서 구성한 카드로 시작합니다)</span>
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

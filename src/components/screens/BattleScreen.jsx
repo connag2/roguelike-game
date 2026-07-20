@@ -379,7 +379,7 @@ export default function BattleScreen({
           <div className="text-3xl md:text-6xl font-black text-slate-800/40 italic px-6 md:px-12 mb-8 md:mb-12 select-none tracking-tighter">VS</div>
 
           {/* 몬스터 */}
-          <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap w-1/2">
+          <div className="flex flex-row gap-6 md:gap-12 justify-center items-end flex-wrap flex-1 min-w-[40%]">
             {enemies.map((enemy, idx) => {
               const isTarget = idx === targetIndex; // ✅ 0 대신 targetIndex 상태값을 바라보게 수정
               const intents = enemy.intentCards || [];

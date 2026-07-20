@@ -259,17 +259,12 @@ export default function App() {
     const classData = PLAYER_CLASSES.find(c => c.id === selectedClass) || PLAYER_CLASSES[0];
 
     let fullDeck = [];
-    if (classData.id === 'adventurer') {
-      Object.keys(deckCounts).forEach(id => {
-        const def = enhancedGetCardDef(id, shopUpgrades);
+    Object.keys(deckCounts).forEach(id => {
+      const def = enhancedGetCardDef(id, shopUpgrades);
+      if (def) {
         for (let i = 0; i < deckCounts[id]; i++) fullDeck.push({ ...def });
-      });
-    } else {
-      classData.baseDeck.forEach(id => {
-        const def = enhancedGetCardDef(id, shopUpgrades);
-        if (def) fullDeck.push({ ...def });
-      });
-    }
+      }
+    });
 
     // ⛺ 대장간(Blacksmith) 마을 업그레이드: 레벨당 카드 1장 무작위 강화
     if (townUpgrades?.blacksmith > 0) {
