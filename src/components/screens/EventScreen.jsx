@@ -132,9 +132,9 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
       (msg) => setToastMsg(msg)
     );
 
-    // 이벤트 종료 후 REWARDS 씬으로 이동하여 다음 전투를 위한 준비 (보상 획득)
+    // 이벤트 종료 후 BATTLE 씬으로 이동하여 해당 층의 전투 진행
     setCombatState({ ...combatState, player: p, baseDeck: d });
-    setGameState('REWARDS'); 
+    setGameState('BATTLE'); 
   };
 
   if (!eventData) return null;

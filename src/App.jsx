@@ -334,11 +334,11 @@ export default function App() {
   const startNextStage = (newPlayer, newBaseDeck) => {
     const nextStage = combatState.stage + 1;
     const isBoss = nextStage % 10 === 0;
-    // 20% chance for an event, but not on boss stages or stage 1
-    const isEvent = !isBoss && nextStage > 1 && Math.random() < 0.2;
+    // 10% chance for an event, not on boss stages, not on stage 1, and NEVER >= 100 on NORMAL
+    const isEvent = !isBoss && nextStage > 1 && Math.random() < 0.1 && !(combatState.mode === 'NORMAL' && nextStage >= 100);
 
-    const enemies = isEvent ? [] : generateEnemies(nextStage, combatState.mode);
-    if (!isEvent) updateSeenEnemies(enemies);
+    const enemies = generateEnemies(nextStage, combatState.mode);
+    updateSeenEnemies(enemies);
 
     const newDraw = shuffle([...newBaseDeck]);
     const newHand = [];
