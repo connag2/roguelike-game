@@ -111,6 +111,7 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
   const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
+    setIsProcessing(false);
     const stage = combatState?.stage || 1;
     const availableEvents = getEvents(stage);
     const randomEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];

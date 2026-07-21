@@ -47,11 +47,22 @@ export default function Rewards({
   const [selectedRelics, setSelectedRelics] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 🤖 AUTO 보상/카드/유물 자동 선택 AI (설정 연동)
+  // gameState 변경 시 처리 진행 플래그 리셋
+  useEffect(() => {
+    setIsProcessing(false);
+  }, [gameState]);
+
+  // 🤖 AUTO 보상/카드/유물 자동 선택 AI (설정 연동 + 화면 멈춤 방지)
   useEffect(() => {
     if (!autoPlay || !autoReward || isProcessing || !combatState) return;
 
     const timer = setTimeout(() => {
+      // 0. 특수 보스 처치 보상 (BOSS_CLEAR_REWARD)
+      if (gameState === 'BOSS_CLEAR_REWARD' && specialBossRewardCard) {
+        if (handleSpecialClaim) handleSpecialClaim();
+        return;
+      }
+
       // 1. 유물 발견 화면 -> autoRelic 설정이 true일 때만 자동 장착
       if (gameState === 'RELIC_REWARD' && pendingRelicReward) {
         if (autoRelic) handleRelicRewardClaim();
@@ -130,10 +141,10 @@ export default function Rewards({
         }
         return;
       }
-    }, 650);
+    }, 500);
 
     return () => clearTimeout(timer);
-  }, [gameState, autoPlay, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState]);
+  }, [gameState, autoPlay, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState, specialBossRewardCard]);
 
   if (!combatState) return null;
 
