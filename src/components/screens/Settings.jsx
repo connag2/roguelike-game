@@ -6,7 +6,10 @@ import Slider from '../ui/Slider';
 export default function Settings({
   setGameState, fastMode, setFastMode, saveGame, handleExport, setImportModalOpen,
   couponInput, setCouponInput, handleCoupon, adminClearSave,
-  autoPlay, setAutoPlay, autoReward, setAutoReward
+  autoPlay, setAutoPlay, autoReward, setAutoReward,
+  autoRewardType = 'card', setAutoRewardType,
+  autoRelic = true, setAutoRelic,
+  autoEventType = 'safe', setAutoEventType
 }) {
   const [deleteStep, setDeleteStep] = useState(0);
 
