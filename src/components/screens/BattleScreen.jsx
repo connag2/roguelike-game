@@ -122,15 +122,7 @@ export default function BattleScreen({
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
 
-  // 🤖 자동 전투 AI 로직 (안정적인 실행 + 턴 시작 초기화 대기 + 헛턴 넘김 방지)
-  const turnStartTimeRef = useRef(0);
-
-  useEffect(() => {
-    if (isPlayerTurn && !discardingHand) {
-      turnStartTimeRef.current = Date.now();
-    }
-  }, [isPlayerTurn, combatState?.turn]);
-
+  // 🤖 쾌속 자동 전투 AI (중단 없이 연속 실행 + 낼 카드 없을 때만 자동 턴 종료)
   useEffect(() => {
     if (!autoPlay || !isPlayerTurn || playEffect || discardingHand || animatingCardIndex !== null) {
       return;
@@ -143,10 +135,6 @@ export default function BattleScreen({
       const enemies = combatState?.enemies || [];
       const enemy = enemies[targetIndex] || enemies[0];
       if (!p || !enemy || !hand) return;
-
-      // 턴 시작 직후(250ms 이내) 상태가 아직 세팅 중일 수 있으므로 패/마나 안정화 대기
-      const timeSinceTurnStart = Date.now() - turnStartTimeRef.current;
-      if (timeSinceTurnStart < 250) return;
 
       const debuffs = p.debuffs || {};
       const isBound = (debuffs.bind || 0) > 0;
@@ -163,61 +151,54 @@ export default function BattleScreen({
         if ((p.mana || 0) < cost) return false;
         if (card.type === 'attack' && isBound) return false;
         if (card.type === 'skill' && isSilenced) return false;
-        // special 타입 카드는 속박/침묵이어도 정상 사용 가능!
         return true;
       });
 
-      // 낼 수 있는 카드가 진짜 0장이면 턴 종료
-      if (playableCards.length === 0) {
-        // 턴 시작 후 최소 400ms 이상 지났고 낼 카드가 진짜 없을 때만 턴 넘김!
-        if (!discardingHand && isPlayerTurn && timeSinceTurnStart >= 400) {
+      // 1. 낼 수 있는 카드가 하나라도 있으면 최고 가중치 카드를 실행!
+      if (playableCards.length > 0) {
+        const enemyIntents = enemy.intentCards || [];
+        const enemyIsAttacking = enemyIntents.some(i => i.type?.includes('attack'));
+        const enemyIsDefending = enemyIntents.some(i => i.type?.includes('defend') || i.type?.includes('buff'));
+        const totalEnemyDamage = enemyIntents.filter(i => i.type?.includes('attack')).reduce((s, i) => s + (i.value || 0) * (i.multi || 1), 0);
+        const bigAttackComing = totalEnemyDamage > 15;
+
+        const scored = playableCards.map(({ card, idx }) => {
+          let score = 100;
+          const isAttack = card.type === 'attack';
+          const isSpecial = card.type === 'special';
+
+          if (isDebuffed && (card.cleanse || card.cleanseAll || card.debuffToStrength || card.debuffToBlock || card.debuffToHeal)) score += 500;
+          if (isSpecial) score += 300;
+
+          if (bigAttackComing && (card.block || card.percentBlockMaxHp || card.doubleBlock || card.selfIntangible)) score += 400;
+          if (enemyIsAttacking && card.block) score += 150;
+
+          if (enemyIsDefending && (card.enemyVuln || card.enemyWeak || card.enemyPoison || card.enemyBleed || card.enemyBurn)) score += 200;
+
+          if (card.draw) score += 120;
+          if (card.manaGain) score += 180;
+
+          if (isAttack && card.damage) score += 50 + (card.damage || 0);
+
+          score -= (card.cost || 0) * 5;
+
+          return { idx, score };
+        }).sort((a, b) => b.score - a.score);
+
+        if (scored.length > 0) {
+          isAutoExecutingRef.current = true;
+          await handlePlayCard(scored[0].idx);
+          isAutoExecutingRef.current = false;
+        }
+      } else {
+        // 2. 낼 할 수 있는 카드가 진짜 0장일 때만 자동 턴 종료!
+        if (!discardingHand && isPlayerTurn) {
           isAutoExecutingRef.current = true;
           await handleTurnEndClick();
           isAutoExecutingRef.current = false;
         }
-        return;
       }
-
-      // 적 행동 분석 및 가중치
-      const enemyIntents = enemy.intentCards || [];
-      const enemyIsAttacking = enemyIntents.some(i => i.type?.includes('attack'));
-      const enemyIsDefending = enemyIntents.some(i => i.type?.includes('defend') || i.type?.includes('buff'));
-      const totalEnemyDamage = enemyIntents.filter(i => i.type?.includes('attack')).reduce((s, i) => s + (i.value || 0) * (i.multi || 1), 0);
-      const bigAttackComing = totalEnemyDamage > 15;
-
-      const scored = playableCards.map(({ card, idx }) => {
-        let score = 100; // 낼 수 있는 카드는 무조건 100점 이상 부여하여 헛턴 방지!
-        const isAttack = card.type === 'attack';
-        const isSpecial = card.type === 'special';
-
-        if (isDebuffed && (card.cleanse || card.cleanseAll || card.debuffToStrength || card.debuffToBlock || card.debuffToHeal)) score += 500;
-        if (isSpecial) score += 300;
-
-        if (bigAttackComing && (card.block || card.percentBlockMaxHp || card.doubleBlock || card.selfIntangible)) score += 400;
-        if (enemyIsAttacking && card.block) score += 150;
-
-        if (enemyIsDefending && (card.enemyVuln || card.enemyWeak || card.enemyPoison || card.enemyBleed || card.enemyBurn)) score += 200;
-
-        if (card.draw) score += 120;
-        if (card.manaGain) score += 180;
-
-        if (isAttack && card.damage) score += 50 + (card.damage || 0);
-
-        score -= (card.cost || 0) * 5;
-
-        return { idx, score };
-      }).sort((a, b) => b.score - a.score);
-
-      if (scored.length > 0) {
-        isAutoExecutingRef.current = true;
-        await handlePlayCard(scored[0].idx);
-        isAutoExecutingRef.current = false;
-      } else if (!discardingHand && isPlayerTurn && timeSinceTurnStart >= 400) {
-        isAutoExecutingRef.current = true;
-        await handleTurnEndClick();
-        isAutoExecutingRef.current = false;
-      }
-    }, fastMode ? 150 : 350);
+    }, fastMode ? 100 : 250);
 
     return () => clearTimeout(timer);
   }, [autoPlay, isPlayerTurn, hand, playEffect, combatState, targetIndex, fastMode, discardingHand, animatingCardIndex]);
