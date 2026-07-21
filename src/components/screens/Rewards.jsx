@@ -75,7 +75,7 @@ export default function Rewards({
         return;
       }
 
-      // 3. 기본 보상 선택 화면 (카드 추가 vs 회복 & 정화)
+      // 3. 기본 보상 선택 화면 (카드 추가 vs 회복 & 정화 - 단일 스텝 쾌속 진행)
       if (gameState === 'REWARDS') {
         if (enemyDropCard) {
           handleEnemyDropClaim();
@@ -87,7 +87,8 @@ export default function Rewards({
           p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
           startNextStage(p, combatState.baseDeck);
         } else {
-          // 🃏 카드 추가 선택 화면 열기
+          // 🃏 카드 추가: 중간 화면 번쩍임 없이 최선 카드를 1초만에 획득 후 다음 층으로 즉시 이동!
+          setIsProcessing(true);
           const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
           const pool = CARD_LIBRARY.filter(c => {
             const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
@@ -108,13 +109,39 @@ export default function Rewards({
             selected.push(getCardDef(picked.id, shopUpgrades));
             avPool = avPool.filter(c => c.id !== picked.id);
           }
-          setRewardCards(selected);
-          setGameState('REWARD_CARD');
+
+          const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
+          const sorted = [...selected].sort((a, b) => (rarityRank[b.rarity] || 1) - (rarityRank[a.rarity] || 1));
+          const bestCard = sorted[0];
+
+          if (bestCard) {
+            const newDeck = [...combatState.baseDeck, { ...bestCard }];
+            let newUnlocked = unlockedCards;
+            let newCustomCards = customCards;
+
+            if (!unlockedCards.includes(bestCard.id)) {
+              newUnlocked = [...unlockedCards, bestCard.id];
+              setUnlockedCards(newUnlocked);
+            }
+            if ((bestCard.id.startsWith('loot_') || bestCard.rarity === 'loot') && !customCards.some(c => c.id === bestCard.id)) {
+              newCustomCards = [...customCards, bestCard];
+              setCustomCards(newCustomCards);
+            }
+
+            saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
+            if (setEnemyDropCard) setEnemyDropCard(null);
+            startNextStage(combatState.player, newDeck);
+          } else {
+            // 만약 카드가 선택되지 않은 예외 발생 시 회복 진행
+            const p = { ...combatState.player };
+            p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
+            startNextStage(p, combatState.baseDeck);
+          }
         }
         return;
       }
 
-      // 4. 보상 카드 3장 중 선택 화면 -> 가장 높은 등급/희귀도 카드 자동 선택 및 다음 층 이동
+      // 4. 보상 카드 3장 중 수동 진입 시 선택 처리
       if (gameState === 'REWARD_CARD' && rewardCards && rewardCards.length > 0) {
         const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
         const sorted = [...rewardCards].sort((a, b) => (rarityRank[b.rarity] || 1) - (rarityRank[a.rarity] || 1));
@@ -141,7 +168,7 @@ export default function Rewards({
         }
         return;
       }
-    }, 500);
+    }, 400);
 
     return () => clearTimeout(timer);
   }, [gameState, autoPlay, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState, specialBossRewardCard]);
