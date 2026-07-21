@@ -52,6 +52,49 @@ export default function Rewards({
     setIsProcessing(false);
   }, [gameState]);
 
+  // 🛡️ 안전한 3장 보상 카드 생성기 (null / undefined 방지)
+  const generateThreeRewardCards = () => {
+    try {
+      const baseDeck = combatState?.baseDeck || [];
+      const currentManaCount = baseDeck.filter(c => c && ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c?.id)).length;
+      const pool = CARD_LIBRARY.filter(c => {
+        if (!c || !c.id) return false;
+        const count = baseDeck.filter(dc => dc && dc.id === c.id).length;
+        if (count >= 3) return false;
+        if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
+        return true;
+      });
+
+      const stage = combatState?.stage || 1;
+      const legendProb = Math.floor(stage / 10) * 0.01;
+      let selected = [];
+      let avPool = pool.length > 0 ? [...pool] : [...CARD_LIBRARY];
+
+      for (let i = 0; i < 3; i++) {
+        if (avPool.length === 0) avPool = [...CARD_LIBRARY];
+        const r = Math.random();
+        let t = r < legendProb ? 'rare' : r < legendProb + 0.15 ? 'uncommon' : 'common';
+        let pList = avPool.filter(c => c.rarity === t);
+        if (pList.length === 0) pList = avPool;
+        const picked = pList[Math.floor(Math.random() * pList.length)];
+        if (picked) {
+          const def = (typeof getCardDef === 'function') ? getCardDef(picked.id, shopUpgrades) : null;
+          selected.push(def || picked);
+          avPool = avPool.filter(c => c.id !== picked.id);
+        }
+      }
+
+      selected = selected.filter(Boolean);
+      while (selected.length < 3) {
+        selected.push(CARD_LIBRARY[selected.length % CARD_LIBRARY.length]);
+      }
+      return selected;
+    } catch (err) {
+      console.error("보상 카드 생성 오류:", err);
+      return [CARD_LIBRARY[0], CARD_LIBRARY[1], CARD_LIBRARY[2]];
+    }
+  };
+
   // 🤖 AUTO 보상/카드/유물 자동 선택 AI (설정 연동 + 화면 멈춤 방지)
   useEffect(() => {
     if (!autoPlay || !autoReward || isProcessing || !combatState) return;
@@ -75,7 +118,7 @@ export default function Rewards({
         return;
       }
 
-      // 3. 기본 보상 선택 화면 (카드 추가 vs 회복 & 정화 - 단일 스텝 쾌속 진행)
+      // 3. 기본 보상 선택 화면 (카드 추가 vs 회복 & 정화)
       if (gameState === 'REWARDS') {
         if (enemyDropCard) {
           handleEnemyDropClaim();
@@ -87,44 +130,24 @@ export default function Rewards({
           p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
           startNextStage(p, combatState.baseDeck);
         } else {
-          // 🃏 카드 추가: 중간 화면 번쩍임 없이 최선 카드를 1초만에 획득 후 다음 층으로 즉시 이동!
+          // 🃏 카드 추가: 3장 중 최고 등급 자동선택 후 직통 이동
           setIsProcessing(true);
-          const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
-          const pool = CARD_LIBRARY.filter(c => {
-            const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
-            if (count >= 3) return false;
-            if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
-            return true;
-          });
-          const legendProb = Math.floor(combatState.stage / 10) * 0.01;
-          let selected = [];
-          let avPool = [...pool];
-          for(let i=0; i<3; i++) {
-            if(avPool.length === 0) break;
-            const r = Math.random();
-            let t = r < legendProb ? 'rare' : r < legendProb + 0.15 ? 'uncommon' : 'common';
-            let pList = avPool.filter(c => c.rarity === t);
-            if (pList.length === 0) pList = avPool;
-            const picked = pList[Math.floor(Math.random() * pList.length)];
-            selected.push(getCardDef(picked.id, shopUpgrades));
-            avPool = avPool.filter(c => c.id !== picked.id);
-          }
-
+          const selected = generateThreeRewardCards();
           const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
-          const sorted = [...selected].sort((a, b) => (rarityRank[b.rarity] || 1) - (rarityRank[a.rarity] || 1));
+          const sorted = [...selected].sort((a, b) => (rarityRank[b?.rarity] || 1) - (rarityRank[a?.rarity] || 1));
           const bestCard = sorted[0];
 
-          if (bestCard) {
-            const newDeck = [...combatState.baseDeck, { ...bestCard }];
-            let newUnlocked = unlockedCards;
-            let newCustomCards = customCards;
+          if (bestCard && bestCard.id) {
+            const newDeck = [...(combatState?.baseDeck || []), { ...bestCard }];
+            let newUnlocked = unlockedCards || [];
+            let newCustomCards = customCards || [];
 
-            if (!unlockedCards.includes(bestCard.id)) {
-              newUnlocked = [...unlockedCards, bestCard.id];
+            if (!newUnlocked.includes(bestCard.id)) {
+              newUnlocked = [...newUnlocked, bestCard.id];
               setUnlockedCards(newUnlocked);
             }
-            if ((bestCard.id.startsWith('loot_') || bestCard.rarity === 'loot') && !customCards.some(c => c.id === bestCard.id)) {
-              newCustomCards = [...customCards, bestCard];
+            if ((bestCard.id.startsWith('loot_') || bestCard.rarity === 'loot') && !newCustomCards.some(c => c.id === bestCard.id)) {
+              newCustomCards = [...newCustomCards, bestCard];
               setCustomCards(newCustomCards);
             }
 
@@ -132,7 +155,6 @@ export default function Rewards({
             if (setEnemyDropCard) setEnemyDropCard(null);
             startNextStage(combatState.player, newDeck);
           } else {
-            // 만약 카드가 선택되지 않은 예외 발생 시 회복 진행
             const p = { ...combatState.player };
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
             startNextStage(p, combatState.baseDeck);
@@ -144,21 +166,22 @@ export default function Rewards({
       // 4. 보상 카드 3장 중 수동 진입 시 선택 처리
       if (gameState === 'REWARD_CARD' && rewardCards && rewardCards.length > 0) {
         const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
-        const sorted = [...rewardCards].sort((a, b) => (rarityRank[b.rarity] || 1) - (rarityRank[a.rarity] || 1));
+        const validCards = rewardCards.filter(Boolean);
+        const sorted = [...validCards].sort((a, b) => (rarityRank[b?.rarity] || 1) - (rarityRank[a?.rarity] || 1));
         const bestCard = sorted[0];
 
-        if (bestCard) {
+        if (bestCard && bestCard.id) {
           setIsProcessing(true);
-          const newDeck = [...combatState.baseDeck, { ...bestCard }];
-          let newUnlocked = unlockedCards;
-          let newCustomCards = customCards;
+          const newDeck = [...(combatState?.baseDeck || []), { ...bestCard }];
+          let newUnlocked = unlockedCards || [];
+          let newCustomCards = customCards || [];
 
-          if (!unlockedCards.includes(bestCard.id)) {
-            newUnlocked = [...unlockedCards, bestCard.id];
+          if (!newUnlocked.includes(bestCard.id)) {
+            newUnlocked = [...newUnlocked, bestCard.id];
             setUnlockedCards(newUnlocked);
           }
-          if ((bestCard.id.startsWith('loot_') || bestCard.rarity === 'loot') && !customCards.some(c => c.id === bestCard.id)) {
-            newCustomCards = [...customCards, bestCard];
+          if ((bestCard.id.startsWith('loot_') || bestCard.rarity === 'loot') && !newCustomCards.some(c => c.id === bestCard.id)) {
+            newCustomCards = [...newCustomCards, bestCard];
             setCustomCards(newCustomCards);
           }
 
@@ -244,26 +267,7 @@ export default function Rewards({
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full max-w-4xl justify-center items-center">
           
           <button onClick={() => {
-            const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
-            const pool = CARD_LIBRARY.filter(c => {
-              const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
-              if (count >= 3) return false;
-              if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
-              return true;
-            });
-            const legendProb = Math.floor(combatState.stage / 10) * 0.01;
-            let selected = [];
-            let avPool = [...pool];
-            for(let i=0; i<3; i++) {
-              if(avPool.length === 0) break;
-              const r = Math.random();
-              let t = r < legendProb ? 'rare' : r < legendProb + 0.15 ? 'uncommon' : 'common';
-              let pList = avPool.filter(c => c.rarity === t);
-              if (pList.length === 0) pList = avPool;
-              const picked = pList[Math.floor(Math.random() * pList.length)];
-              selected.push(getCardDef(picked.id, shopUpgrades));
-              avPool = avPool.filter(c => c.id !== picked.id);
-            }
+            const selected = generateThreeRewardCards();
             setRewardCards(selected);
             setGameState('REWARD_CARD');
           }} className="p-6 md:p-8 bg-slate-800 hover:bg-slate-700 border-2 border-indigo-500 rounded-2xl flex flex-col items-center w-full md:w-64 transition-all shadow-xl hover:-translate-y-1 group cursor-pointer">
@@ -306,8 +310,10 @@ export default function Rewards({
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative">
         <h2 className="text-2xl md:text-3xl font-bold mb-8">추가할 카드를 선택하세요</h2>
         <div className="flex flex-col md:flex-row gap-4 md:gap-6 flex-wrap justify-center w-full max-w-4xl px-4">
-          {rewardCards.map((card, idx) => {
-            const isNew = !unlockedCards.includes(card.id);
+          {(rewardCards || []).filter(Boolean).map((card, idx) => {
+            if (!card || typeof card !== 'object') return null;
+            const cardId = card.id || `reward_${idx}`;
+            const isNew = !unlockedCards.includes(cardId);
             const isExpanded = expandedCards[idx];
             return (
               <div key={idx} className="relative group">
