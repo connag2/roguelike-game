@@ -129,7 +129,11 @@ export default function BattleScreen({
     }
 
     const enemies = combatState?.enemies || [];
-    if (enemies.length === 0) return; // 🛑 승리 후 적이 모두 사라진 찰나에는 AUTO 작동 중단
+    const validEnemies = enemies.filter(e => e && e.hp > 0);
+    if (validEnemies.length === 0 || (combatState?.player?.hp || 0) <= 0) {
+      isAutoExecutingRef.current = true;
+      return;
+    }
 
     const timer = setTimeout(async () => {
       if (isAutoExecutingRef.current) return;

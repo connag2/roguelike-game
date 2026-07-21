@@ -203,7 +203,17 @@ export default function Rewards({
     return () => clearTimeout(timer);
   }, [gameState, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState?.stage, specialBossRewardCard]);
 
-  if (!combatState) return null;
+  if (!combatState) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-6 text-center">
+        <h2 className="text-3xl font-bold mb-4 text-amber-400">⚠️ 보상 정보 확인 중</h2>
+        <p className="text-slate-300 mb-6 max-w-md">전투 정보 로딩 중입니다. 잠시만 기다리시거나 복구 버튼을 눌러주세요.</p>
+        <button onClick={() => setGameState('MENU')} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg shadow-lg">
+          🔄 메인 화면으로 돌아가기
+        </button>
+      </div>
+    );
+  }
 
   // 🌟 0. 유물 발견 보상 화면 (최우선 표시)
   if (gameState === 'RELIC_REWARD' && pendingRelicReward) {

@@ -1105,6 +1105,17 @@ export default function App() {
         )}
         
         {gameState === 'GAME_CLEAR' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-yellow-900 to-slate-900 text-white p-4"><h1 className="text-6xl font-black text-yellow-400 mb-4 drop-shadow-lg">🎊 클리어!</h1><p className="text-2xl text-slate-300 mb-8">정말 훌륭한 성과입니다!</p><button onClick={() => { setGameState('MENU'); }} className="py-3 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg">메인으로</button></div>}
+
+        {/* 🛡️ 알 수 없는 화면 상태 진입 시 안전 폴백(Default Fallback UI) */}
+        {!['MENU', 'CLASS_SELECT', 'EVENT', 'TOWN', 'UPDATE_HISTORY', 'STATISTICS', 'SETTINGS', 'DECK_BUILDING', 'SHOP', 'BATTLE', 'ENCYCLOPEDIA', 'MONSTER_DEX', 'REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD', 'BOSS_RELIC_CHOICE', 'HARD_CLEAR_RELIC_CHOICE', 'GAME_OVER', 'GAME_CLEAR'].includes(gameState) && (
+          <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-950 text-white p-6 text-center">
+            <h1 className="text-3xl font-bold mb-4 text-amber-400">⚠️ 화면 상태 복구 알림</h1>
+            <p className="text-slate-300 mb-6 max-w-md">알 수 없는 화면 상태("{String(gameState)}")에 진입하여 안전 복구 모드를 활성화했습니다.</p>
+            <button onClick={() => setGameState('MENU')} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg shadow-lg">
+              🔄 메인 화면으로 돌아가기
+            </button>
+          </div>
+        )}
       </div>
     </ErrorBoundary>
   );
