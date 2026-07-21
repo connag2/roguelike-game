@@ -489,36 +489,90 @@ export default function ShopScreen({
         </div>
       </div>
 
-      {/* ✨ 가시성 조절 (크기 축소) 적용된 일반 가챠 결과창 */}
+      {/* ✨ 일반 가챠 결과창 */}
       {gachaResult && (
-        <div className="fixed inset-0 bg-black/85 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md" onClick={() => setGachaResult(null)}>
-          <h2 className="text-3xl md:text-4xl font-black mb-8 text-purple-400 animate-bounce">✨ 신규 카드 획득! ✨</h2>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-4">
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-200" onClick={() => setGachaResult(null)}>
+          <div className="text-center mb-6">
+            <h2 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-fuchsia-300 to-indigo-400 drop-shadow-[0_0_20px_rgba(168,85,247,0.6)] mb-2">
+              ✨ 신규 카드 획득! ✨
+            </h2>
+            <p className="text-slate-400 text-sm">획득한 카드는 덱 빌더에서 등록할 수 있습니다.</p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-6xl w-full px-4" onClick={e => e.stopPropagation()}>
             {gachaResult.map((card, idx) => (
-              <div key={idx} className="relative transform scale-75 md:scale-90 origin-center">
-                {card.isDuplicate && <span className="absolute -top-4 -right-4 bg-slate-700 border border-slate-500 text-white px-3 py-1 rounded-full font-black text-xs shadow-lg z-10 animate-pulse flex items-center gap-1">중복 <img src={coinImg} alt="c" className="w-3 h-3"/>+10</span>}
+              <div key={idx} className="relative w-40 h-60 sm:w-44 sm:h-64 md:w-48 md:h-72 shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+                {card.isDuplicate && (
+                  <div className="absolute top-2 right-2 bg-slate-900/90 border border-amber-500 text-amber-300 px-2 py-0.5 rounded-full font-black text-xs shadow-lg z-30 flex items-center gap-1 backdrop-blur-sm">
+                    <img src={coinImg} alt="c" className="w-3 h-3"/> +10
+                  </div>
+                )}
                 <Card card={card} />
               </div>
             ))}
           </div>
-          <button onClick={() => setGachaResult(null)} className="mt-8 py-3 px-10 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-full text-xl font-bold shadow-[0_0_15px_rgba(79,70,229,0.5)]">확인</button>
+
+          <button onClick={() => setGachaResult(null)} className="mt-8 py-3 px-10 bg-indigo-600 hover:bg-indigo-500 transition-colors rounded-xl text-lg font-black text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] border border-indigo-400">
+            확인
+          </button>
         </div>
       )}
 
-      {/* ✨ 가시성 조절 (크기 축소) 적용된 프리미엄 가챠 선택창 (로컬 상태 연동) */}
+      {/* ✨ 프리미엄 가챠 3장 선택 획득 모달 */}
       {localPremiumGachaResult && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-md">
-          <h2 className="text-3xl md:text-5xl font-black mb-2 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]">프리미엄 뽑기</h2>
-          <p className="text-slate-300 text-lg mb-8">가장 마음에 드는 <span className="text-white font-bold bg-slate-800 px-2 py-0.5 rounded border border-slate-600">1장</span>을 선택하세요!</p>
-          <div className="flex flex-wrap justify-center gap-2 md:gap-4">
-            {localPremiumGachaResult.map((card, idx) => (
-              <div key={idx} className="relative group hover:-translate-y-2 transition-transform cursor-pointer transform scale-75 md:scale-90 origin-center" onClick={() => selectLocalPremiumCard(card)}>
-                <Card card={card} />
-                {unlockedCards.includes(card.id) && <span className="absolute -top-4 -right-4 bg-slate-800 text-yellow-400 px-3 py-1.5 rounded-full text-xs font-black border border-yellow-600 shadow-xl z-10 flex items-center gap-1">중복 시 <img src={coinImg} className="w-3 h-3" alt="c"/>30 반환</span>}
-              </div>
-            ))}
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-200">
+          <div className="text-center mb-6 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-bold text-xs mb-3 shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+              <Sparkles className="w-4 h-4 text-cyan-400" /> PREMIUM GACHA RESULT
+            </div>
+            <h2 className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-white to-fuchsia-400 drop-shadow-[0_0_25px_rgba(34,211,238,0.6)] mb-2">
+              프리미엄 뽑기 결과
+            </h2>
+            <p className="text-slate-300 text-sm md:text-base">
+              마음에 드는 카드 <span className="text-cyan-300 font-black underline underline-offset-4">1장</span>을 클릭하여 선택하세요!
+            </p>
           </div>
-          <button onClick={() => setLocalPremiumGachaResult(null)} className="mt-8 py-3 px-10 bg-slate-700 hover:bg-slate-600 transition-colors rounded-full text-lg font-bold border border-slate-500">포기</button>
+
+          {/* 3장 카드 가로 배치 */}
+          <div className="flex flex-wrap justify-center gap-4 md:gap-8 max-w-6xl w-full px-4 items-stretch">
+            {localPremiumGachaResult.map((card, idx) => {
+              const isOwned = unlockedCards.includes(card.id);
+              return (
+                <div 
+                  key={idx} 
+                  onClick={() => selectLocalPremiumCard(card)}
+                  className="flex flex-col items-center group cursor-pointer transition-all duration-300 hover:scale-105"
+                >
+                  {/* 카드 용기 (정확한 px 규격 지정) */}
+                  <div className="w-44 h-64 sm:w-48 sm:h-72 md:w-56 md:h-84 relative rounded-2xl transition-all duration-300 group-hover:shadow-[0_0_35px_rgba(34,211,238,0.6)] border-2 border-transparent group-hover:border-cyan-400">
+                    <Card card={card} />
+
+                    {/* 중복 뱃지 */}
+                    {isOwned && (
+                      <div className="absolute top-2 right-2 z-30 bg-slate-900/90 text-yellow-400 px-2.5 py-1 rounded-full text-xs font-black border border-yellow-500 shadow-xl flex items-center gap-1 backdrop-blur-sm">
+                        <img src={coinImg} className="w-3.5 h-3.5" alt="c"/>
+                        <span>+30 환급</span>
+                      </div>
+                    )}
+
+                    {/* 카드 선택 가이드 오버레이 */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-cyan-950/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-end justify-center pb-4 z-20 pointer-events-none">
+                      <span className="bg-cyan-500 text-slate-950 px-4 py-2 rounded-xl font-black text-sm shadow-[0_0_15px_rgba(34,211,238,0.8)] flex items-center gap-1.5 animate-bounce">
+                        <CheckCircle className="w-4 h-4" /> 이 카드 선택
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button 
+            onClick={() => setLocalPremiumGachaResult(null)} 
+            className="mt-8 py-2.5 px-8 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors rounded-xl font-bold text-sm border border-slate-700 backdrop-blur-sm"
+          >
+            선택 취소 (포기)
+          </button>
         </div>
       )}
 
