@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Maximize, Zap, HelpCircle, CheckSquare, Star, CheckCircle, X } from 'lucide-react';
+import { Maximize, Zap, HelpCircle, CheckSquare, Star, CheckCircle, X, Sparkles } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { CARD_LIBRARY } from '../../constants/gameData';
