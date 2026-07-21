@@ -103,6 +103,7 @@ export default function App() {
   const [enemyDropCard, setEnemyDropCard] = useState(null); 
   const [customCards, setCustomCards] = useState([]); 
   
+  const [autoPlay, setAutoPlay] = useState(false);
   const [claimedMilestones, setClaimedMilestones] = useState([]);
 
   const toggleFullScreen = () => {
@@ -143,6 +144,7 @@ export default function App() {
         if (d.gameStats) setGameStats(d.gameStats);
         if (d.normalCleared !== undefined) setNormalCleared(d.normalCleared);
         if (d.fastMode !== undefined) setFastMode(d.fastMode);
+        if (d.autoPlay !== undefined) setAutoPlay(d.autoPlay);
         if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
         if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
         if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
@@ -157,7 +159,7 @@ export default function App() {
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, autoPlay, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -933,6 +935,12 @@ export default function App() {
             playerRelics={playerRelics}
             fastMode={fastMode}
             setFastMode={setFastMode}
+            autoPlay={autoPlay}
+            setAutoPlay={(val) => {
+              const next = typeof val === 'function' ? val(autoPlay) : val;
+              setAutoPlay(next);
+              saveGame({ autoPlay: next });
+            }}
             saveGame={saveGame}
             viewingEnemy={viewingEnemy}
             setViewingEnemy={setViewingEnemy}

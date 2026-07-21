@@ -19,7 +19,8 @@ import skeletonImg from '../../assets/images/monsters/skeleton.svg';
 export default function BattleScreen({
   combatState, isPlayerTurn, setViewingPile, viewingPile, setGameState, hoveredCard, setHoveredCard,
   playCard, setCombatState, MAX_HAND_SIZE, setShowEnemyDeck, setViewingEnemy, setTutorialModalOpen,
-  viewingEnemy, showEnemyDeck, playerRelics, fastMode, setFastMode, saveGame
+  viewingEnemy, showEnemyDeck, playerRelics, fastMode, setFastMode, saveGame,
+  autoPlay, setAutoPlay
 }) {
   const [playEffect, setPlayEffect] = useState(null);
   const prevHpRef = useRef(combatState?.player?.hp);
@@ -31,7 +32,7 @@ export default function BattleScreen({
 
   const [targetIndex, setTargetIndex] = useState(0);
   const [showUltimate, setShowUltimate] = useState(null);
-  const [autoPlay, setAutoPlay] = useState(false);
+  const isAutoExecutingRef = useRef(false);
 
   // ✨ 추가: 적이 죽어서 몬스터 배열 길이가 타겟 인덱스보다 작아질 경우 방지
   useEffect(() => {
@@ -71,7 +72,7 @@ export default function BattleScreen({
     if (!isPlayerTurn || discardingHand) return;
     
     setDiscardingHand(true);
-    await new Promise(r => setTimeout(r, 300 + hand.length * 50)); 
+    await new Promise(r => setTimeout(r, 300 + (hand?.length || 0) * 50)); 
     setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
   };
 
@@ -80,6 +81,7 @@ export default function BattleScreen({
     if (discardingHand) return; 
 
     const card = hand[idx];
+    if (!card) return;
     const isAttack = card.type === 'attack';
     const hits = card.multiHit || 1;
     const tier = card.rarity || 'common';
@@ -120,92 +122,97 @@ export default function BattleScreen({
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
 
-  // 🤖 자동 전투 AI 로직
+  // 🤖 자동 전투 AI 로직 (연속 자동 실행 + 턴 자동 종료 + 중간 멈춤 방지)
   useEffect(() => {
-    if (!autoPlay || !isPlayerTurn || !hand || hand.length === 0 || playEffect) return;
+    if (!autoPlay || !isPlayerTurn || playEffect || discardingHand || animatingCardIndex !== null) {
+      return;
+    }
 
     const timer = setTimeout(async () => {
+      if (isAutoExecutingRef.current) return;
+
       const p = combatState?.player;
       const enemies = combatState?.enemies || [];
       const enemy = enemies[targetIndex] || enemies[0];
-      if (!p || !enemy) return;
+      if (!p || !enemy || !hand) return;
 
       const debuffs = p.debuffs || {};
       const isBound = (debuffs.bind || 0) > 0;
       const isSilenced = (debuffs.silence || 0) > 0;
-      const isDebuffed = Object.values(debuffs).some(v => v > 0);
+      const isDebuffed = Object.values(debuffs).some(v => (v || 0) > 0);
 
       // 적 다음 행동 분석
       const enemyIntents = enemy.intentCards || [];
       const enemyIsAttacking = enemyIntents.some(i => i.type?.includes('attack'));
       const enemyIsDefending = enemyIntents.some(i => i.type?.includes('defend') || i.type?.includes('buff'));
       const totalEnemyDamage = enemyIntents.filter(i => i.type?.includes('attack')).reduce((s, i) => s + (i.value || 0) * (i.multi || 1), 0);
-      const bigAttackComing = totalEnemyDamage > 20;
+      const bigAttackComing = totalEnemyDamage > 15;
 
-      // 카드 분류
+      // 마나 & 상태이상 제약 조건으로 낼 수 있는 카드 구하기
       const playableCards = hand.map((card, idx) => ({ card, idx }))
-        .filter(({ card }) => p.mana >= card.cost && !playEffect);
+        .filter(({ card }) => {
+          if (!card) return false;
+          if ((p.mana || 0) < (card.cost || 0)) return false;
+          if (card.type === 'attack' && isBound) return false;
+          if (card.type === 'skill' && isSilenced) return false;
+          return true;
+        });
 
+      // 낼 수 있는 카드가 없거나 패가 비었으면 -> 즉시 턴 종료!
       if (playableCards.length === 0) {
-        // 낼 카드 없으면 턴 종료
-        setDiscardingHand(true);
-        await new Promise(r => setTimeout(r, 300 + hand.length * 50));
-        setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+        if (!discardingHand && isPlayerTurn) {
+          isAutoExecutingRef.current = true;
+          await handleTurnEndClick();
+          isAutoExecutingRef.current = false;
+        }
         return;
       }
 
-      // AI 우선순위 점수 계산
+      // 점수 가중치 부여 (모든 낼 수 있는 카드는 기본 점수 10점 보장하여 쓸 수 있는 카드는 절대 걸러지지 않고 사용!)
       const scored = playableCards.map(({ card, idx }) => {
-        let score = 0;
+        let score = 10;
         const isAttack = card.type === 'attack';
-        const isSkill = card.type === 'skill';
         const isSpecial = card.type === 'special';
 
-        // 속박 상태면 공격 불가 → 특수/스킬만 우선
-        if (isBound && isAttack) return { idx, score: -999 };
-        // 침묵 상태면 스킬 불가 → 공격/특수만 우선  
-        if (isSilenced && isSkill) return { idx, score: -999 };
+        // 1순위: 디버프 걸렸을 때 정화/특수 카드
+        if (isDebuffed && (card.cleanse || card.cleanseAll || card.debuffToStrength || card.debuffToBlock || card.debuffToHeal)) score += 500;
+        if (isSpecial) score += 300;
 
-        // 1순위: 상태이상 있을 때 정화 카드
-        if (isDebuffed && (card.cleanse || card.cleanseAll || card.debuffToStrength)) score += 300;
-        if (isBound && isSpecial) score += 500; // 속박 중 특수 카드 최우선
-        if (isSilenced && isSpecial) score += 400;
+        // 2순위: 적 공격 예고 시 방어/무적/회복 카드
+        if (bigAttackComing && (card.block || card.percentBlockMaxHp || card.doubleBlock || card.selfIntangible)) score += 400;
+        if (enemyIsAttacking && card.block) score += 150;
 
-        // 2순위: 큰 공격이 오면 방어 카드 우선
-        if (bigAttackComing && card.block) score += 200 + (card.block || 0);
-        if (bigAttackComing && card.percentBlockMaxHp) score += 250;
-        if (bigAttackComing && card.doubleBlock) score += 300;
-        if (bigAttackComing && card.selfIntangible) score += 400;
+        // 3순위: 디버프 부여 카드
+        if (enemyIsDefending && (card.enemyVuln || card.enemyWeak || card.enemyPoison || card.enemyBleed || card.enemyBurn)) score += 200;
 
-        // 3순위: 적이 방어 중이면 디버프/독 카드 우선
-        if (enemyIsDefending && (card.enemyVuln || card.enemyWeak || card.enemyPoison || card.enemyBleed || card.enemyBurn)) score += 180;
+        // 4순위: 드로우 및 마나 수급
+        if (card.draw) score += 120;
+        if (card.manaGain) score += 180;
 
-        // 4순위: 적이 공격 중이면 방어 카드
-        if (enemyIsAttacking && card.block) score += 100;
+        // 5순위: 공격 카드
+        if (isAttack && card.damage) score += 50 + (card.damage || 0);
 
-        // 5순위: 일반 공격 카드 (체력 낮은 적 대상)
-        if (isAttack && card.damage) score += 50 + (card.damage || 0) / 2;
-        if (card.draw) score += 30; // 드로우는 보너스
-        if (card.manaGain) score += 40;
-
-        // 비용이 낮을수록 약간 우선 (효율)
-        score -= (card.cost || 0) * 5;
+        // 마나 효율
+        score -= (card.cost || 0) * 3;
 
         return { idx, score };
-      }).filter(s => s.score > -999).sort((a, b) => b.score - a.score);
+      }).sort((a, b) => b.score - a.score);
 
       if (scored.length > 0) {
+        isAutoExecutingRef.current = true;
         await handlePlayCard(scored[0].idx);
+        isAutoExecutingRef.current = false;
       } else {
-        // 낼 카드 없으면 턴 종료
-        setDiscardingHand(true);
-        await new Promise(r => setTimeout(r, 300 + hand.length * 50));
-        setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+        if (!discardingHand && isPlayerTurn) {
+          isAutoExecutingRef.current = true;
+          await handleTurnEndClick();
+          isAutoExecutingRef.current = false;
+        }
       }
-    }, fastMode ? 300 : 600);
+    }, fastMode ? 150 : 350);
 
     return () => clearTimeout(timer);
-  }, [autoPlay, isPlayerTurn, hand, playEffect, combatState, targetIndex, fastMode]);
+  }, [autoPlay, isPlayerTurn, hand, playEffect, combatState, targetIndex, fastMode, discardingHand, animatingCardIndex]);
 
   const getEnemyImage = (name) => {
     if (!name) return slimeImg;
@@ -418,46 +425,9 @@ export default function BattleScreen({
           
           {/* 플레이어 */}
           <div className={`flex flex-col items-center w-1/3 transition-all duration-500 ${isPlayerTurn && !discardingHand ? 'scale-105 z-30' : 'scale-95 opacity-60'}`}>
-            <div className={`w-20 h-20 md:w-32 md:h-32 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-4 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)] ${combatState?.hitEffect?.targetUid === 'player' ? 'animate-hit-shake animate-hit-flash' : ''}`}>
-              <img src={heroImg} alt="Player" className="w-12 h-12 md:w-20 md:h-20 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
-              
-              {player.block > 0 && (
-                <div className="absolute -top-3 -right-3 bg-blue-600 w-10 h-10 md:w-12 md:h-12 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
-                  <Shield className="absolute text-white/30 w-full h-full p-1" />
-                  <span className="relative z-10 text-white text-xs md:text-sm">{player.block}</span>
-                </div>
-              )}
-
-              {/* 🐾 하수인 위젯 */}
-              {player.minion && (
-                <div className="absolute -left-10 -top-8 md:-left-16 md:-top-12 flex flex-col items-center animate-bounce z-40">
-                  <div className="w-10 h-10 md:w-14 md:h-14 bg-slate-800 rounded-full border-2 border-emerald-400 flex justify-center items-center shadow-[0_0_15px_rgba(52,211,153,0.5)] text-lg md:text-2xl">
-                    {player.minion.id === 'golem' ? '🪨' : '🧚'}
-                  </div>
-                  <div className="bg-slate-900 px-2 py-0.5 rounded-full text-[8px] md:text-[10px] font-black text-emerald-300 mt-1 border border-emerald-500 shadow-md">
-                    {player.minion.hp}/{player.minion.maxHp}
-                  </div>
-                </div>
-              )}
-            </div>
-            <h3 className="text-sm md:text-xl font-black mb-1 text-indigo-400 tracking-tighter uppercase italic">PLAYER</h3>
             
-            {/* ⚔️ 태세 표시 */}
-            {player.stance && player.stance !== 'normal' && (
-              <div className={`mb-2 px-3 py-0.5 rounded-full text-[10px] md:text-xs font-black border flex items-center gap-1 ${
-                player.stance === 'offensive' ? 'bg-red-900/60 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' 
-                : 'bg-blue-900/60 text-blue-400 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
-              }`}>
-                {player.stance === 'offensive' ? '⚔️ 공격 태세 (+50% / +25%)' : '🛡️ 방어 태세 (-25% / -50%)'}
-              </div>
-            )}
-
-            <div className="w-full max-w-[120px] md:max-w-[200px] bg-slate-950 h-4 md:h-5 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
-              <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
-              <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[11px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
-            </div>
-            
-            <div className="flex gap-1 mt-2 flex-wrap justify-center max-w-[200px] scale-90">
+            {/* 🛡️/⚔️ 상태이상/버프 아이콘 (아바타 상단 배치 - 손패 카드가 절대 가리지 않음) */}
+            <div className="flex gap-1 mb-2 flex-wrap justify-center max-w-[220px] scale-95 z-40 bg-slate-950/80 px-2 py-1 rounded-xl border border-slate-800/80 backdrop-blur-sm shadow-md min-h-[28px] items-center">
               <StatusIcon type="strength" value={player.buffs?.strength} />
               <StatusIcon type="dexterity" value={player.buffs?.dexterity} />
               <StatusIcon type="thorns" value={player.buffs?.thorns} />
@@ -472,6 +442,45 @@ export default function BattleScreen({
               <StatusIcon type="frail" value={player.debuffs?.frail} />
               <StatusIcon type="silence" value={player.debuffs?.silence} />
               <StatusIcon type="bind" value={player.debuffs?.bind} />
+            </div>
+
+            <div className={`w-20 h-20 md:w-30 md:h-30 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-2 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)] ${combatState?.hitEffect?.targetUid === 'player' ? 'animate-hit-shake animate-hit-flash' : ''}`}>
+              <img src={heroImg} alt="Player" className="w-12 h-12 md:w-18 md:h-18 drop-shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
+              
+              {player.block > 0 && (
+                <div className="absolute -top-3 -right-3 bg-blue-600 w-9 h-9 md:w-11 md:h-11 rounded-full flex justify-center items-center font-black border-2 border-white shadow-[0_0_15px_blue] z-50">
+                  <Shield className="absolute text-white/30 w-full h-full p-1" />
+                  <span className="relative z-10 text-white text-xs md:text-sm">{player.block}</span>
+                </div>
+              )}
+
+              {/* 🐾 하수인 위젯 */}
+              {player.minion && (
+                <div className="absolute -left-10 -top-8 md:-left-14 md:-top-10 flex flex-col items-center animate-bounce z-40">
+                  <div className="w-9 h-9 md:w-12 md:h-12 bg-slate-800 rounded-full border-2 border-emerald-400 flex justify-center items-center shadow-[0_0_15px_rgba(52,211,153,0.5)] text-base md:text-xl">
+                    {player.minion.id === 'golem' ? '🪨' : '🧚'}
+                  </div>
+                  <div className="bg-slate-900 px-2 py-0.5 rounded-full text-[8px] md:text-[10px] font-black text-emerald-300 mt-1 border border-emerald-500 shadow-md">
+                    {player.minion.hp}/{player.minion.maxHp}
+                  </div>
+                </div>
+              )}
+            </div>
+            <h3 className="text-xs md:text-lg font-black mb-1 text-indigo-400 tracking-tighter uppercase italic">PLAYER</h3>
+            
+            {/* ⚔️ 태세 표시 */}
+            {player.stance && player.stance !== 'normal' && (
+              <div className={`mb-2 px-2.5 py-0.5 rounded-full text-[9px] md:text-xs font-black border flex items-center gap-1 ${
+                player.stance === 'offensive' ? 'bg-red-900/60 text-red-400 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' 
+                : 'bg-blue-900/60 text-blue-400 border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'
+              }`}>
+                {player.stance === 'offensive' ? '⚔️ 공격 태세 (+50% / +25%)' : '🛡️ 방어 태세 (-25% / -50%)'}
+              </div>
+            )}
+
+            <div className="w-full max-w-[120px] md:max-w-[180px] bg-slate-950 h-3.5 md:h-4.5 rounded-full overflow-hidden border border-slate-800 relative shadow-inner">
+              <div className="bg-gradient-to-r from-emerald-600 via-green-400 to-emerald-600 h-full transition-all duration-700" style={{ width: `${(player.hp / player.maxHp) * 100}%` }}/>
+              <span className="absolute inset-0 flex justify-center items-center text-[9px] md:text-[10px] font-black drop-shadow-md tracking-widest">{player.hp} / {player.maxHp}</span>
             </div>
           </div>
 
@@ -598,32 +607,30 @@ export default function BattleScreen({
       </div>
 
       {/* --- 하단 플레이어 덱 및 UI 영역 (shrink-0, z-30 적용) --- */}
-      <div className="h-[28dvh] min-h-[200px] shrink-0 flex flex-col items-center justify-end pb-4 relative w-full pt-4 bg-slate-900 border-t border-slate-800/50 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        
-
+      <div className="h-[25dvh] min-h-[170px] shrink-0 flex flex-col items-center justify-end pb-3 relative w-full pt-2 bg-slate-900 border-t border-slate-800/50 z-30 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
         
         <div className="flex w-full px-4 relative justify-center items-end h-full">
-          <div className="absolute left-2 md:left-8 bottom-6 flex flex-col items-center gap-4 z-20">
+          <div className="absolute left-2 md:left-8 bottom-4 flex flex-col items-center gap-3 z-20">
             <div className="relative group">
-              <div className="w-14 h-14 md:w-20 md:h-20 bg-blue-950 border-[3px] border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_20px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.8)] transition-all">
-                <span className="text-2xl md:text-4xl font-black text-white mana-font">{player.mana}</span>
+              <div className="w-12 h-12 md:w-16 md:h-16 bg-blue-950 border-[3px] border-blue-400 rounded-full flex justify-center items-center shadow-[0_0_20px_rgba(59,130,246,0.5)] group-hover:shadow-[0_0_30px_rgba(59,130,246,0.8)] transition-all">
+                <span className="text-xl md:text-3xl font-black text-white mana-font">{player.mana}</span>
               </div>
-              <div className="absolute -bottom-2 bg-slate-950 px-3 py-0.5 rounded-full border border-blue-500/50 text-[9px] md:text-[10px] font-black text-blue-400 shadow-lg tracking-widest">MANA</div>
+              <div className="absolute -bottom-2 bg-slate-950 px-2 py-0.5 rounded-full border border-blue-500/50 text-[8px] md:text-[9px] font-black text-blue-400 shadow-lg tracking-widest">MANA</div>
             </div>
             <div className="flex flex-col items-center cursor-pointer group" onClick={() => setViewingPile('drawPile')}>
-              <div className="w-12 h-16 md:w-16 md:h-24 bg-slate-800 border-2 border-slate-600 rounded-xl flex items-center justify-center font-black text-xl md:text-3xl shadow-[0_10px_20px_rgba(0,0,0,0.5)] group-hover:-translate-y-2 group-hover:border-indigo-500 transition-all duration-300">{drawPile.length}</div>
-              <span className="text-slate-500 font-bold mt-1 text-[9px] md:text-xs tracking-tighter group-hover:text-indigo-400 transition-colors uppercase">Draw</span>
+              <div className="w-10 h-14 md:w-14 md:h-20 bg-slate-800 border-2 border-slate-600 rounded-xl flex items-center justify-center font-black text-lg md:text-2xl shadow-[0_10px_20px_rgba(0,0,0,0.5)] group-hover:-translate-y-2 group-hover:border-indigo-500 transition-all duration-300">{drawPile.length}</div>
+              <span className="text-slate-500 font-bold mt-1 text-[8px] md:text-[10px] tracking-tighter group-hover:text-indigo-400 transition-colors uppercase">Draw</span>
             </div>
           </div>
 
-          <div className="flex justify-center items-end w-full px-20 md:px-40 h-full pb-4 overflow-visible">
+          <div className="flex justify-center items-end w-full px-16 md:px-36 h-full pb-2 overflow-visible">
             {hand.map((card, idx) => {
               const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
               const isHovered = hoveredCard === idx && !discardingHand; 
               const offset = idx - (hand.length - 1) / 2;
               
-              const rotation = isHovered ? 0 : offset * 4.5;
-              const translateY = isHovered ? -60 : Math.abs(offset) * 8; 
+              const rotation = isHovered ? 0 : offset * 3.5;
+              const translateY = isHovered ? -28 : Math.abs(offset) * 5; 
 
               let cardTransform = '';
               let cardOpacity = 1;
@@ -632,17 +639,17 @@ export default function BattleScreen({
                 cardTransform = `translate(35vw, 20vh) scale(0.1) rotate(180deg)`;
                 cardOpacity = 0;
               } else if (animatingCardIndex === idx) {
-                cardTransform = 'translateY(-40vh) scale(0.5)';
+                cardTransform = 'translateY(-30vh) scale(0.5)';
                 cardOpacity = 0;
               } else {
-                cardTransform = `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.15 : 1})`;
+                cardTransform = `translateY(${translateY}px) rotate(${rotation}deg) scale(${isHovered ? 1.12 : 1})`;
               }
 
               return (
                 <div key={card.uid} 
                      onMouseEnter={() => !discardingHand && setHoveredCard(idx)} 
                      onMouseLeave={() => !discardingHand && setHoveredCard(null)} 
-                     className="relative origin-bottom -ml-6 md:-ml-10 first:ml-0 px-2" 
+                     className="relative origin-bottom -ml-5 md:-ml-8 first:ml-0 px-1" 
                      style={{ 
                        zIndex: isHovered ? 100 : 10 + idx, 
                        transform: cardTransform,
@@ -658,7 +665,7 @@ export default function BattleScreen({
                          animationDelay: `${idx * 0.03}s`, 
                          animationFillMode: 'backwards' 
                        }}>
-                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-32 h-44 md:w-44 md:h-64 bg-slate-900 shadow-2xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'cursor-not-allowed brightness-60 opacity-70'}`}>
+                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-24 h-36 sm:w-28 sm:h-40 md:w-34 md:h-48 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'cursor-not-allowed brightness-60 opacity-70'}`}>
                       <Card card={getDynamicCardDef(card, player)} isLocked={false} />
                     </div>
                   </div>
