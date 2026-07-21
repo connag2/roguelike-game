@@ -106,7 +106,7 @@ const getEvents = (stage) => {
   ];
 };
 
-export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoPlay, setAutoPlay }) {
+export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoPlay, setAutoPlay, autoReward = true }) {
   const [eventData, setEventData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -139,7 +139,7 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
 
   // 🤖 AUTO 이벤트 자동 선택 AI
   useEffect(() => {
-    if (!autoPlay || !eventData || isProcessing) return;
+    if (!autoPlay || !autoReward || !eventData || isProcessing) return;
     const timer = setTimeout(() => {
       const validOpt = eventData.options.find(opt => !opt.req || opt.req(combatState?.player, credits));
       if (validOpt) {

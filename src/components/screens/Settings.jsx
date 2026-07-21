@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Download, Upload, Trash2, FastForward, ArrowLeft, Bomb, Volume2 } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Trash2, FastForward, ArrowLeft, Bomb, Volume2, Bot, Gift } from 'lucide-react';
 import { useAudio } from '../../hooks/useAudio';
 import Slider from '../ui/Slider';
 
 export default function Settings({
   setGameState, fastMode, setFastMode, saveGame, handleExport, setImportModalOpen,
-  couponInput, setCouponInput, handleCoupon, adminClearSave
+  couponInput, setCouponInput, handleCoupon, adminClearSave,
+  autoPlay, setAutoPlay, autoReward, setAutoReward
 }) {
   const [deleteStep, setDeleteStep] = useState(0);
 
@@ -63,6 +64,35 @@ export default function Settings({
               value={sfx} 
               onChange={handleSFXChange} 
             />
+          </div>
+        </div>
+
+        {/* 🤖 오토(AUTO) 자동화 설정 영역 */}
+        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+          <h2 className="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2 flex items-center gap-2">
+            <Bot className="w-5 h-5 text-emerald-400"/> 오토(AUTO) 자동화 설정
+          </h2>
+          
+          <div className="flex flex-col gap-3">
+            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
+              <div>
+                <div className="font-bold text-emerald-400 flex items-center gap-2">🤖 전투 자동 실행 (Auto Battle)</div>
+                <div className="text-xs text-slate-400 mt-1">전투 시 최적의 카드를 자동으로 선택하고 턴을 넘깁니다.</div>
+              </div>
+              <button onClick={() => { const next = !autoPlay; setAutoPlay(next); saveGame({ autoPlay: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-all ${autoPlay ? 'bg-emerald-600 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-700 text-slate-400'}`}>
+                {autoPlay ? '켜짐' : '꺼짐'}
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
+              <div>
+                <div className="font-bold text-cyan-400 flex items-center gap-2">🎁 보상 & 이벤트 자동 진행 (Auto Rewards)</div>
+                <div className="text-xs text-slate-400 mt-1">전투 완료 후 카드, 유물, 이벤트를 자동으로 선택하고 다음 층으로 이동합니다.</div>
+              </div>
+              <button onClick={() => { const next = !autoReward; setAutoReward(next); saveGame({ autoReward: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-all ${autoReward ? 'bg-cyan-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-slate-700 text-slate-400'}`}>
+                {autoReward ? '켜짐' : '꺼짐'}
+              </button>
+            </div>
           </div>
         </div>
 

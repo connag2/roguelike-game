@@ -1,5 +1,5 @@
 // src/components/screens/Rewards.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, AlertTriangle, Star, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
 import { CARD_LIBRARY, BOSS_LOOT_CARDS } from '../../constants/gameData';
@@ -38,7 +38,8 @@ export default function Rewards({
   handleEnemyDropClaim,
   handleSpecialBossRewardClaim: handleSpecialClaim,
   autoPlay,
-  setAutoPlay
+  setAutoPlay,
+  autoReward = true
 }) {
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedRelics, setSelectedRelics] = useState([]);
@@ -46,7 +47,7 @@ export default function Rewards({
 
   // 🤖 AUTO 보상/카드/유물 자동 선택 AI (풀 오토 패스)
   useEffect(() => {
-    if (!autoPlay || isProcessing || !combatState) return;
+    if (!autoPlay || !autoReward || isProcessing || !combatState) return;
 
     const timer = setTimeout(() => {
       // 1. 유물 발견 화면 -> 자동 장착
