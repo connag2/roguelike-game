@@ -1047,10 +1047,13 @@ export default function App() {
                   setCustomCards(newCustomCards);
                 }
 
-                setCombatState(prev => ({ ...prev, baseDeck: [...prev.baseDeck, enemyDropCard] }));
+                const updatedDeck = [...(combatState?.baseDeck || []), enemyDropCard];
+                setCombatState(prev => ({ ...prev, baseDeck: updatedDeck }));
                 setEnemyDropCard(null);
                 saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
+                return updatedDeck;
               }
+              return combatState?.baseDeck || [];
             }}
             handleSpecialBossRewardClaim={() => { 
               if(specialBossRewardCard) { 

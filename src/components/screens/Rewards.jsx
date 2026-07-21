@@ -120,25 +120,32 @@ export default function Rewards({
 
       // 3. 기본 보상 선택 화면 (카드 추가 vs 회복 & 정화)
       if (gameState === 'REWARDS') {
+        setIsProcessing(true);
+        let updatedDeck = [...(combatState?.baseDeck || [])];
+
+        // 전리품 카드가 수확 대상이면 즉시 덱에 병합
         if (enemyDropCard) {
-          handleEnemyDropClaim();
-        } else if (autoRewardType === 'heal') {
+          if (typeof handleEnemyDropClaim === 'function') {
+            const resDeck = handleEnemyDropClaim();
+            if (Array.isArray(resDeck) && resDeck.length > 0) updatedDeck = resDeck;
+          }
+        }
+
+        if (autoRewardType === 'heal') {
           // 💖 회복 & 정화 선택
-          setIsProcessing(true);
           const p = { ...combatState.player };
           p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
           p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
-          startNextStage(p, combatState.baseDeck);
+          startNextStage(p, updatedDeck);
         } else {
           // 🃏 카드 추가: 3장 중 최고 등급 자동선택 후 직통 이동
-          setIsProcessing(true);
           const selected = generateThreeRewardCards();
           const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
           const sorted = [...selected].sort((a, b) => (rarityRank[b?.rarity] || 1) - (rarityRank[a?.rarity] || 1));
           const bestCard = sorted[0];
 
           if (bestCard && bestCard.id) {
-            const newDeck = [...(combatState?.baseDeck || []), { ...bestCard }];
+            const finalDeck = [...updatedDeck, { ...bestCard }];
             let newUnlocked = unlockedCards || [];
             let newCustomCards = customCards || [];
 
@@ -153,11 +160,11 @@ export default function Rewards({
 
             saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
             if (setEnemyDropCard) setEnemyDropCard(null);
-            startNextStage(combatState.player, newDeck);
+            startNextStage(combatState.player, finalDeck);
           } else {
             const p = { ...combatState.player };
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
-            startNextStage(p, combatState.baseDeck);
+            startNextStage(p, updatedDeck);
           }
         }
         return;
