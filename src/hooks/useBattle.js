@@ -267,22 +267,17 @@ export function useBattle({
     // 카드 사용 처리를 동기적으로 한 번에 모아서 State를 업데이트합니다.
     
     let currentState = combatState;
-    const mutate = (updater) => {
-      return new Promise(resolve => {
-        setCombatState(prev => {
-          const next = updater(prev);
-          currentState = next;
-          resolve(next);
-          return next;
-        });
-      });
+    const mutate = async (updater) => {
+      currentState = updater(currentState);
+      setCombatState(currentState);
     };
 
     let p = { ...currentState.player, buffs: { ...currentState.player.buffs }, debuffs: { ...currentState.player.debuffs } };
+    p.mana -= (card.cost || 0);
     let newHand = [...currentState.hand];
     let newDraw = [...currentState.drawPile];
     let newDiscard = [...currentState.discardPile];
-    let newExhaust = [...currentState.exhaustPile];
+    let newExhaust = [...(currentState.exhaustPile || [])];
     let newEnemies = currentState.enemies.map(e => ({ ...e, buffs: { ...e.buffs }, debuffs: { ...e.debuffs }, block: e.block }));
     
     newHand.splice(cardIndex, 1);

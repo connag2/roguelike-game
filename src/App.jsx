@@ -317,7 +317,7 @@ export default function App() {
 
     setCombatState({
       mode, stage, baseDeck: fullDeck, drawPile: shuffle(fullDeck),
-      hand: [], discardPile: [], turn: 'PLAYER', player: initialPlayer, enemies: enemies
+      hand: [], discardPile: [], exhaustPile: [], turn: 'PLAYER', player: initialPlayer, enemies: enemies
     });
     
     setCombatState(prev => {
@@ -334,8 +334,8 @@ export default function App() {
   const startNextStage = (newPlayer, newBaseDeck) => {
     const nextStage = combatState.stage + 1;
     const isBoss = nextStage % 10 === 0;
-    // 10% chance for an event, not on boss stages, not on stage 1, and NEVER >= 100 on NORMAL
-    const isEvent = !isBoss && nextStage > 1 && Math.random() < 0.1 && !(combatState.mode === 'NORMAL' && nextStage >= 100);
+    // 5% chance for an event, not on boss stages, not on stage 1, and NEVER >= 100 on NORMAL
+    const isEvent = !isBoss && nextStage > 1 && Math.random() < 0.05 && !(combatState.mode === 'NORMAL' && nextStage >= 100);
 
     const enemies = generateEnemies(nextStage, combatState.mode);
     updateSeenEnemies(enemies);
@@ -355,7 +355,7 @@ export default function App() {
 
     setCombatState({
       ...combatState, stage: nextStage, enemies, baseDeck: newBaseDeck,
-      drawPile: newDraw, hand: newHand, discardPile: [], turn: 'PLAYER', player: refreshedPlayer
+      drawPile: newDraw, hand: newHand, discardPile: [], exhaustPile: [], turn: 'PLAYER', player: refreshedPlayer
     });
     setRewardCards([]);
     setGameState(isEvent ? 'EVENT' : 'BATTLE');
@@ -420,23 +420,16 @@ export default function App() {
     
     let isCancelled = false;
 
-    const mutate = (updater) => {
-      return new Promise(resolve => {
-        setCombatState(prev => {
-          const next = updater(prev);
-          resolve(next);
-          return next;
-        });
-      });
+    let currentState = combatState;
+    const mutate = async (updater) => {
+      currentState = updater(currentState);
+      setCombatState(currentState);
     };
 
     const processEnemyTurn = async () => {
       await new Promise(r => setTimeout(r, fastMode ? 200 : 500));
       if (isCancelled) return;
 
-      let currentState = null;
-      setCombatState(prev => { currentState = prev; return prev; });
-      if (!currentState) return;
       
       let p = { ...currentState.player, buffs: { ...currentState.player.buffs }, debuffs: { ...currentState.player.debuffs } };
       
@@ -486,8 +479,8 @@ export default function App() {
             if (e.hp <= 0) break;
 
             // 🎬 컷씬 체크
-            if (intent.cutscene) {
-              await mutate(prev => ({ ...prev, cutsceneData: { name: e.name, skillName: intent.name } }));
+            if (intent.cutscene || (e.isBoss && intent.type.includes('attack') && intent.value >= 25 && !fastMode)) {
+              await mutate(prev => ({ ...prev, cutsceneData: { name: e.name, skillName: intent.name || '치명적인 공격' } }));
               await new Promise(r => setTimeout(r, 1500)); // 컷씬 지속 시간
               await mutate(prev => ({ ...prev, cutsceneData: null }));
             }
@@ -572,11 +565,11 @@ export default function App() {
       turnDraw += (p.buffs?.insight || 0);
 
       await mutate(prev => {
-        const newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
+        let newDiscard = [...prev.discardPile, ...prev.hand], newDraw = [...prev.drawPile], newHand = [];
         let drawAmount = Math.max(0, 5 + turnDraw - (p.debuffs?.frost || 0));
         for (let i = 0; i < drawAmount; i++) {
           if (newHand.length >= (GAME_RULES?.MAX_HAND_SIZE || 10)) break;
-          if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard.length = 0; }
+          if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
           if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
         }
         return { ...prev, player: p, enemies: newEnemies, turn: 'PLAYER', hand: newHand, drawPile: newDraw, discardPile: newDiscard };

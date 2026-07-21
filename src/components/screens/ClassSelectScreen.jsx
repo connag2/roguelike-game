@@ -10,7 +10,7 @@ export default function ClassSelectScreen({ setGameState, selectedClass, setSele
   };
 
   return (
-    <div className="flex flex-col min-h-[100dvh] bg-slate-950 text-white p-4 relative z-50">
+    <div className="flex flex-col min-h-[100dvh] h-[100dvh] overflow-y-auto bg-slate-950 text-white p-4 relative z-50">
       <div className="max-w-4xl w-full mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl md:text-4xl font-black text-indigo-400 drop-shadow-md">✨ 직업(클래스) 선택</h2>
