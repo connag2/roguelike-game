@@ -31,10 +31,19 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '40px', backgroundColor: '#0f172a', minHeight: '100vh', color: 'white' }}>
-          <h1 style={{ fontSize: '2rem', color: '#ef4444', fontWeight: 'bold' }}>🚨 화면 오류(크래시) 발생!</h1>
-          <pre style={{ marginTop: '20px', backgroundColor: 'black', padding: '20px', color: '#fca5a5', whiteSpace: 'pre-wrap' }}>
+        <div style={{ padding: '40px', backgroundColor: '#0f172a', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2rem', color: '#ef4444', fontWeight: 'bold', marginBottom: '16px' }}>🚨 일시적인 화면 오류 발생!</h1>
+          <p style={{ color: '#cbd5e1', marginBottom: '24px', maxWidth: '600px' }}>게임 상태 처리 중 오류가 탐지되었습니다. 아래 버튼을 눌러 부드럽게 복구하세요.</p>
+          <button 
+            onClick={() => { window.location.reload(); }}
+            style={{ padding: '14px 36px', backgroundColor: '#6366f1', color: 'white', fontWeight: 'bold', borderRadius: '14px', border: 'none', cursor: 'pointer', fontSize: '1.25rem', marginBottom: '24px', boxShadow: '0 0 20px rgba(99,102,241,0.5)' }}
+          >
+            🔄 게임 새로고침 및 복구
+          </button>
+          <pre style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '12px', color: '#fca5a5', whiteSpace: 'pre-wrap', textAlign: 'left', maxWidth: '800px', width: '100%', fontSize: '0.85rem' }}>
             {this.state.error?.toString()}
+            {'\n'}
+            {this.state.error?.stack}
           </pre>
         </div>
       );
@@ -245,13 +254,13 @@ export default function App() {
   };
 
   const applyStartCombatRelics = (basePlayer, activeRelics) => {
-    let p = { ...basePlayer };
+    let p = { ...basePlayer, buffs: { ...(basePlayer?.buffs || {}) } };
     (activeRelics || []).forEach(r => {
       if (['START_COMBAT', 'START_COMBAT_AND_TURN'].includes(r.effect?.type)) {
-        if (r.effect.strength) p.buffs.strength += r.effect.strength;
-        if (r.effect.dexterity) p.buffs.dexterity += r.effect.dexterity;
-        if (r.effect.block) p.block += r.effect.block;
-        if (r.effect.thorns) p.buffs.thorns += r.effect.thorns;
+        if (r.effect.strength) p.buffs.strength = (p.buffs.strength || 0) + r.effect.strength;
+        if (r.effect.dexterity) p.buffs.dexterity = (p.buffs.dexterity || 0) + r.effect.dexterity;
+        if (r.effect.block) p.block = (p.block || 0) + r.effect.block;
+        if (r.effect.thorns) p.buffs.thorns = (p.buffs.thorns || 0) + r.effect.thorns;
       }
       if (r.effect?.type === 'START_COMBAT_HEAL') p.hp = Math.min(p.maxHp, p.hp + r.effect.heal);
     });
@@ -548,8 +557,7 @@ export default function App() {
       newEnemies = newEnemies.filter(e => e.hp > 0);
       if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
       if (newEnemies.length === 0) { 
-        setGameState('REWARDS');
-        await mutate(prev => ({ ...prev, player: p, enemies: [] })); 
+        handleVictory(currentState, p);
         return; 
       }
       
