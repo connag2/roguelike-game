@@ -258,8 +258,8 @@ export default function Rewards({
     );
   }
 
-  // 1. 기본 보상 선택 화면
-  if (gameState === 'REWARDS') {
+  // 1. 기본 보상 선택 화면 (특수 보상 조건 미충족 시 안전 폴백)
+  if (gameState === 'REWARDS' || gameState === 'RELIC_REWARD' || gameState === 'BOSS_RELIC_CHOICE' || gameState === 'BOSS_CLEAR_REWARD') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4">
         <h2 className="text-4xl md:text-5xl font-black mb-4 text-yellow-400 tracking-wider text-center drop-shadow-2xl">스테이지 클리어!</h2>
