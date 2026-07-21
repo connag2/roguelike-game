@@ -101,10 +101,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [enemyDropCard, setEnemyDropCard] = useState(null); 
-  const [customCards, setCustomCards] = useState([]); 
-  
   const [autoPlay, setAutoPlay] = useState(false);
   const [autoReward, setAutoReward] = useState(true);
+  const [autoRewardType, setAutoRewardType] = useState('card'); // 'card' or 'heal'
+  const [autoRelic, setAutoRelic] = useState(true); // true or false
+  const [autoEventType, setAutoEventType] = useState('safe'); // 'safe' or 'greedy'
   const [claimedMilestones, setClaimedMilestones] = useState([]);
 
   const toggleFullScreen = () => {
@@ -147,6 +148,9 @@ export default function App() {
         if (d.fastMode !== undefined) setFastMode(d.fastMode);
         if (d.autoPlay !== undefined) setAutoPlay(d.autoPlay);
         if (d.autoReward !== undefined) setAutoReward(d.autoReward);
+        if (d.autoRewardType !== undefined) setAutoRewardType(d.autoRewardType);
+        if (d.autoRelic !== undefined) setAutoRelic(d.autoRelic);
+        if (d.autoEventType !== undefined) setAutoEventType(d.autoEventType);
         if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
         if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
         if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
@@ -161,7 +165,7 @@ export default function App() {
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, autoPlay, autoReward, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, autoPlay, autoReward, autoRewardType, autoRelic, autoEventType, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -892,7 +896,7 @@ export default function App() {
         
         {gameState === 'CLASS_SELECT' && <ClassSelectScreen setGameState={setGameState} selectedClass={selectedClass} setSelectedClass={setSelectedClass} saveGame={saveGame} />}
         
-        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} autoPlay={autoPlay} setAutoPlay={setAutoPlay} autoReward={autoReward} setAutoReward={setAutoReward} />}
+        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} autoPlay={autoPlay} setAutoPlay={setAutoPlay} autoReward={autoReward} setAutoReward={setAutoReward} autoEventType={autoEventType} setAutoEventType={setAutoEventType} />}
         
         {gameState === 'TOWN' && <TownScreen setGameState={setGameState} credits={credits} setCredits={setCredits} saveGame={saveGame} townUpgrades={townUpgrades} setTownUpgrades={setTownUpgrades} />}
         
@@ -913,7 +917,27 @@ export default function App() {
           />
         )}
         
-        {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} handleExitGame={handleExitGame} autoPlay={autoPlay} setAutoPlay={setAutoPlay} autoReward={autoReward} setAutoReward={setAutoReward} />}
+        {gameState === 'SETTINGS' && (
+          <Settings 
+            setGameState={setGameState} 
+            fastMode={fastMode} 
+            setFastMode={setFastMode} 
+            saveGame={saveGame} 
+            handleExport={handleExport} 
+            setImportModalOpen={setImportModalOpen} 
+            handleExitGame={handleExitGame} 
+            autoPlay={autoPlay} 
+            setAutoPlay={setAutoPlay} 
+            autoReward={autoReward} 
+            setAutoReward={setAutoReward}
+            autoRewardType={autoRewardType}
+            setAutoRewardType={setAutoRewardType}
+            autoRelic={autoRelic}
+            setAutoRelic={setAutoRelic}
+            autoEventType={autoEventType}
+            setAutoEventType={setAutoEventType}
+          />
+        )}
         
         {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={toggleFullScreen} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} setTempDeckCounts={setTempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} allUnlockedCards={getFilteredCards('all', 'all', 'all', 'owned', '')} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
         
@@ -993,6 +1017,10 @@ export default function App() {
               setAutoReward(next);
               saveGame({ autoReward: next });
             }}
+            autoRewardType={autoRewardType}
+            setAutoRewardType={setAutoRewardType}
+            autoRelic={autoRelic}
+            setAutoRelic={setAutoRelic}
             handleEnemyDropClaim={() => {
               if (enemyDropCard) {
                 let newUnlocked = unlockedCards;

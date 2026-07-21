@@ -39,35 +39,44 @@ export default function Rewards({
   handleSpecialBossRewardClaim: handleSpecialClaim,
   autoPlay,
   setAutoPlay,
-  autoReward = true
+  autoReward = true,
+  autoRewardType = 'card',
+  autoRelic = true
 }) {
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedRelics, setSelectedRelics] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // 🤖 AUTO 보상/카드/유물 자동 선택 AI (풀 오토 패스)
+  // 🤖 AUTO 보상/카드/유물 자동 선택 AI (설정 연동)
   useEffect(() => {
     if (!autoPlay || !autoReward || isProcessing || !combatState) return;
 
     const timer = setTimeout(() => {
-      // 1. 유물 발견 화면 -> 자동 장착
+      // 1. 유물 발견 화면 -> autoRelic 설정이 true일 때만 자동 장착
       if (gameState === 'RELIC_REWARD' && pendingRelicReward) {
-        handleRelicRewardClaim();
+        if (autoRelic) handleRelicRewardClaim();
         return;
       }
 
-      // 2. 보스 유물 3지선다 -> 1번째 유물 자동 선택
+      // 2. 보스 유물 3지선다 -> autoRelic 설정이 true일 때만 1번째 유물 자동 선택
       if (gameState === 'BOSS_RELIC_CHOICE' && pendingRelicChoices && pendingRelicChoices.length > 0) {
-        handleRelicChoiceClaim(pendingRelicChoices[0]);
+        if (autoRelic) handleRelicChoiceClaim(pendingRelicChoices[0]);
         return;
       }
 
-      // 3. 기본 보상 선택 화면
+      // 3. 기본 보상 선택 화면 (카드 추가 vs 회복 & 정화)
       if (gameState === 'REWARDS') {
         if (enemyDropCard) {
           handleEnemyDropClaim();
+        } else if (autoRewardType === 'heal') {
+          // 💖 회복 & 정화 선택
+          setIsProcessing(true);
+          const p = { ...combatState.player };
+          p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
+          p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
+          startNextStage(p, combatState.baseDeck);
         } else {
-          // 카드 추가 선택 화면 열기
+          // 🃏 카드 추가 선택 화면 열기
           const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
           const pool = CARD_LIBRARY.filter(c => {
             const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
@@ -124,7 +133,7 @@ export default function Rewards({
     }, 650);
 
     return () => clearTimeout(timer);
-  }, [gameState, autoPlay, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState]);
+  }, [gameState, autoPlay, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState]);
 
   if (!combatState) return null;
 

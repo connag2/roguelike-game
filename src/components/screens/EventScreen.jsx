@@ -106,7 +106,7 @@ const getEvents = (stage) => {
   ];
 };
 
-export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoPlay, setAutoPlay, autoReward = true }) {
+export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoPlay, setAutoPlay, autoReward = true, autoEventType = 'safe' }) {
   const [eventData, setEventData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -137,17 +137,28 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
     setGameState('BATTLE'); 
   };
 
-  // 🤖 AUTO 이벤트 자동 선택 AI
+  // 🤖 AUTO 이벤트 자동 선택 AI (성향 반영)
   useEffect(() => {
     if (!autoPlay || !autoReward || !eventData || isProcessing) return;
     const timer = setTimeout(() => {
-      const validOpt = eventData.options.find(opt => !opt.req || opt.req(combatState?.player, credits));
-      if (validOpt) {
-        handleOption(validOpt);
+      const validOpts = eventData.options.filter(opt => !opt.req || opt.req(combatState?.player, credits));
+      if (validOpts.length === 0) return;
+
+      let chosenOpt = validOpts[0];
+      if (autoEventType === 'safe') {
+        // 💖 체력 회복 또는 지나치기 우선
+        const safeOpt = validOpts.find(opt => opt.text.includes('회복') || opt.text.includes('지나갑니다') || opt.text.includes('건드리지') || opt.text.includes('재촉합니다'));
+        if (safeOpt) chosenOpt = safeOpt;
+      } else {
+        // ⚡ 카드 강화, 크레딧, 최대 체력 증가 등 탐욕/성장 우선
+        const greedyOpt = validOpts.find(opt => opt.text.includes('최대 체력') || opt.text.includes('크레딧') || opt.text.includes('강화'));
+        if (greedyOpt) chosenOpt = greedyOpt;
       }
+
+      handleOption(chosenOpt);
     }, 600);
     return () => clearTimeout(timer);
-  }, [autoPlay, eventData, isProcessing, combatState, credits]);
+  }, [autoPlay, autoReward, autoEventType, eventData, isProcessing, combatState, credits]);
 
   if (!eventData) return null;
 
