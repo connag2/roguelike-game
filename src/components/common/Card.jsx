@@ -98,7 +98,7 @@ const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, o
   return (
     <div 
       onClick={onClick}
-      className={`border-2 p-1.5 md:p-2 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border overflow-visible`}
+      className={`border-2 p-1 md:p-1.5 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border overflow-hidden select-none`}
     >
       {isLocked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
@@ -108,22 +108,21 @@ const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, o
       )}
       
       <div className="z-10 relative flex justify-between items-start shrink-0">
-        <span className="font-bold text-[10px] md:text-xs bg-slate-800 px-1.5 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
-        <div className="flex flex-col items-end gap-1">
+        <span className="font-bold text-[9px] sm:text-[10px] md:text-xs bg-slate-800 px-1 py-0.5 rounded text-white shadow-inner border border-slate-700 leading-none">코스트 {card.cost}</span>
+        <div className="flex flex-col items-end gap-0.5">
           {tagUi}
-          {/* ✨ 수정: 위에서 지정된 변수가 강화 수치와 아이콘 색상에 정상 적용되도록 변경 */}
-          {card.isUpgraded && <span className={`text-[10px] md:text-xs ${upBadgeText} font-black ${upBadgeBg} px-1 rounded ${upBadgeShadow} flex items-center gap-0.5`}><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
-          {isAttack ? <Sword className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? upIconColor : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-4 md:h-4 ${card.isUpgraded ? upIconColor : 'text-blue-400'}`}/>}
+          {card.isUpgraded && <span className={`text-[9px] md:text-[10px] ${upBadgeText} font-black ${upBadgeBg} px-1 rounded ${upBadgeShadow} flex items-center gap-0.5`}><Sparkles className="w-2 h-2" />+{card.upgradeLevel}</span>}
+          {isAttack ? <Sword className={`w-3 h-3 md:w-3.5 md:h-3.5 ${card.isUpgraded ? upIconColor : 'text-red-400'}`}/> : <Shield className={`w-3 h-3 md:w-3.5 md:h-3.5 ${card.isUpgraded ? upIconColor : 'text-blue-400'}`}/>}
         </div>
       </div>
       
-      <div className="text-center z-10 shrink-0 mt-1 mb-1">
-        <h4 className={`font-black text-xs sm:text-sm md:text-base leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
+      <div className="text-center z-10 shrink-0 mt-0.5 mb-0.5 px-0.5">
+        <h4 className={`font-black text-[10px] sm:text-xs md:text-sm leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
       </div>
       
-      <div className="text-[11px] md:text-xs text-slate-100 text-center leading-snug bg-slate-950/95 backdrop-blur-md p-1 md:p-1.5 rounded relative flex-1 min-h-[40px] flex flex-col items-center justify-center z-10 font-medium border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-1 overflow-visible">
-        <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative">
-          <span className="text-center leading-normal" dangerouslySetInnerHTML={{ __html: card.desc }}></span>
+      <div className="text-[9px] sm:text-[10px] md:text-[11px] text-slate-100 text-center leading-tight bg-slate-950/95 backdrop-blur-md p-1 rounded relative flex-1 min-h-[32px] flex flex-col items-center justify-center z-10 font-normal border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-0.5 overflow-hidden">
+        <div className="w-full flex flex-wrap items-center justify-center px-0.5 gap-x-0.5 break-keep relative overflow-hidden max-h-full">
+          <span className="text-center leading-tight tracking-tight line-clamp-4" dangerouslySetInnerHTML={{ __html: card.desc }}></span>
           <Tooltip desc={card.desc} />
         </div>
       </div>

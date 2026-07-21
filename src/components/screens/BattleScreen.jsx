@@ -665,7 +665,7 @@ export default function BattleScreen({
                          animationDelay: `${idx * 0.03}s`, 
                          animationFillMode: 'backwards' 
                        }}>
-                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-24 h-36 sm:w-28 sm:h-40 md:w-34 md:h-48 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'cursor-not-allowed brightness-60 opacity-70'}`}>
+                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-42 sm:w-30 sm:h-44 md:w-36 md:h-52 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'cursor-not-allowed brightness-60 opacity-70'}`}>
                       <Card card={getDynamicCardDef(card, player)} isLocked={false} />
                     </div>
                   </div>
