@@ -128,11 +128,13 @@ export default function BattleScreen({
       return;
     }
 
+    const enemies = combatState?.enemies || [];
+    if (enemies.length === 0) return; // 🛑 승리 후 적이 모두 사라진 찰나에는 AUTO 작동 중단
+
     const timer = setTimeout(async () => {
       if (isAutoExecutingRef.current) return;
 
       const p = combatState?.player;
-      const enemies = combatState?.enemies || [];
       const enemy = enemies[targetIndex] || enemies[0];
       if (!p || !enemy || !hand) return;
 

@@ -547,7 +547,11 @@ export default function App() {
 
       newEnemies = newEnemies.filter(e => e.hp > 0);
       if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
-      if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); await mutate(prev => ({ ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] })); return; }
+      if (newEnemies.length === 0) { 
+        setGameState('REWARDS');
+        await mutate(prev => ({ ...prev, player: p, enemies: [] })); 
+        return; 
+      }
       
       p.block = 0; p.mana = p.maxMana;
       if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
