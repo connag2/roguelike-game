@@ -97,7 +97,7 @@ export default function Rewards({
 
   // 🤖 AUTO 보상/카드/유물 자동 선택 AI (설정 연동 + 화면 멈춤 방지)
   useEffect(() => {
-    if (!autoPlay || !autoReward || isProcessing || !combatState) return;
+    if (!autoReward || isProcessing || !combatState) return;
 
     const timer = setTimeout(() => {
       // 0. 특수 보스 처치 보상 (BOSS_CLEAR_REWARD)
@@ -194,7 +194,7 @@ export default function Rewards({
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [gameState, autoPlay, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState, specialBossRewardCard]);
+  }, [gameState, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState?.stage, specialBossRewardCard]);
 
   if (!combatState) return null;
 

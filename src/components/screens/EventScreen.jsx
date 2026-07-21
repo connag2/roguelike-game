@@ -140,7 +140,7 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
 
   // 🤖 AUTO 이벤트 자동 선택 AI (성향 반영)
   useEffect(() => {
-    if (!autoPlay || !autoReward || !eventData || isProcessing) return;
+    if (!autoReward || !eventData || isProcessing) return;
     const timer = setTimeout(() => {
       const validOpts = eventData.options.filter(opt => !opt.req || opt.req(combatState?.player, credits));
       if (validOpts.length === 0) return;
@@ -157,9 +157,10 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
       }
 
       handleOption(chosenOpt);
-    }, 600);
+    }, 400);
+
     return () => clearTimeout(timer);
-  }, [autoPlay, autoReward, autoEventType, eventData, isProcessing, combatState, credits]);
+  }, [autoReward, eventData, isProcessing, autoEventType, combatState?.stage]);
 
   if (!eventData) return null;
 
