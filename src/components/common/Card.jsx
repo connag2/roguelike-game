@@ -6,9 +6,10 @@ const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, o
   if (!card) return null;
   
   const isAttack = card.type === 'attack';
+  const isSpecial = card.type === 'special';
   const rarity = card.rarity || 'common';
   
-  let borderStyle = isAttack ? 'border-red-500' : 'border-blue-500';
+  let borderStyle = isAttack ? 'border-red-500' : isSpecial ? 'border-emerald-400' : 'border-blue-500';
   let rarityShadow = '';
   let nameColor = 'text-white';
   let tagUi = null;

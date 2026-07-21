@@ -74,7 +74,7 @@ export const CARD_LIBRARY = [
   { id: 'flame_slash', name: '화염 베기', type: 'attack', cost: 1, rarity: 'common', damage: 6, enemyBurn: 2, desc: '검에 불꽃을 머금고 베어 6의 피해를 주고 화상 2를 부여합니다.' },
   { id: 'frost_arrow', name: '빙결 화살', type: 'attack', cost: 1, rarity: 'common', damage: 5, enemyFrost: 2, desc: '얼어붙은 화살을 쏘아 5의 피해를 주고 동상 2를 부여합니다.' },
   { id: 'frozen_shield', name: '얼어붙은 방패', type: 'skill', cost: 1, rarity: 'common', block: 8, enemyFrost: 1, desc: '냉기를 뿜는 방패를 들어 8의 방어도를 얻고 적에게 동상 1을 부여합니다.' },
-  { id: 'purify', name: '정화', type: 'skill', cost: 1, rarity: 'common', cleanse: true, desc: '성스러운 빛을 몸에 둘러 모든 해로운 효과(디버프)를 씻어냅니다.' },
+  { id: 'purify', name: '정화', type: 'special', cost: 1, rarity: 'common', cleanse: true, desc: '성스러운 빛으로 현재 가장 강한 상태 이상 1개를 제거합니다. 침묵·속박 상태에서도 사용 가능.' },
   { id: 'strike', name: '타격', type: 'attack', cost: 1, rarity: 'common', damage: 8, desc: '무기를 가볍게 휘둘러 적에게 8의 피해를 줍니다.' },
   { id: 'defend', name: '방어', type: 'skill', cost: 1, rarity: 'common', block: 6, desc: '단단한 방어 자세를 취해 6의 방어도를 얻습니다.' },
   { id: 'heavy_strike', name: '강타', type: 'attack', cost: 2, rarity: 'common', damage: 18, desc: '온 힘을 다해 무기를 크게 내리쳐 적에게 18의 피해를 줍니다.' },

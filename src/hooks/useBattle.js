@@ -258,6 +258,7 @@ export function useBattle({
       setToastMsg("침묵 상태라 스킬 카드를 사용할 수 없습니다!");
       return;
     }
+    // special 타입은 침묵·속박 무시
 
     if (combatState.player.mana < card.cost) {
       setToastMsg("마나가 부족합니다!");
@@ -313,8 +314,16 @@ export function useBattle({
       if (card.doubleBlock) p.block *= 2;
       if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
       if (card.cleanse) {
-          p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, burn: 0, bleed: 0, frost: 0 };
-          setToastMsg('모든 상태 이상이 해제되었습니다!');
+          // 현재 가장 스택이 높은 상태이상 1개만 제거
+          const debuffKeys = ['poison', 'burn', 'bleed', 'weak', 'vulnerable', 'mark', 'frail', 'frost', 'silence', 'bind'];
+          const active = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0);
+          if (active.length > 0) {
+            const worst = active.reduce((a, b) => (p.debuffs[a] || 0) >= (p.debuffs[b] || 0) ? a : b);
+            p.debuffs = { ...p.debuffs, [worst]: 0 };
+            setToastMsg(`'${worst}' 상태 이상이 해제되었습니다!`);
+          } else {
+            setToastMsg('해제할 상태 이상이 없습니다.');
+          }
       }
       if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + (Number(card.heal) || 0));
       if (card.manaGain && !card.gamble) p.mana = clampStack(p.mana + (Number(card.manaGain) || 0), p.maxMana + 99);
