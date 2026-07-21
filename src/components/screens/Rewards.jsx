@@ -36,11 +36,94 @@ export default function Rewards({
   playerRelics,
   unlockedRelics,
   handleEnemyDropClaim,
-  handleSpecialBossRewardClaim: handleSpecialClaim
+  handleSpecialBossRewardClaim: handleSpecialClaim,
+  autoPlay,
+  setAutoPlay
 }) {
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedRelics, setSelectedRelics] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // 🤖 AUTO 보상/카드/유물 자동 선택 AI (풀 오토 패스)
+  useEffect(() => {
+    if (!autoPlay || isProcessing || !combatState) return;
+
+    const timer = setTimeout(() => {
+      // 1. 유물 발견 화면 -> 자동 장착
+      if (gameState === 'RELIC_REWARD' && pendingRelicReward) {
+        handleRelicRewardClaim();
+        return;
+      }
+
+      // 2. 보스 유물 3지선다 -> 1번째 유물 자동 선택
+      if (gameState === 'BOSS_RELIC_CHOICE' && pendingRelicChoices && pendingRelicChoices.length > 0) {
+        handleRelicChoiceClaim(pendingRelicChoices[0]);
+        return;
+      }
+
+      // 3. 기본 보상 선택 화면
+      if (gameState === 'REWARDS') {
+        if (enemyDropCard) {
+          handleEnemyDropClaim();
+        } else {
+          // 카드 추가 선택 화면 열기
+          const currentManaCount = combatState.baseDeck.filter(c => ['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id)).length;
+          const pool = CARD_LIBRARY.filter(c => {
+            const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
+            if (count >= 3) return false;
+            if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
+            return true;
+          });
+          const legendProb = Math.floor(combatState.stage / 10) * 0.01;
+          let selected = [];
+          let avPool = [...pool];
+          for(let i=0; i<3; i++) {
+            if(avPool.length === 0) break;
+            const r = Math.random();
+            let t = r < legendProb ? 'rare' : r < legendProb + 0.15 ? 'uncommon' : 'common';
+            let pList = avPool.filter(c => c.rarity === t);
+            if (pList.length === 0) pList = avPool;
+            const picked = pList[Math.floor(Math.random() * pList.length)];
+            selected.push(getCardDef(picked.id, shopUpgrades));
+            avPool = avPool.filter(c => c.id !== picked.id);
+          }
+          setRewardCards(selected);
+          setGameState('REWARD_CARD');
+        }
+        return;
+      }
+
+      // 4. 보상 카드 3장 중 선택 화면 -> 가장 높은 등급/희귀도 카드 자동 선택 및 다음 층 이동
+      if (gameState === 'REWARD_CARD' && rewardCards && rewardCards.length > 0) {
+        const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
+        const sorted = [...rewardCards].sort((a, b) => (rarityRank[b.rarity] || 1) - (rarityRank[a.rarity] || 1));
+        const bestCard = sorted[0];
+
+        if (bestCard) {
+          setIsProcessing(true);
+          const newDeck = [...combatState.baseDeck, { ...bestCard }];
+          let newUnlocked = unlockedCards;
+          let newCustomCards = customCards;
+
+          if (!unlockedCards.includes(bestCard.id)) {
+            newUnlocked = [...unlockedCards, bestCard.id];
+            setUnlockedCards(newUnlocked);
+          }
+          if ((bestCard.id.startsWith('loot_') || bestCard.rarity === 'loot') && !customCards.some(c => c.id === bestCard.id)) {
+            newCustomCards = [...customCards, bestCard];
+            setCustomCards(newCustomCards);
+          }
+
+          saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
+          if (setEnemyDropCard) setEnemyDropCard(null);
+          startNextStage(combatState.player, newDeck);
+        }
+        return;
+      }
+    }, 650);
+
+    return () => clearTimeout(timer);
+  }, [gameState, autoPlay, isProcessing, pendingRelicReward, pendingRelicChoices, enemyDropCard, rewardCards, combatState]);
 
   if (!combatState) return null;
 

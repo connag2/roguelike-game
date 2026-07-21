@@ -106,7 +106,7 @@ const getEvents = (stage) => {
   ];
 };
 
-export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState }) {
+export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoPlay, setAutoPlay }) {
   const [eventData, setEventData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -137,11 +137,37 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
     setGameState('BATTLE'); 
   };
 
+  // 🤖 AUTO 이벤트 자동 선택 AI
+  useEffect(() => {
+    if (!autoPlay || !eventData || isProcessing) return;
+    const timer = setTimeout(() => {
+      const validOpt = eventData.options.find(opt => !opt.req || opt.req(combatState?.player, credits));
+      if (validOpt) {
+        handleOption(validOpt);
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [autoPlay, eventData, isProcessing, combatState, credits]);
+
   if (!eventData) return null;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-950 text-white p-4 md:p-8 relative justify-center items-center">
       <div className="absolute inset-0 bg-cover bg-center opacity-20 blur-sm" style={{ backgroundImage: `url(${eventData.image})` }} />
+      
+      {/* AUTO 모드 배지 버튼 */}
+      {setAutoPlay && (
+        <button
+          onClick={() => setAutoPlay(!autoPlay)}
+          className={`absolute top-4 right-4 z-50 px-4 py-2 rounded-xl font-black text-xs md:text-sm flex items-center gap-2 transition-all border-2 shadow-lg ${
+            autoPlay 
+              ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)]' 
+              : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-400'
+          }`}
+        >
+          🤖 <span>{autoPlay ? 'AUTO 진행 중' : 'AUTO OFF'}</span>
+        </button>
+      )}
       
       <div className="relative z-10 max-w-2xl w-full bg-slate-900/90 border border-slate-700 rounded-3xl p-6 md:p-10 shadow-2xl backdrop-blur-md">
         <h2 className="text-3xl md:text-4xl font-black text-emerald-400 mb-6 drop-shadow-md text-center">

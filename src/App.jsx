@@ -890,7 +890,7 @@ export default function App() {
         
         {gameState === 'CLASS_SELECT' && <ClassSelectScreen setGameState={setGameState} selectedClass={selectedClass} setSelectedClass={setSelectedClass} saveGame={saveGame} />}
         
-        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} />}
+        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} autoPlay={autoPlay} setAutoPlay={setAutoPlay} />}
         
         {gameState === 'TOWN' && <TownScreen setGameState={setGameState} credits={credits} setCredits={setCredits} saveGame={saveGame} townUpgrades={townUpgrades} setTownUpgrades={setTownUpgrades} />}
         
@@ -979,6 +979,12 @@ export default function App() {
             setEnemyDropCard={setEnemyDropCard} 
             customCards={customCards} 
             setCustomCards={setCustomCards}
+            autoPlay={autoPlay}
+            setAutoPlay={(val) => {
+              const next = typeof val === 'function' ? val(autoPlay) : val;
+              setAutoPlay(next);
+              saveGame({ autoPlay: next });
+            }}
             handleEnemyDropClaim={() => {
               if (enemyDropCard) {
                 let newUnlocked = unlockedCards;
