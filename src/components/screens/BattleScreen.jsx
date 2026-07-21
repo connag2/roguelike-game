@@ -31,6 +31,7 @@ export default function BattleScreen({
 
   const [targetIndex, setTargetIndex] = useState(0);
   const [showUltimate, setShowUltimate] = useState(null);
+  const [autoPlay, setAutoPlay] = useState(false);
 
   // ✨ 추가: 적이 죽어서 몬스터 배열 길이가 타겟 인덱스보다 작아질 경우 방지
   useEffect(() => {
@@ -118,6 +119,93 @@ export default function BattleScreen({
   };
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
+
+  // 🤖 자동 전투 AI 로직
+  useEffect(() => {
+    if (!autoPlay || !isPlayerTurn || !hand || hand.length === 0 || playEffect) return;
+
+    const timer = setTimeout(async () => {
+      const p = combatState?.player;
+      const enemies = combatState?.enemies || [];
+      const enemy = enemies[targetIndex] || enemies[0];
+      if (!p || !enemy) return;
+
+      const debuffs = p.debuffs || {};
+      const isBound = (debuffs.bind || 0) > 0;
+      const isSilenced = (debuffs.silence || 0) > 0;
+      const isDebuffed = Object.values(debuffs).some(v => v > 0);
+
+      // 적 다음 행동 분석
+      const enemyIntents = enemy.intentCards || [];
+      const enemyIsAttacking = enemyIntents.some(i => i.type?.includes('attack'));
+      const enemyIsDefending = enemyIntents.some(i => i.type?.includes('defend') || i.type?.includes('buff'));
+      const totalEnemyDamage = enemyIntents.filter(i => i.type?.includes('attack')).reduce((s, i) => s + (i.value || 0) * (i.multi || 1), 0);
+      const bigAttackComing = totalEnemyDamage > 20;
+
+      // 카드 분류
+      const playableCards = hand.map((card, idx) => ({ card, idx }))
+        .filter(({ card }) => p.mana >= card.cost && !playEffect);
+
+      if (playableCards.length === 0) {
+        // 낼 카드 없으면 턴 종료
+        setDiscardingHand(true);
+        await new Promise(r => setTimeout(r, 300 + hand.length * 50));
+        setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+        return;
+      }
+
+      // AI 우선순위 점수 계산
+      const scored = playableCards.map(({ card, idx }) => {
+        let score = 0;
+        const isAttack = card.type === 'attack';
+        const isSkill = card.type === 'skill';
+        const isSpecial = card.type === 'special';
+
+        // 속박 상태면 공격 불가 → 특수/스킬만 우선
+        if (isBound && isAttack) return { idx, score: -999 };
+        // 침묵 상태면 스킬 불가 → 공격/특수만 우선  
+        if (isSilenced && isSkill) return { idx, score: -999 };
+
+        // 1순위: 상태이상 있을 때 정화 카드
+        if (isDebuffed && (card.cleanse || card.cleanseAll || card.debuffToStrength)) score += 300;
+        if (isBound && isSpecial) score += 500; // 속박 중 특수 카드 최우선
+        if (isSilenced && isSpecial) score += 400;
+
+        // 2순위: 큰 공격이 오면 방어 카드 우선
+        if (bigAttackComing && card.block) score += 200 + (card.block || 0);
+        if (bigAttackComing && card.percentBlockMaxHp) score += 250;
+        if (bigAttackComing && card.doubleBlock) score += 300;
+        if (bigAttackComing && card.selfIntangible) score += 400;
+
+        // 3순위: 적이 방어 중이면 디버프/독 카드 우선
+        if (enemyIsDefending && (card.enemyVuln || card.enemyWeak || card.enemyPoison || card.enemyBleed || card.enemyBurn)) score += 180;
+
+        // 4순위: 적이 공격 중이면 방어 카드
+        if (enemyIsAttacking && card.block) score += 100;
+
+        // 5순위: 일반 공격 카드 (체력 낮은 적 대상)
+        if (isAttack && card.damage) score += 50 + (card.damage || 0) / 2;
+        if (card.draw) score += 30; // 드로우는 보너스
+        if (card.manaGain) score += 40;
+
+        // 비용이 낮을수록 약간 우선 (효율)
+        score -= (card.cost || 0) * 5;
+
+        return { idx, score };
+      }).filter(s => s.score > -999).sort((a, b) => b.score - a.score);
+
+      if (scored.length > 0) {
+        await handlePlayCard(scored[0].idx);
+      } else {
+        // 낼 카드 없으면 턴 종료
+        setDiscardingHand(true);
+        await new Promise(r => setTimeout(r, 300 + hand.length * 50));
+        setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+      }
+    }, fastMode ? 300 : 600);
+
+    return () => clearTimeout(timer);
+  }, [autoPlay, isPlayerTurn, hand, playEffect, combatState, targetIndex, fastMode]);
 
   const getEnemyImage = (name) => {
     if (!name) return slimeImg;
@@ -570,7 +658,7 @@ export default function BattleScreen({
                          animationDelay: `${idx * 0.03}s`, 
                          animationFillMode: 'backwards' 
                        }}>
-                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-40 md:w-40 md:h-56 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400' : 'cursor-not-allowed brightness-75'}`}>
+                    <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-32 h-44 md:w-44 md:h-64 bg-slate-900 shadow-2xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'cursor-not-allowed brightness-60 opacity-70'}`}>
                       <Card card={getDynamicCardDef(card, player)} isLocked={false} />
                     </div>
                   </div>
@@ -595,6 +683,17 @@ export default function BattleScreen({
                 className={`py-3 px-5 md:py-4 md:px-8 h-16 md:h-20 rounded-2xl font-black text-xs md:text-lg flex items-center justify-center gap-2 transition-all border-b-[6px] active:border-b-0 active:translate-y-1 ${isPlayerTurn && !discardingHand ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-800 shadow-[0_10px_20px_rgba(245,158,11,0.3)]' : 'bg-slate-800 text-slate-600 border-slate-900 cursor-not-allowed'}`}
               >
                 {isPlayerTurn && !discardingHand ? 'TURN END' : 'WAIT...'} <ArrowRightCircle className="w-4 h-4 md:w-6 md:h-6"/>
+              </button>
+              <button
+                onClick={() => setAutoPlay(p => !p)}
+                title="자동 전투"
+                className={`py-3 px-3 md:py-4 md:px-4 h-16 md:h-20 rounded-2xl font-black text-[10px] md:text-sm flex flex-col items-center justify-center gap-1 transition-all border-b-[6px] active:border-b-0 ${
+                  autoPlay 
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-800 shadow-[0_0_20px_rgba(16,185,129,0.5)]' 
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300 border-slate-900'
+                }`}
+              >
+                🤖<span>{autoPlay ? 'AUTO' : 'AUTO'}</span>
               </button>
             </div>
           </div>

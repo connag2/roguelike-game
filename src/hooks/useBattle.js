@@ -340,6 +340,37 @@ export function useBattle({
       if (card.id === 'defensive_stance') p.stance = 'defensive';
       if (card.id === 'summon_golem') p.minion = { id: 'golem', name: '바위 골렘', hp: 40, maxHp: 40 };
       if (card.id === 'summon_fairy') p.minion = { id: 'fairy', name: '숲의 요정', hp: 15, maxHp: 15 };
+      if (card.cleanseAll) {
+          // 모든 상태이상 초기화
+          p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, burn: 0, bleed: 0, frost: 0 };
+          setToastMsg('모든 상태 이상이 해제되었습니다!');
+      }
+      if (card.debuffToBlock) {
+          // 활성 디버프 1개당 방어도 획득
+          const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
+          const debuffCount = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0).length;
+          const gained = debuffCount * card.debuffToBlock;
+          p.block += gained;
+          setToastMsg(`고통을 방어로 전환! +${gained} 방어도`);
+      }
+      if (card.debuffToHeal) {
+          // 활성 디버프 1개당 체력 회복
+          const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
+          const debuffCount = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0).length;
+          const gained = debuffCount * card.debuffToHeal;
+          p.hp = Math.min(p.maxHp, p.hp + gained);
+          setToastMsg(`고통을 생명으로 전환! +${gained} 체력`);
+      }
+      if (card.debuffToStrength) {
+          // 활성 디버프 1개당 근력 획득 후 디버프 제거
+          const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
+          const active = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0);
+          const gained = active.length * card.debuffToStrength;
+          p.buffs.strength = clampStack((p.buffs.strength || 0) + gained);
+          p.debuffs = { ...p.debuffs };
+          active.forEach(k => { p.debuffs[k] = 0; });
+          setToastMsg(`역경을 힘으로! 근력 +${gained}, 모든 상태이상 해제!`);
+      }
     } else {
       setToastMsg('도박 실패...');
       if (card.loseSelfDamage) p.hp -= (Number(card.loseSelfDamage) || 0);
@@ -386,6 +417,12 @@ export function useBattle({
                 p.mana = 0; 
             }
             if (card.exhaustStackDamage) applySpecialDamage((Number(card.damage) || 0) + Math.floor(newExhaust.length * card.exhaustStackDamage));
+            if (card.debuffToDamage) {
+              // 내 활성 디버프 수 × debuffToDamage 피해
+              const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
+              const debuffCount = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0).length;
+              applySpecialDamage(debuffCount * card.debuffToDamage);
+            }
             if (card.doubleDamageIfVuln && target.debuffs?.vulnerable > 0) currentDamage *= 2;
 
             if (card.enemyWeak) target.debuffs.weak = clampStack((target.debuffs.weak || 0) + card.enemyWeak);
