@@ -31,19 +31,10 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '40px', backgroundColor: '#0f172a', minHeight: '100vh', color: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-          <h1 style={{ fontSize: '2rem', color: '#ef4444', fontWeight: 'bold', marginBottom: '16px' }}>🚨 일시적인 화면 오류 발생!</h1>
-          <p style={{ color: '#cbd5e1', marginBottom: '24px', maxWidth: '600px' }}>게임 상태 처리 중 오류가 탐지되었습니다. 아래 버튼을 눌러 부드럽게 복구하세요.</p>
-          <button 
-            onClick={() => { window.location.reload(); }}
-            style={{ padding: '14px 36px', backgroundColor: '#6366f1', color: 'white', fontWeight: 'bold', borderRadius: '14px', border: 'none', cursor: 'pointer', fontSize: '1.25rem', marginBottom: '24px', boxShadow: '0 0 20px rgba(99,102,241,0.5)' }}
-          >
-            🔄 게임 새로고침 및 복구
-          </button>
-          <pre style={{ backgroundColor: '#1e293b', padding: '16px', borderRadius: '12px', color: '#fca5a5', whiteSpace: 'pre-wrap', textAlign: 'left', maxWidth: '800px', width: '100%', fontSize: '0.85rem' }}>
+        <div style={{ padding: '40px', backgroundColor: '#0f172a', minHeight: '100vh', color: 'white' }}>
+          <h1 style={{ fontSize: '2rem', color: '#ef4444', fontWeight: 'bold' }}>🚨 화면 오류(크래시) 발생!</h1>
+          <pre style={{ marginTop: '20px', backgroundColor: 'black', padding: '20px', color: '#fca5a5', whiteSpace: 'pre-wrap' }}>
             {this.state.error?.toString()}
-            {'\n'}
-            {this.state.error?.stack}
           </pre>
         </div>
       );
@@ -110,11 +101,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [enemyDropCard, setEnemyDropCard] = useState(null); 
+  const [customCards, setCustomCards] = useState([]); 
+  
   const [autoPlay, setAutoPlay] = useState(false);
-  const [autoReward, setAutoReward] = useState(true);
-  const [autoRewardType, setAutoRewardType] = useState('card'); // 'card' or 'heal'
-  const [autoRelic, setAutoRelic] = useState(true); // true or false
-  const [autoEventType, setAutoEventType] = useState('safe'); // 'safe' or 'greedy'
   const [claimedMilestones, setClaimedMilestones] = useState([]);
 
   const toggleFullScreen = () => {
@@ -156,10 +145,6 @@ export default function App() {
         if (d.normalCleared !== undefined) setNormalCleared(d.normalCleared);
         if (d.fastMode !== undefined) setFastMode(d.fastMode);
         if (d.autoPlay !== undefined) setAutoPlay(d.autoPlay);
-        if (d.autoReward !== undefined) setAutoReward(d.autoReward);
-        if (d.autoRewardType !== undefined) setAutoRewardType(d.autoRewardType);
-        if (d.autoRelic !== undefined) setAutoRelic(d.autoRelic);
-        if (d.autoEventType !== undefined) setAutoEventType(d.autoEventType);
         if (d.maxStageReached !== undefined) setMaxStageReached(d.maxStageReached);
         if (d.seenEnemies) setSeenEnemies(d.seenEnemies);
         if (d.usedCoupons) setUsedCoupons(d.usedCoupons);
@@ -174,7 +159,7 @@ export default function App() {
   }, []);
 
   const saveGame = async (payload = {}) => {
-    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, autoPlay, autoReward, autoRewardType, autoRelic, autoEventType, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
+    const data = { credits, shopUpgrades, unlockedCards, deckCounts, unlockedRelics, startingRelic, gameStats, normalCleared, fastMode, autoPlay, maxStageReached, seenEnemies, usedCoupons, customCards, claimedMilestones, selectedClass, townUpgrades, ...payload };
     localStorage.setItem('roguelike_tactics_save', JSON.stringify(data));
     if (user && db) await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'gameSave', 'data'), data);
   };
@@ -254,13 +239,13 @@ export default function App() {
   };
 
   const applyStartCombatRelics = (basePlayer, activeRelics) => {
-    let p = { ...basePlayer, buffs: { ...(basePlayer?.buffs || {}) } };
+    let p = { ...basePlayer };
     (activeRelics || []).forEach(r => {
       if (['START_COMBAT', 'START_COMBAT_AND_TURN'].includes(r.effect?.type)) {
-        if (r.effect.strength) p.buffs.strength = (p.buffs.strength || 0) + r.effect.strength;
-        if (r.effect.dexterity) p.buffs.dexterity = (p.buffs.dexterity || 0) + r.effect.dexterity;
-        if (r.effect.block) p.block = (p.block || 0) + r.effect.block;
-        if (r.effect.thorns) p.buffs.thorns = (p.buffs.thorns || 0) + r.effect.thorns;
+        if (r.effect.strength) p.buffs.strength += r.effect.strength;
+        if (r.effect.dexterity) p.buffs.dexterity += r.effect.dexterity;
+        if (r.effect.block) p.block += r.effect.block;
+        if (r.effect.thorns) p.buffs.thorns += r.effect.thorns;
       }
       if (r.effect?.type === 'START_COMBAT_HEAL') p.hp = Math.min(p.maxHp, p.hp + r.effect.heal);
     });
@@ -556,10 +541,7 @@ export default function App() {
 
       newEnemies = newEnemies.filter(e => e.hp > 0);
       if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
-      if (newEnemies.length === 0) { 
-        handleVictory(currentState, p);
-        return; 
-      }
+      if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); await mutate(prev => ({ ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] })); return; }
       
       p.block = 0; p.mana = p.maxMana;
       if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
@@ -908,7 +890,7 @@ export default function App() {
         
         {gameState === 'CLASS_SELECT' && <ClassSelectScreen setGameState={setGameState} selectedClass={selectedClass} setSelectedClass={setSelectedClass} saveGame={saveGame} />}
         
-        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} autoPlay={autoPlay} setAutoPlay={setAutoPlay} autoReward={autoReward} setAutoReward={setAutoReward} autoEventType={autoEventType} setAutoEventType={setAutoEventType} />}
+        {gameState === 'EVENT' && <EventScreen combatState={combatState} setCombatState={setCombatState} credits={credits} setCredits={setCredits} saveGame={saveGame} setToastMsg={setToastMsg} setGameState={setGameState} startNextStage={startNextStage} />}
         
         {gameState === 'TOWN' && <TownScreen setGameState={setGameState} credits={credits} setCredits={setCredits} saveGame={saveGame} townUpgrades={townUpgrades} setTownUpgrades={setTownUpgrades} />}
         
@@ -929,27 +911,7 @@ export default function App() {
           />
         )}
         
-        {gameState === 'SETTINGS' && (
-          <Settings 
-            setGameState={setGameState} 
-            fastMode={fastMode} 
-            setFastMode={setFastMode} 
-            saveGame={saveGame} 
-            handleExport={handleExport} 
-            setImportModalOpen={setImportModalOpen} 
-            handleExitGame={handleExitGame} 
-            autoPlay={autoPlay} 
-            setAutoPlay={setAutoPlay} 
-            autoReward={autoReward} 
-            setAutoReward={setAutoReward}
-            autoRewardType={autoRewardType}
-            setAutoRewardType={setAutoRewardType}
-            autoRelic={autoRelic}
-            setAutoRelic={setAutoRelic}
-            autoEventType={autoEventType}
-            setAutoEventType={setAutoEventType}
-          />
-        )}
+        {gameState === 'SETTINGS' && <Settings setGameState={setGameState} fastMode={fastMode} setFastMode={setFastMode} saveGame={saveGame} handleExport={handleExport} setImportModalOpen={setImportModalOpen} handleExitGame={handleExitGame} />}
         
         {gameState === 'DECK_BUILDING' && <DeckBuilder toggleFullScreen={toggleFullScreen} getTotalCards={getTotalCards} tempDeckCounts={tempDeckCounts} setTempDeckCounts={setTempDeckCounts} handleClearDeck={() => setTempDeckCounts({})} handleDeckExport={() => { const encoded = btoa(encodeURIComponent(JSON.stringify(tempDeckCounts))); navigator.clipboard.writeText(encoded); setToastMsg('덱 코드 복사됨!'); }} setDeckImportModalOpen={setDeckImportModalOpen} setDeckCounts={setDeckCounts} saveGame={saveGame} setGameState={setGameState} filterType={filterType} setFilterType={setFilterType} filterEffect={filterEffect} setEffect={setFilterEffect} filterRarity={filterRarity} setRarity={setFilterRarity} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filteredCards={getFilteredCards(filterType, filterEffect, filterRarity, 'owned', searchQuery)} allUnlockedCards={getFilteredCards('all', 'all', 'all', 'owned', '')} getCardDef={enhancedGetCardDef} shopUpgrades={shopUpgrades} handleAddCard={handleAddCard} handleRemoveCard={(id) => setTempDeckCounts({ ...tempDeckCounts, [id]: Math.max(0, (tempDeckCounts[id] || 0) - 1) })} setTutorialModalOpen={setTutorialModalOpen} normalCleared={normalCleared} unlockedRelics={unlockedRelics} startingRelic={startingRelic} setStartingRelic={setStartingRelic} />}
         
@@ -1017,22 +979,6 @@ export default function App() {
             setEnemyDropCard={setEnemyDropCard} 
             customCards={customCards} 
             setCustomCards={setCustomCards}
-            autoPlay={autoPlay}
-            setAutoPlay={(val) => {
-              const next = typeof val === 'function' ? val(autoPlay) : val;
-              setAutoPlay(next);
-              saveGame({ autoPlay: next });
-            }}
-            autoReward={autoReward}
-            setAutoReward={(val) => {
-              const next = typeof val === 'function' ? val(autoReward) : val;
-              setAutoReward(next);
-              saveGame({ autoReward: next });
-            }}
-            autoRewardType={autoRewardType}
-            setAutoRewardType={setAutoRewardType}
-            autoRelic={autoRelic}
-            setAutoRelic={setAutoRelic}
             handleEnemyDropClaim={() => {
               if (enemyDropCard) {
                 let newUnlocked = unlockedCards;
@@ -1047,13 +993,10 @@ export default function App() {
                   setCustomCards(newCustomCards);
                 }
 
-                const updatedDeck = [...(combatState?.baseDeck || []), enemyDropCard];
-                setCombatState(prev => ({ ...prev, baseDeck: updatedDeck }));
+                setCombatState(prev => ({ ...prev, baseDeck: [...prev.baseDeck, enemyDropCard] }));
                 setEnemyDropCard(null);
                 saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
-                return updatedDeck;
               }
-              return combatState?.baseDeck || [];
             }}
             handleSpecialBossRewardClaim={() => { 
               if(specialBossRewardCard) { 
@@ -1105,17 +1048,6 @@ export default function App() {
         )}
         
         {gameState === 'GAME_CLEAR' && <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-gradient-to-b from-yellow-900 to-slate-900 text-white p-4"><h1 className="text-6xl font-black text-yellow-400 mb-4 drop-shadow-lg">🎊 클리어!</h1><p className="text-2xl text-slate-300 mb-8">정말 훌륭한 성과입니다!</p><button onClick={() => { setGameState('MENU'); }} className="py-3 px-8 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg">메인으로</button></div>}
-
-        {/* 🛡️ 알 수 없는 화면 상태 진입 시 안전 폴백(Default Fallback UI) */}
-        {!['MENU', 'CLASS_SELECT', 'EVENT', 'TOWN', 'UPDATE_HISTORY', 'STATISTICS', 'SETTINGS', 'DECK_BUILDING', 'SHOP', 'BATTLE', 'ENCYCLOPEDIA', 'MONSTER_DEX', 'REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD', 'BOSS_RELIC_CHOICE', 'HARD_CLEAR_RELIC_CHOICE', 'GAME_OVER', 'GAME_CLEAR'].includes(gameState) && (
-          <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-950 text-white p-6 text-center">
-            <h1 className="text-3xl font-bold mb-4 text-amber-400">⚠️ 화면 상태 복구 알림</h1>
-            <p className="text-slate-300 mb-6 max-w-md">알 수 없는 화면 상태("{String(gameState)}")에 진입하여 안전 복구 모드를 활성화했습니다.</p>
-            <button onClick={() => setGameState('MENU')} className="px-8 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-lg shadow-lg">
-              🔄 메인 화면으로 돌아가기
-            </button>
-          </div>
-        )}
       </div>
     </ErrorBoundary>
   );

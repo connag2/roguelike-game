@@ -106,12 +106,11 @@ const getEvents = (stage) => {
   ];
 };
 
-export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoPlay, setAutoPlay, autoReward = true, autoEventType = 'safe' }) {
+export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState }) {
   const [eventData, setEventData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
-    setIsProcessing(false);
     const stage = combatState?.stage || 1;
     const availableEvents = getEvents(stage);
     const randomEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
@@ -138,49 +137,11 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
     setGameState('BATTLE'); 
   };
 
-  // 🤖 AUTO 이벤트 자동 선택 AI (성향 반영)
-  useEffect(() => {
-    if (!autoReward || !eventData || isProcessing) return;
-    const timer = setTimeout(() => {
-      const validOpts = eventData.options.filter(opt => !opt.req || opt.req(combatState?.player, credits));
-      if (validOpts.length === 0) return;
-
-      let chosenOpt = validOpts[0];
-      if (autoEventType === 'safe') {
-        // 💖 체력 회복 또는 지나치기 우선
-        const safeOpt = validOpts.find(opt => opt.text.includes('회복') || opt.text.includes('지나갑니다') || opt.text.includes('건드리지') || opt.text.includes('재촉합니다'));
-        if (safeOpt) chosenOpt = safeOpt;
-      } else {
-        // ⚡ 카드 강화, 크레딧, 최대 체력 증가 등 탐욕/성장 우선
-        const greedyOpt = validOpts.find(opt => opt.text.includes('최대 체력') || opt.text.includes('크레딧') || opt.text.includes('강화'));
-        if (greedyOpt) chosenOpt = greedyOpt;
-      }
-
-      handleOption(chosenOpt);
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [autoReward, eventData, isProcessing, autoEventType, combatState?.stage]);
-
   if (!eventData) return null;
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-950 text-white p-4 md:p-8 relative justify-center items-center">
       <div className="absolute inset-0 bg-cover bg-center opacity-20 blur-sm" style={{ backgroundImage: `url(${eventData.image})` }} />
-      
-      {/* AUTO 모드 배지 버튼 */}
-      {setAutoPlay && (
-        <button
-          onClick={() => setAutoPlay(!autoPlay)}
-          className={`absolute top-4 right-4 z-50 px-4 py-2 rounded-xl font-black text-xs md:text-sm flex items-center gap-2 transition-all border-2 shadow-lg ${
-            autoPlay 
-              ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-400 text-white shadow-[0_0_20px_rgba(16,185,129,0.5)]' 
-              : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-400'
-          }`}
-        >
-          🤖 <span>{autoPlay ? 'AUTO 진행 중' : 'AUTO OFF'}</span>
-        </button>
-      )}
       
       <div className="relative z-10 max-w-2xl w-full bg-slate-900/90 border border-slate-700 rounded-3xl p-6 md:p-10 shadow-2xl backdrop-blur-md">
         <h2 className="text-3xl md:text-4xl font-black text-emerald-400 mb-6 drop-shadow-md text-center">

@@ -3,7 +3,7 @@ import { Sword, Shield, Lock, Star, Sparkles } from 'lucide-react';
 import Tooltip from './Tooltip';
 
 const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
-  if (!card || typeof card !== 'object') return null;
+  if (!card) return null;
   
   const isAttack = card.type === 'attack';
   const isSpecial = card.type === 'special';
@@ -117,7 +117,7 @@ const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, o
       </div>
       
       <div className="text-center z-10 shrink-0 mt-0.5 mb-0.5 px-0.5">
-        <h4 className={`font-black text-[10px] sm:text-xs md:text-sm leading-tight truncate break-keep ${nameColor}`}>{(card.name || '미확인 카드').split(' +')[0]}</h4>
+        <h4 className={`font-black text-[10px] sm:text-xs md:text-sm leading-tight truncate break-keep ${nameColor}`}>{card.name.split(' +')[0]}</h4>
       </div>
       
       <div className="text-[9px] sm:text-[10px] md:text-[11px] text-slate-100 text-center leading-tight bg-slate-950/95 backdrop-blur-md p-1 rounded relative flex-1 min-h-[32px] flex flex-col items-center justify-center z-10 font-normal border border-white/10 w-full shadow-[inset_0_0_10px_rgba(0,0,0,0.8)] mb-0.5 overflow-hidden">

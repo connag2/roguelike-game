@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Download, Upload, Trash2, FastForward, ArrowLeft, Bomb, Volume2, Bot, Gift } from 'lucide-react';
+import { Settings as SettingsIcon, Download, Upload, Trash2, FastForward, ArrowLeft, Bomb, Volume2 } from 'lucide-react';
 import { useAudio } from '../../hooks/useAudio';
 import Slider from '../ui/Slider';
 
 export default function Settings({
   setGameState, fastMode, setFastMode, saveGame, handleExport, setImportModalOpen,
-  couponInput, setCouponInput, handleCoupon, adminClearSave,
-  autoPlay, setAutoPlay, autoReward, setAutoReward,
-  autoRewardType = 'card', setAutoRewardType,
-  autoRelic = true, setAutoRelic,
-  autoEventType = 'safe', setAutoEventType
+  couponInput, setCouponInput, handleCoupon, adminClearSave
 }) {
   const [deleteStep, setDeleteStep] = useState(0);
 
@@ -67,92 +63,6 @@ export default function Settings({
               value={sfx} 
               onChange={handleSFXChange} 
             />
-          </div>
-        </div>
-
-        {/* 🤖 오토(AUTO) 자동화 설정 영역 */}
-        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-          <h2 className="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2 flex items-center gap-2">
-            <Bot className="w-5 h-5 text-emerald-400"/> 오토(AUTO) 자동화 상세 설정
-          </h2>
-          
-          <div className="flex flex-col gap-3">
-            {/* 1. 전투 자동 실행 */}
-            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
-              <div>
-                <div className="font-bold text-emerald-400 flex items-center gap-2">🤖 전투 자동 실행 (Auto Battle)</div>
-                <div className="text-xs text-slate-400 mt-1">전투 시 최적의 카드를 자동으로 선택하고 턴을 넘깁니다.</div>
-              </div>
-              <button onClick={() => { const next = !autoPlay; setAutoPlay(next); saveGame({ autoPlay: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-all ${autoPlay ? 'bg-emerald-600 text-white shadow-[0_0_10px_rgba(16,185,129,0.4)]' : 'bg-slate-700 text-slate-400'}`}>
-                {autoPlay ? '켜짐' : '꺼짐'}
-              </button>
-            </div>
-
-            {/* 2. 보상 & 이벤트 자동 진행 마스터 스위치 */}
-            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
-              <div>
-                <div className="font-bold text-cyan-400 flex items-center gap-2">🎁 보상 & 이벤트 자동 진행 (Auto Rewards)</div>
-                <div className="text-xs text-slate-400 mt-1">전투 완료 후 보상 및 이벤트를 자동으로 진행합니다.</div>
-              </div>
-              <button onClick={() => { const next = !autoReward; setAutoReward(next); saveGame({ autoReward: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-all ${autoReward ? 'bg-cyan-600 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-slate-700 text-slate-400'}`}>
-                {autoReward ? '켜짐' : '꺼짐'}
-              </button>
-            </div>
-
-            {/* 3. 스테이지 클리어 보상 선호 (카드 추가 vs 회복 & 정화) */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-900 p-4 rounded-xl border border-slate-700 gap-3">
-              <div>
-                <div className="font-bold text-amber-400 flex items-center gap-2">🃏 클리어 보상 선택 방식</div>
-                <div className="text-xs text-slate-400 mt-1">스테이지 승리 후 획득할 보상 종류를 지정합니다.</div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => { setAutoRewardType('card'); saveGame({ autoRewardType: 'card' }); }} 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoRewardType === 'card' ? 'bg-amber-600 text-white border border-amber-400 shadow-md' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
-                >
-                  🃏 카드 추가
-                </button>
-                <button 
-                  onClick={() => { setAutoRewardType('heal'); saveGame({ autoRewardType: 'heal' }); }} 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoRewardType === 'heal' ? 'bg-emerald-600 text-white border border-emerald-400 shadow-md' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
-                >
-                  💖 회복 & 정화
-                </button>
-              </div>
-            </div>
-
-            {/* 4. 유물 자동 획득 & 장착 */}
-            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
-              <div>
-                <div className="font-bold text-purple-400 flex items-center gap-2">🛡️ 유물 자동 획득 & 선택 (Auto Relic)</div>
-                <div className="text-xs text-slate-400 mt-1">유물 발견 및 보스 유물 3지선다를 자동으로 선택하고 장착합니다.</div>
-              </div>
-              <button onClick={() => { const next = !autoRelic; setAutoRelic(next); saveGame({ autoRelic: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-all ${autoRelic ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(147,51,234,0.4)]' : 'bg-slate-700 text-slate-400'}`}>
-                {autoRelic ? '켜짐' : '꺼짐'}
-              </button>
-            </div>
-
-            {/* 5. 이벤트 / 제단 선택 성향 */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center bg-slate-900 p-4 rounded-xl border border-slate-700 gap-3">
-              <div>
-                <div className="font-bold text-fuchsia-400 flex items-center gap-2">🔮 이벤트 & 제단 선택 성향</div>
-                <div className="text-xs text-slate-400 mt-1">무작위 이벤트 및 제단 선택 시 우선 순위를 결정합니다.</div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => { setAutoEventType('safe'); saveGame({ autoEventType: 'safe' }); }} 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoEventType === 'safe' ? 'bg-emerald-600 text-white border border-emerald-400 shadow-md' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
-                >
-                  💖 안전 / 회복 우선
-                </button>
-                <button 
-                  onClick={() => { setAutoEventType('greedy'); saveGame({ autoEventType: 'greedy' }); }} 
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoEventType === 'greedy' ? 'bg-fuchsia-600 text-white border border-fuchsia-400 shadow-md' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
-                >
-                  ⚡ 성장 / 강인함 우선
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 

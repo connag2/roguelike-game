@@ -212,13 +212,13 @@ export function useBattle({
         if (typeof setPendingRelicChoices === 'function') {
            setPendingRelicChoices(droppedRelicChoices);
         }
-        setTimeout(() => setGameState('BOSS_RELIC_CHOICE'), 150);
+        setTimeout(() => setGameState('BOSS_RELIC_CHOICE'), 600);
       } else if (droppedRelic) {
         setPendingRelicReward(droppedRelic);
-        setTimeout(() => setGameState('RELIC_REWARD'), 150);
+        setTimeout(() => setGameState('RELIC_REWARD'), 600);
       } else {
         if (finalBossCard) {
-          setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 150);
+          setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
         } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
           if (prevCombat.mode === 'NORMAL') {
             setNormalCleared(true);
@@ -226,17 +226,17 @@ export function useBattle({
           }
           else if (prevCombat.mode === 'HARD' && prevCombat.stage >= 300) {
             setToastMsg('🎉 하드 모드 완전 클리어! 유물 3개를 선택하세요!');
-            setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), 150);
+            setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), 600);
             return;
           }
           setGameState('GAME_CLEAR'); 
         } else {
-          setTimeout(() => setGameState('REWARDS'), 150);
+          setTimeout(() => setGameState('REWARDS'), 600);
         }
       }
     } catch (err) {
       console.error("보상 처리 중 에러 발생:", err);
-      setTimeout(() => setGameState('REWARDS'), 150);
+      setTimeout(() => setGameState('REWARDS'), 600);
     }
   }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setToastMsg]);
 

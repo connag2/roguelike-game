@@ -128,17 +128,11 @@ export default function BattleScreen({
       return;
     }
 
-    const enemies = combatState?.enemies || [];
-    const validEnemies = enemies.filter(e => e && e.hp > 0);
-    if (validEnemies.length === 0 || (combatState?.player?.hp || 0) <= 0) {
-      isAutoExecutingRef.current = true;
-      return;
-    }
-
     const timer = setTimeout(async () => {
       if (isAutoExecutingRef.current) return;
 
       const p = combatState?.player;
+      const enemies = combatState?.enemies || [];
       const enemy = enemies[targetIndex] || enemies[0];
       if (!p || !enemy || !hand) return;
 
