@@ -601,7 +601,10 @@ export default function App() {
     const cost = 50 * times;
     if (credits < cost) return;
     const result = [];
-    const pool = CARD_LIBRARY.filter(c => ['common', 'uncommon', 'rare'].includes(c.rarity));
+    // 특수(special) 타입 및 loot/special 등급은 모두 제외
+    const pool = CARD_LIBRARY.filter(c =>
+      ['common', 'uncommon', 'rare'].includes(c.rarity) && c.type !== 'special'
+    );
     let duplicateRefund = 0;
     let currentUnlocked = [...unlockedCards]; 
 
@@ -665,9 +668,9 @@ export default function App() {
     setCredits(prev => prev - 100);
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
-      // ✨ 레어 확률 3% -> 1.5%, 그리고 최고 도달 층수 10층 이상일 때만 등장
-      let rarity = (roll < 0.015 && maxStageReached >= 10) ? 'rare' : 'uncommon'; 
-      const pool = CARD_LIBRARY.filter(c => c.rarity === rarity || (rarity === 'rare' && c.rarity === 'special'));
+      let rarity = (roll < 0.015 && maxStageReached >= 10) ? 'rare' : 'uncommon';
+      // 특수(special) 타입과 loot/special 등급 제외
+      const pool = CARD_LIBRARY.filter(c => c.rarity === rarity && c.type !== 'special');
       const card = pool[Math.floor(Math.random() * pool.length)];
       result.push(card);
     }
