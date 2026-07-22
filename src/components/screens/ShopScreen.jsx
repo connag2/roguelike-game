@@ -197,7 +197,8 @@ export default function ShopScreen({
     for (let i = 0; i < 3; i++) {
       const roll = Math.random();
       let rarity = roll < 0.15 ? 'rare' : 'uncommon'; 
-      const pool = CARD_LIBRARY.filter(c => c.rarity === rarity || (rarity === 'rare' && c.rarity === 'special'));
+      // 특수(special) 타입과 loot/special 등급 제외
+      const pool = CARD_LIBRARY.filter(c => c.rarity === rarity && c.type !== 'special');
       const card = pool[Math.floor(Math.random() * pool.length)];
       result.push(card);
     }
@@ -589,7 +590,7 @@ export default function ShopScreen({
             </div>
             
             <div className="flex-1 overflow-y-auto hide-scrollbar grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 p-2 justify-items-center">
-              {CARD_LIBRARY.filter(c => c.rarity === 'rare' || c.rarity === 'special').map(card => {
+              {CARD_LIBRARY.filter(c => c.rarity === 'rare' && c.type !== 'special').map(card => {
                 const isOwned = unlockedCards.includes(card.id);
                 return (
                   <div key={card.id} onClick={() => !isOwned && claimPityCard(card.id)} className={`relative cursor-pointer transition-transform hover:-translate-y-2 transform scale-75 origin-top ${isOwned ? 'opacity-40 grayscale hover:translate-y-0' : ''}`}>
