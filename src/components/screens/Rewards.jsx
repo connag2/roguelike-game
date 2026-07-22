@@ -73,8 +73,8 @@ export default function Rewards({
     // 기본 보상 화면 (카드 추가 or 회복)
     if (gameState === 'REWARDS') {
       processedRef.current = true;
-      setIsProcessing(true);
       const t = setTimeout(() => {
+        setIsProcessing(true);
         if (autoRewardType === 'heal') {
           const p = { ...combatState.player };
           p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
@@ -236,8 +236,6 @@ export default function Rewards({
           </button>
 
           <button onClick={() => {
-            if (isProcessing) return;
-            setIsProcessing(true);
             const p = { ...combatState.player };
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
             p.debuffs = { weak: 0, vulnerable: 0, poison: 0 }; 
