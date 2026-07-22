@@ -1,12 +1,114 @@
 // src/components/screens/DeckBuilder.jsx
 import React, { useMemo, useState } from 'react';
-import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, ChevronDown, Sparkles, TrendingUp } from 'lucide-react';
+import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, ChevronDown, Sparkles, TrendingUp, BookOpen } from 'lucide-react';
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { RELIC_LIBRARY } from '../../constants/relicData';
 
 import scrollImg from '../../assets/images/items/scroll.svg';
 import shieldImg from '../../assets/images/items/shield.svg';
+
+// 🏆 큐레이팅된 강한 덱 프리셋
+const DECK_PRESETS = [
+  {
+    id: 'aggro_bleed',
+    name: '🩸 출혈 학살자',
+    tier: 'S',
+    style: '공격형',
+    color: 'border-red-500 shadow-red-900/50',
+    headerColor: 'from-red-900 to-slate-900',
+    tagColor: 'bg-red-500',
+    desc: '출혈 스택을 빠르게 쌓아 적을 매 턴 갈아먹는 고화력 공격 덱. 초반부터 강력하고 50층 이상에서도 유효합니다.',
+    tips: '취약 디버프와 조합하면 데미지가 2배로 상승합니다.',
+    cards: {
+      vein_cut: 3, bleed_cut: 3, weakness_exploit: 3,
+      expose_weakness: 3, beast_tear: 3, dig_in: 3,
+      focus: 2
+    }
+  },
+  {
+    id: 'tank_wall',
+    name: '🛡️ 철벽 요새',
+    tier: 'S',
+    style: '방어형',
+    color: 'border-blue-500 shadow-blue-900/50',
+    headerColor: 'from-blue-900 to-slate-900',
+    tagColor: 'bg-blue-500',
+    desc: '매 턴 방어도를 쌓아 피해를 0으로 만드는 방어 특화 덱. 가시(Thorns)로 카운터 피해를 줍니다.',
+    tips: '민첩(Dex) 유물과 조합하면 방어도가 누적 증가합니다.',
+    cards: {
+      barrier: 3, iron_wall: 3, absolute_defense: 3,
+      spiked_shield: 3, magic_shield: 3, warcry: 3,
+      combat_prep: 2
+    }
+  },
+  {
+    id: 'poison_dot',
+    name: '🧪 맹독 지옥',
+    tier: 'A',
+    style: '지속 피해',
+    color: 'border-green-500 shadow-green-900/50',
+    headerColor: 'from-green-900 to-slate-900',
+    tagColor: 'bg-green-500',
+    desc: '중독 스택을 폭발적으로 쌓아 적이 매 턴 체력을 잃게 만듭니다. 보스전에 특히 강력합니다.',
+    tips: '약화(Weak) 디버프로 적 공격 피해를 줄이면서 안정적으로 운영하세요.',
+    cards: {
+      poison_flask: 3, toxic_cloud: 3, venom_coating: 3,
+      toxic_strike: 3, neutralize: 3, poison_dart: 3,
+      maintenance: 2
+    }
+  },
+  {
+    id: 'mana_engine',
+    name: '⚡ 마나 엔진',
+    tier: 'A',
+    style: '콤보형',
+    color: 'border-purple-500 shadow-purple-900/50',
+    headerColor: 'from-purple-900 to-slate-900',
+    tagColor: 'bg-purple-500',
+    desc: '마나 회복 카드로 한 턴에 여러 장을 연속 사용하는 콤보 덱. 드로우 엔진으로 핸드를 끊임없이 채웁니다.',
+    tips: '카드 업그레이드 시 마나 절약 효과가 극대화됩니다.',
+    cards: {
+      mana_potion: 3, catalyst: 3, overcharge: 3,
+      arcane_intellect: 3, blood_pact: 3, adrenaline: 3,
+      execute: 2
+    }
+  },
+  {
+    id: 'vampire_regen',
+    name: '🧛 흡혈 재생',
+    tier: 'A',
+    style: '지속 전투',
+    color: 'border-fuchsia-500 shadow-fuchsia-900/50',
+    headerColor: 'from-fuchsia-900 to-slate-900',
+    tagColor: 'bg-fuchsia-500',
+    desc: '공격하며 체력을 회복하는 자기 유지형 덱. 장기전에 강하며 어떤 상황에서도 살아남습니다.',
+    tips: '뱀파이어의 검은 반드시 3장 넣으세요. 핵심 카드입니다.',
+    cards: {
+      vampire_sword: 3, vampiric_strike: 3, soul_harvest: 3,
+      shadow_cloak: 3, blood_strike: 3, divine_shield: 3,
+      first_aid: 2
+    }
+  },
+  {
+    id: 'strength_rush',
+    name: '💪 근력 폭주',
+    tier: 'B',
+    style: '버프형',
+    color: 'border-orange-500 shadow-orange-900/50',
+    headerColor: 'from-orange-900 to-slate-900',
+    tagColor: 'bg-orange-600',
+    desc: '근력 스택을 쌓고 모든 공격 카드의 피해를 배수로 늘립니다. 후반으로 갈수록 기하급수적으로 강해집니다.',
+    tips: '게임 초반에 버티면서 근력을 쌓으면 이후 원턴킬이 가능합니다.',
+    cards: {
+      muscle_training: 3, combat_prep: 3, kihap: 3,
+      empower: 3, heavy_strike: 3, blade_dance: 3,
+      smash: 2
+    }
+  }
+];
+
+const TIER_COLOR = { S: 'bg-yellow-500 text-black', A: 'bg-orange-500 text-white', B: 'bg-blue-600 text-white' };
 
 export default function DeckBuilder({
   toggleFullScreen,
@@ -39,6 +141,7 @@ export default function DeckBuilder({
   const [showAutoFillMenu, setShowAutoFillMenu] = useState(false);
   const [previewCard, setPreviewCard] = useState(null);
   const [activeTab, setActiveTab] = useState('list');
+  const [showDeckRecommend, setShowDeckRecommend] = useState(false);
 
   const deckCardsList = useMemo(() => {
     return Object.entries(tempDeckCounts)
@@ -117,6 +220,18 @@ export default function DeckBuilder({
     setTempDeckCounts(newCounts);
   };
 
+  // 🏆 프리셋 덱 적용 (보유한 카드만 적용, 없으면 기본 적용)
+  const applyPreset = (preset) => {
+    const newCounts = {};
+    Object.entries(preset.cards).forEach(([id, count]) => {
+      // allUnlockedCards에 있으면 사용, 없어도 일단 적용 (덱빌더는 허용)
+      const cardDef = getCardDef(id, shopUpgrades);
+      if (cardDef) newCounts[id] = count;
+    });
+    setTempDeckCounts(newCounts);
+    setShowDeckRecommend(false);
+  };
+
   const typeColor = (type) => {
     if (type === 'attack') return 'bg-red-900/80 text-red-300 border-red-800';
     if (type === 'special') return 'bg-emerald-900/80 text-emerald-300 border-emerald-800';
@@ -140,6 +255,9 @@ export default function DeckBuilder({
           </div>
           <button onClick={() => setTutorialModalOpen(true)} className="p-2 md:p-2.5 bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors backdrop-blur-sm shadow-sm">
             <HelpCircle className="w-5 h-5 text-indigo-400" />
+          </button>
+          <button onClick={() => setShowDeckRecommend(true)} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-amber-900/80 hover:bg-amber-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-amber-700 text-amber-100 shadow-[0_0_10px_rgba(245,158,11,0.3)] backdrop-blur-sm">
+            <BookOpen className="w-4 h-4"/> 덱 추천
           </button>
           <div className="relative z-50">
             <button onClick={() => setShowAutoFillMenu(!showAutoFillMenu)} className="flex items-center gap-1 md:gap-2 py-2 px-3 md:px-4 bg-fuchsia-900/80 hover:bg-fuchsia-800 rounded-lg font-bold transition-all text-xs md:text-sm border border-fuchsia-700 text-fuchsia-100 shadow-[0_0_10px_rgba(217,70,239,0.3)] backdrop-blur-sm">
@@ -386,6 +504,88 @@ export default function DeckBuilder({
                       <div className="font-bold text-amber-400 text-base mb-1">{relDef.name}</div>
                       <div className="text-xs text-slate-300 leading-relaxed">{relDef.desc}</div>
                     </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🏆 덱 추천 모달 */}
+      {showDeckRecommend && (
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-start justify-center p-4 backdrop-blur-sm overflow-y-auto">
+          <div className="w-full max-w-4xl my-4">
+            <div className="bg-slate-900 border border-amber-500/40 rounded-2xl shadow-2xl overflow-hidden">
+              {/* 헤더 */}
+              <div className="bg-gradient-to-r from-amber-900 to-slate-900 p-5 flex justify-between items-center border-b border-amber-500/30">
+                <div>
+                  <h2 className="text-2xl font-black text-amber-400 flex items-center gap-2">
+                    <BookOpen className="w-6 h-6"/> 강한 덱 추천
+                  </h2>
+                  <p className="text-sm text-slate-400 mt-1">클릭 한 번으로 바로 적용 · 기존 덱은 초기화됩니다</p>
+                </div>
+                <button onClick={() => setShowDeckRecommend(false)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-600 transition-colors">
+                  <X className="w-5 h-5 text-slate-400"/>
+                </button>
+              </div>
+
+              {/* 덱 카드 목록 */}
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                {DECK_PRESETS.map(preset => {
+                  const totalCards = Object.values(preset.cards).reduce((a, b) => a + b, 0);
+                  return (
+                    <div key={preset.id} className={`bg-slate-800 border-2 ${preset.color} rounded-xl overflow-hidden shadow-lg transition-all hover:-translate-y-1 hover:brightness-110 cursor-pointer group`}
+                      onClick={() => applyPreset(preset)}>
+                      {/* 덱 헤더 */}
+                      <div className={`bg-gradient-to-r ${preset.headerColor} p-4`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <h3 className="text-lg font-black text-white">{preset.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-black px-2 py-0.5 rounded ${TIER_COLOR[preset.tier]}`}>
+                              {preset.tier} 티어
+                            </span>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded ${preset.tagColor} text-white`}>
+                              {preset.style}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed">{preset.desc}</p>
+                      </div>
+
+                      {/* 카드 목록 */}
+                      <div className="p-3">
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {Object.entries(preset.cards).map(([id, count]) => {
+                            const def = getCardDef(id, shopUpgrades);
+                            if (!def) return null;
+                            const rarityColor = {
+                              mythic: 'bg-red-900/60 text-red-300 border-red-700',
+                              rare: 'bg-yellow-900/60 text-yellow-300 border-yellow-700',
+                              uncommon: 'bg-indigo-900/60 text-indigo-300 border-indigo-700',
+                              common: 'bg-slate-700/60 text-slate-300 border-slate-600'
+                            }[def.rarity] || 'bg-slate-700/60 text-slate-300 border-slate-600';
+                            return (
+                              <span key={id} className={`text-[11px] font-bold px-2 py-0.5 rounded border ${rarityColor}`}>
+                                {def.name} ×{count}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-xs text-amber-400/80">
+                            <span>💡</span>
+                            <span className="text-slate-400">{preset.tips}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">{totalCards}장</span>
+                            <span className="text-xs font-bold text-amber-400 bg-amber-900/40 px-2 py-1 rounded-lg border border-amber-700/50 group-hover:bg-amber-800/60 transition-colors">
+                              적용하기 →
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
