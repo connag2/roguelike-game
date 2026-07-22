@@ -425,6 +425,9 @@ export default function BattleScreen({
               <StatusIcon type="rage" value={player.buffs?.rage} />
               <StatusIcon type="insight" value={player.buffs?.insight} />
               <StatusIcon type="poison" value={player.debuffs?.poison} />
+              <StatusIcon type="burn" value={player.debuffs?.burn} />
+              <StatusIcon type="bleed" value={player.debuffs?.bleed} />
+              <StatusIcon type="frost" value={player.debuffs?.frost} />
               <StatusIcon type="weak" value={player.debuffs?.weak} />
               <StatusIcon type="vulnerable" value={player.debuffs?.vulnerable} />
               <StatusIcon type="mark" value={player.debuffs?.mark} />
@@ -581,6 +584,9 @@ export default function BattleScreen({
                     <StatusIcon type="rage" value={enemy.buffs?.rage} isEnemy={true} />
                     <StatusIcon type="insight" value={enemy.buffs?.insight} isEnemy={true} />
                     <StatusIcon type="poison" value={enemy.debuffs?.poison} isEnemy={true} />
+                    <StatusIcon type="burn" value={enemy.debuffs?.burn} isEnemy={true} />
+                    <StatusIcon type="bleed" value={enemy.debuffs?.bleed} isEnemy={true} />
+                    <StatusIcon type="frost" value={enemy.debuffs?.frost} isEnemy={true} />
                     <StatusIcon type="weak" value={enemy.debuffs?.weak} isEnemy={true} />
                     <StatusIcon type="vulnerable" value={enemy.debuffs?.vulnerable} isEnemy={true} />
                     <StatusIcon type="mark" value={enemy.debuffs?.mark} isEnemy={true} />

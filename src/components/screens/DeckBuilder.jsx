@@ -8,7 +8,7 @@ import { RELIC_LIBRARY } from '../../constants/relicData';
 import scrollImg from '../../assets/images/items/scroll.svg';
 import shieldImg from '../../assets/images/items/shield.svg';
 
-// 🏆 큐레이팅된 강한 덱 프리셋 (공격+방어+유틸 균형)
+// 🏆 큐레이팅된 강한 덱 프리셋 (공격+방어+마나+회복 균형)
 const DECK_PRESETS = [
   {
     id: 'aggro_bleed',
@@ -18,17 +18,18 @@ const DECK_PRESETS = [
     color: 'border-red-500 shadow-red-900/50',
     headerColor: 'from-red-900 to-slate-900',
     tagColor: 'bg-red-500',
-    desc: '출혈 스택 + 취약 디버프로 데미지를 폭발적으로 증폭시키는 고화력 덱.',
+    desc: '출혈 스택 + 취약 디버프로 데미지를 폭발적으로 증폭. 마나/회복 카드로 지속력도 확보.',
     tips: '취약(Vuln) 상태에서 weakness_exploit 사용 시 데미지 2배!',
     cards: {
-      vein_cut: 3,        // 7 피해 + 출혈 3
-      bleed_cut: 3,       // 8 피해 + 출혈 2
-      weakness_exploit: 3,// 10 피해 (취약 시 20)
-      expose_weakness: 2, // 취약 3 부여
-      beast_tear: 2,      // 18 피해 + 취약 2
-      dig_in: 3,          // 8 피해 + 약화+취약
-      focus: 2,           // 드로우 2
-      counter: 2          // 4 피해 + 방어 8
+      vein_cut: 3,         // 7 피해 + 출혈 3
+      bleed_cut: 3,        // 8 피해 + 출혈 2
+      weakness_exploit: 2, // 10 피해 (취약 시 20)
+      expose_weakness: 2,  // 취약 3 부여
+      beast_tear: 2,       // 18 피해 + 취약 2
+      counter: 2,          // 4 피해 + 방어 8
+      meditate: 2,         // 마나 2 + 방어 5 ← 마나 공급
+      short_rest: 2,       // 마나 1 + 회복 8 ← 회복/마나
+      focus: 2             // 드로우 2
     }
   },
   {
@@ -39,16 +40,17 @@ const DECK_PRESETS = [
     color: 'border-blue-500 shadow-blue-900/50',
     headerColor: 'from-blue-900 to-slate-900',
     tagColor: 'bg-blue-500',
-    desc: '방어와 공격을 동시에 수행하는 균형 덱. 공방 겸용 카드로 마나 낭비가 없습니다.',
-    tips: 'dash와 vanguard는 공격+방어 동시! 가시(Thorns)로 카운터 피해도 추가.',
+    desc: '공방 겸용 카드 + 마나 회복으로 턴마다 여러 장을 플레이하는 균형 덱.',
+    tips: 'dash(16공+16방)와 meditate(마나2+방어5)를 조합하면 마나가 넘칩니다.',
     cards: {
-      dash: 3,            // 16 피해 + 16 방어
-      vanguard: 3,        // 14 피해 + 16 방어
-      shield_bash: 3,     // 7 피해 + 7 방어
-      spiked_shield: 3,   // 방어 5 + 가시 2
-      magic_shield: 2,    // 방어 15 + 드로우 1
-      barrier: 3,         // 방어 25
-      counter: 3          // 4 피해 + 방어 8
+      dash: 3,             // 16 피해 + 16 방어
+      vanguard: 2,         // 14 피해 + 16 방어
+      shield_bash: 3,      // 7 피해 + 7 방어
+      counter: 2,          // 4 피해 + 방어 8
+      spiked_shield: 2,    // 방어 5 + 가시 2
+      barrier: 2,          // 방어 25
+      meditate: 3,         // 마나 2 + 방어 5 ← 핵심 마나원
+      first_aid: 3         // 회복 8 ← 회복
     }
   },
   {
@@ -59,17 +61,17 @@ const DECK_PRESETS = [
     color: 'border-green-500 shadow-green-900/50',
     headerColor: 'from-green-900 to-slate-900',
     tagColor: 'bg-green-500',
-    desc: '독을 쌓으며 직접 공격도 하는 균형 덱. 독으로 체력을 깎고 직접 마무리합니다.',
-    tips: 'neutralize(약화)로 적 공격을 줄이면서 독 피해로 안정적으로 승리.',
+    desc: '독을 쌓으며 직접 공격도 하는 균형 덱. 마나 카드로 연속 독 부여가 가능합니다.',
+    tips: 'meditate로 마나를 채우면 한 턴에 독 카드를 여러 장 플레이 가능!',
     cards: {
-      poison_flask: 3,    // 독 4
-      toxic_strike: 3,    // 4×2 피해 + 취약 1
-      poison_dart: 3,     // 5 피해 + 드로우 1
-      venom_coating: 2,   // 독 3 + 가시 2
-      toxic_cloud: 2,     // 독 5 + 약화 1
-      neutralize: 2,      // 약화 3
-      sweep: 3,           // 5×2 피해
-      vital_strike: 2     // 10 피해 + 약화 1
+      poison_flask: 3,     // 독 4
+      toxic_strike: 3,     // 4×2 피해 + 취약 1
+      poison_dart: 2,      // 5 피해 + 드로우 1
+      venom_coating: 2,    // 독 3 + 가시 2
+      toxic_cloud: 2,      // 독 5 + 약화 1
+      neutralize: 2,       // 약화 3
+      meditate: 3,         // 마나 2 + 방어 5 ← 마나 공급
+      short_rest: 3        // 마나 1 + 회복 8 ← 회복/마나
     }
   },
   {
@@ -80,16 +82,17 @@ const DECK_PRESETS = [
     color: 'border-purple-500 shadow-purple-900/50',
     headerColor: 'from-purple-900 to-slate-900',
     tagColor: 'bg-purple-500',
-    desc: '마나를 빠르게 채워서 강력한 공격 카드를 연속으로 퍼붓는 콤보 덱.',
+    desc: '마나를 폭발적으로 확보해 강력한 공격을 연속으로 퍼붓는 콤보 덱.',
     tips: 'overcharge+catalyst로 마나를 채운 뒤 execute+fireball로 폭격!',
     cards: {
-      overcharge: 3,      // 마나 3 (체력 -3)
-      catalyst: 2,        // 마나 2
-      execute: 3,         // 25 피해 + 취약 2
-      fireball: 3,        // 22 피해
-      blade_dance: 3,     // 6×3 피해
-      arcane_intellect: 3,// 마나 1 + 드로우 2
-      adrenaline: 3       // 드로우 3 (체력 -3)
+      overcharge: 2,       // 마나 3 (체력 -3)
+      catalyst: 3,         // 마나 2
+      meditate: 2,         // 마나 2 + 방어 5
+      execute: 3,          // 25 피해 + 취약 2
+      fireball: 3,         // 22 피해
+      blade_dance: 3,      // 6×3 피해
+      arcane_intellect: 2, // 마나 1 + 드로우 2
+      first_aid: 2         // 회복 8 ← 회복
     }
   },
   {
@@ -100,16 +103,17 @@ const DECK_PRESETS = [
     color: 'border-fuchsia-500 shadow-fuchsia-900/50',
     headerColor: 'from-fuchsia-900 to-slate-900',
     tagColor: 'bg-fuchsia-500',
-    desc: '공격과 동시에 체력을 회복하는 자립형 덱. 장기전에서 절대 죽지 않습니다.',
-    tips: '뱀파이어의 검(vampire_sword)은 핵심. 공격하면 할수록 체력이 찹니다.',
+    desc: '공격과 동시에 체력을 회복하는 자립형 덱. 마나도 충분해 연속 공격이 가능합니다.',
+    tips: 'soul_harvest(공격+마나1+회복)로 마나 자급자족하며 연속 흡혈!',
     cards: {
-      vampire_sword: 3,   // 20 피해 + 회복 10 + 약화 1
-      vampiric_strike: 3, // 18 피해 + 회복 8
-      soul_harvest: 3,    // 6 피해 + 마나 1 + 회복 2
-      blood_strike: 3,    // 잃은 체력의 30% 피해
-      shadow_cloak: 3,    // 방어 7 + 재생 1
-      divine_shield: 3,   // 방어 15 + 회복 5
-      short_rest: 2       // 마나 1 + 회복 8
+      vampire_sword: 3,    // 20 피해 + 회복 10 + 약화 1
+      vampiric_strike: 3,  // 18 피해 + 회복 8
+      soul_harvest: 3,     // 6 피해 + 마나 1 + 회복 2 ← 마나 자급
+      blood_strike: 2,     // 잃은 체력의 30% 피해
+      shadow_cloak: 2,     // 방어 7 + 재생 1
+      divine_shield: 2,    // 방어 15 + 회복 5
+      short_rest: 3,       // 마나 1 + 회복 8 ← 회복/마나
+      first_aid: 2         // 회복 8 ← 추가 회복
     }
   },
   {
@@ -120,22 +124,22 @@ const DECK_PRESETS = [
     color: 'border-orange-500 shadow-orange-900/50',
     headerColor: 'from-orange-900 to-slate-900',
     tagColor: 'bg-orange-600',
-    desc: '근력을 쌓아 모든 공격을 강화. 버프 후 강타들로 압도적인 데미지를 뽑습니다.',
+    desc: '근력 버프로 모든 공격을 강화. 마나/회복으로 버프 후 강타 연속 사용이 가능합니다.',
     tips: '근력 3~4 스택 후 blade_dance(6×3)면 거의 원턴킬 수준!',
     cards: {
-      muscle_training: 3, // 근력 2
-      kihap: 2,           // 마나 1 + 근력 1
-      empower: 2,         // 근력 1 + 드로우 1
-      heavy_strike: 3,    // 18 피해
-      blade_dance: 3,     // 6×3 피해
-      execute: 3,         // 25 피해 + 취약 2
-      smash: 2,           // 18 피해 + 드로우 1
-      combat_prep: 2      // 방어 4 + 근력 1
+      muscle_training: 3,  // 근력 2
+      kihap: 3,            // 마나 1 + 근력 1 ← 마나 자급
+      empower: 2,          // 근력 1 + 드로우 1
+      heavy_strike: 2,     // 18 피해
+      blade_dance: 3,      // 6×3 피해
+      execute: 3,          // 25 피해 + 취약 2
+      combat_prep: 2,      // 방어 4 + 근력 1
+      short_rest: 2        // 마나 1 + 회복 8 ← 회복/마나
     }
   }
-];
 
 const TIER_COLOR = { S: 'bg-yellow-500 text-black', A: 'bg-orange-500 text-white', B: 'bg-blue-600 text-white' };
+
 
 export default function DeckBuilder({
   toggleFullScreen,

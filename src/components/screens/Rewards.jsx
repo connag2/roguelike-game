@@ -44,7 +44,9 @@ export default function Rewards({
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedRelics, setSelectedRelics] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const processedRef = useRef(false); // 한 번 처리됐으면 재실행 방지
+  const processedRef = useRef(false);
+  const combatStateRef = useRef(combatState); // 항상 최신 combatState를 참조
+  combatStateRef.current = combatState; // 매 렌더마다 업데이트
 
   // gameState 바뀔 때마다 처리 플래그 리셋
   useEffect(() => {
@@ -75,21 +77,24 @@ export default function Rewards({
       processedRef.current = true;
       const t = setTimeout(() => {
         setIsProcessing(true);
+        const cs = combatStateRef.current; // ✅ 최신 combatState 사용
+        if (!cs || !cs.player) return;
+
         if (autoRewardType === 'heal') {
-          const p = { ...combatState.player };
+          const p = { ...cs.player };
           p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
           p.debuffs = { weak: 0, vulnerable: 0, poison: 0 };
-          startNextStage(p, combatState.baseDeck);
+          startNextStage(p, cs.baseDeck);
         } else {
           // 카드 추가: 카드 3장 생성 후 최고 등급 자동 선택
-          const baseDeck = combatState.baseDeck || [];
+          const baseDeck = cs.baseDeck || [];
           const pool = CARD_LIBRARY.filter(c => {
             if (!c || !c.id) return false;
             const count = baseDeck.filter(dc => dc && dc.id === c.id).length;
             return count < 3;
           });
           const avPool = pool.length > 0 ? [...pool] : [...CARD_LIBRARY];
-          const stage = combatState.stage || 1;
+          const stage = cs.stage || 1;
           const legendProb = Math.floor(stage / 10) * 0.01;
           const selected = [];
           const remaining = [...avPool];
@@ -106,13 +111,11 @@ export default function Rewards({
               if (idx > -1) remaining.splice(idx, 1);
             }
           }
-          // null 방어 후 최고 등급 선택
           const valid = selected.filter(Boolean);
           if (valid.length === 0) {
-            // 카드가 없으면 회복으로 대체
-            const p = { ...combatState.player };
+            const p = { ...cs.player };
             p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
-            startNextStage(p, combatState.baseDeck);
+            startNextStage(p, cs.baseDeck);
             return;
           }
           const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
@@ -129,7 +132,7 @@ export default function Rewards({
             setCustomCards(newCustomCards);
           }
           saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
-          startNextStage(combatState.player, newDeck);
+          startNextStage(cs.player, newDeck);
         }
       }, 600);
       return () => clearTimeout(t);
@@ -219,6 +222,8 @@ export default function Rewards({
             const pool = CARD_LIBRARY.filter(c => {
               const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
               if (count >= 3) return false;
+              // 특수(special) 유형 카드는 보상 풀에서 제외 (loot도 제외)
+              if (c.rarity === 'special' || c.rarity === 'loot') return false;
               if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
               return true;
             });
