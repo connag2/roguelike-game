@@ -90,6 +90,8 @@ export default function Rewards({
           const baseDeck = cs.baseDeck || [];
           const pool = CARD_LIBRARY.filter(c => {
             if (!c || !c.id) return false;
+            // 특수(special) 타입과 loot 유형은 보상에서 제외
+            if (c.type === 'special' || c.rarity === 'special' || c.rarity === 'loot') return false;
             const count = baseDeck.filter(dc => dc && dc.id === c.id).length;
             return count < 3;
           });
@@ -222,8 +224,8 @@ export default function Rewards({
             const pool = CARD_LIBRARY.filter(c => {
               const count = combatState.baseDeck.filter(dc => dc.id === c.id).length;
               if (count >= 3) return false;
-              // 특수(special) 유형 카드는 보상 풀에서 제외 (loot도 제외)
-              if (c.rarity === 'special' || c.rarity === 'loot') return false;
+              // 특수(special) 타입과 loot 유형은 보상에서 제외 (전설 확정 시도 특수카드 표시 방지)
+              if (c.type === 'special' || c.rarity === 'special' || c.rarity === 'loot') return false;
               if (['mana_potion', 'overcharge', 'meditate', 'dark_bargain', 'catalyst', 'blood_ritual', 'mana_amp', 'mana_spring', 'mana_burst', 'lucky_coin'].includes(c.id) && currentManaCount >= 2) return false;
               return true;
             });
