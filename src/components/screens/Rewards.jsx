@@ -140,7 +140,11 @@ export default function Rewards({
   if (!combatState) return null;
 
   // 🌟 0. 유물 발견 보상 화면 (최우선 표시)
-  if (gameState === 'RELIC_REWARD' && pendingRelicReward) {
+  if (gameState === 'RELIC_REWARD') {
+    // 데이터 아직 없으면 로딩 표시 (검은화면 방지)
+    if (!pendingRelicReward) {
+      return <div className="flex items-center justify-center min-h-[100dvh] bg-slate-900 text-white text-2xl font-bold animate-pulse">🌟 유물 로딩 중...</div>;
+    }
     let rColor = 'text-slate-400';
     let rBorder = 'border-slate-400';
     if (pendingRelicReward.rarity === 'uncommon') { rColor = 'text-cyan-400'; rBorder = 'border-cyan-400'; }
@@ -172,7 +176,10 @@ export default function Rewards({
   }
 
   // 🌟 0.5 보스 유물 3지선다 화면
-  if (gameState === 'BOSS_RELIC_CHOICE' && pendingRelicChoices) {
+  if (gameState === 'BOSS_RELIC_CHOICE') {
+    if (!pendingRelicChoices || pendingRelicChoices.length === 0) {
+      return <div className="flex items-center justify-center min-h-[100dvh] bg-slate-900 text-white text-2xl font-bold animate-pulse">🏆 보스 보상 로딩 중...</div>;
+    }
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative overflow-hidden">
         <h1 className="text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-amber-500 mb-8 animate-bounce drop-shadow-[0_0_20px_rgba(251,191,36,0.6)] text-center">
@@ -380,7 +387,10 @@ export default function Rewards({
   }
 
   // 4. 보스 클리어 특수 보상 화면
-  if (gameState === 'BOSS_CLEAR_REWARD' && specialBossRewardCard) {
+  if (gameState === 'BOSS_CLEAR_REWARD') {
+    if (!specialBossRewardCard) {
+      return <div className="flex items-center justify-center min-h-[100dvh] bg-slate-900 text-white text-2xl font-bold animate-pulse">✨ 특수 보상 로딩 중...</div>;
+    }
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative z-50 overflow-hidden">
         <div className="absolute inset-0 bg-fuchsia-600/10 animate-pulse pointer-events-none" />
