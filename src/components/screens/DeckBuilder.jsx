@@ -8,7 +8,7 @@ import { RELIC_LIBRARY } from '../../constants/relicData';
 import scrollImg from '../../assets/images/items/scroll.svg';
 import shieldImg from '../../assets/images/items/shield.svg';
 
-// 🏆 큐레이팅된 강한 덱 프리셋
+// 🏆 큐레이팅된 강한 덱 프리셋 (공격+방어+유틸 균형)
 const DECK_PRESETS = [
   {
     id: 'aggro_bleed',
@@ -18,92 +18,119 @@ const DECK_PRESETS = [
     color: 'border-red-500 shadow-red-900/50',
     headerColor: 'from-red-900 to-slate-900',
     tagColor: 'bg-red-500',
-    desc: '출혈 스택을 빠르게 쌓아 적을 매 턴 갈아먹는 고화력 공격 덱. 초반부터 강력하고 50층 이상에서도 유효합니다.',
-    tips: '취약 디버프와 조합하면 데미지가 2배로 상승합니다.',
+    desc: '출혈 스택 + 취약 디버프로 데미지를 폭발적으로 증폭시키는 고화력 덱.',
+    tips: '취약(Vuln) 상태에서 weakness_exploit 사용 시 데미지 2배!',
     cards: {
-      vein_cut: 3, bleed_cut: 3, weakness_exploit: 3,
-      expose_weakness: 3, beast_tear: 3, dig_in: 3,
-      focus: 2
+      vein_cut: 3,        // 7 피해 + 출혈 3
+      bleed_cut: 3,       // 8 피해 + 출혈 2
+      weakness_exploit: 3,// 10 피해 (취약 시 20)
+      expose_weakness: 2, // 취약 3 부여
+      beast_tear: 2,      // 18 피해 + 취약 2
+      dig_in: 3,          // 8 피해 + 약화+취약
+      focus: 2,           // 드로우 2
+      counter: 2          // 4 피해 + 방어 8
     }
   },
   {
     id: 'tank_wall',
-    name: '🛡️ 철벽 요새',
+    name: '🛡️ 철벽 돌격대',
     tier: 'S',
-    style: '방어형',
+    style: '공방일체',
     color: 'border-blue-500 shadow-blue-900/50',
     headerColor: 'from-blue-900 to-slate-900',
     tagColor: 'bg-blue-500',
-    desc: '매 턴 방어도를 쌓아 피해를 0으로 만드는 방어 특화 덱. 가시(Thorns)로 카운터 피해를 줍니다.',
-    tips: '민첩(Dex) 유물과 조합하면 방어도가 누적 증가합니다.',
+    desc: '방어와 공격을 동시에 수행하는 균형 덱. 공방 겸용 카드로 마나 낭비가 없습니다.',
+    tips: 'dash와 vanguard는 공격+방어 동시! 가시(Thorns)로 카운터 피해도 추가.',
     cards: {
-      barrier: 3, iron_wall: 3, absolute_defense: 3,
-      spiked_shield: 3, magic_shield: 3, warcry: 3,
-      combat_prep: 2
+      dash: 3,            // 16 피해 + 16 방어
+      vanguard: 3,        // 14 피해 + 16 방어
+      shield_bash: 3,     // 7 피해 + 7 방어
+      spiked_shield: 3,   // 방어 5 + 가시 2
+      magic_shield: 2,    // 방어 15 + 드로우 1
+      barrier: 3,         // 방어 25
+      counter: 3          // 4 피해 + 방어 8
     }
   },
   {
     id: 'poison_dot',
     name: '🧪 맹독 지옥',
     tier: 'A',
-    style: '지속 피해',
+    style: '지속+공격',
     color: 'border-green-500 shadow-green-900/50',
     headerColor: 'from-green-900 to-slate-900',
     tagColor: 'bg-green-500',
-    desc: '중독 스택을 폭발적으로 쌓아 적이 매 턴 체력을 잃게 만듭니다. 보스전에 특히 강력합니다.',
-    tips: '약화(Weak) 디버프로 적 공격 피해를 줄이면서 안정적으로 운영하세요.',
+    desc: '독을 쌓으며 직접 공격도 하는 균형 덱. 독으로 체력을 깎고 직접 마무리합니다.',
+    tips: 'neutralize(약화)로 적 공격을 줄이면서 독 피해로 안정적으로 승리.',
     cards: {
-      poison_flask: 3, toxic_cloud: 3, venom_coating: 3,
-      toxic_strike: 3, neutralize: 3, poison_dart: 3,
-      maintenance: 2
+      poison_flask: 3,    // 독 4
+      toxic_strike: 3,    // 4×2 피해 + 취약 1
+      poison_dart: 3,     // 5 피해 + 드로우 1
+      venom_coating: 2,   // 독 3 + 가시 2
+      toxic_cloud: 2,     // 독 5 + 약화 1
+      neutralize: 2,      // 약화 3
+      sweep: 3,           // 5×2 피해
+      vital_strike: 2     // 10 피해 + 약화 1
     }
   },
   {
     id: 'mana_engine',
-    name: '⚡ 마나 엔진',
+    name: '⚡ 마나 폭격',
     tier: 'A',
-    style: '콤보형',
+    style: '콤보·공격',
     color: 'border-purple-500 shadow-purple-900/50',
     headerColor: 'from-purple-900 to-slate-900',
     tagColor: 'bg-purple-500',
-    desc: '마나 회복 카드로 한 턴에 여러 장을 연속 사용하는 콤보 덱. 드로우 엔진으로 핸드를 끊임없이 채웁니다.',
-    tips: '카드 업그레이드 시 마나 절약 효과가 극대화됩니다.',
+    desc: '마나를 빠르게 채워서 강력한 공격 카드를 연속으로 퍼붓는 콤보 덱.',
+    tips: 'overcharge+catalyst로 마나를 채운 뒤 execute+fireball로 폭격!',
     cards: {
-      mana_potion: 3, catalyst: 3, overcharge: 3,
-      arcane_intellect: 3, blood_pact: 3, adrenaline: 3,
-      execute: 2
+      overcharge: 3,      // 마나 3 (체력 -3)
+      catalyst: 2,        // 마나 2
+      execute: 3,         // 25 피해 + 취약 2
+      fireball: 3,        // 22 피해
+      blade_dance: 3,     // 6×3 피해
+      arcane_intellect: 3,// 마나 1 + 드로우 2
+      adrenaline: 3       // 드로우 3 (체력 -3)
     }
   },
   {
     id: 'vampire_regen',
     name: '🧛 흡혈 재생',
     tier: 'A',
-    style: '지속 전투',
+    style: '공격·지속',
     color: 'border-fuchsia-500 shadow-fuchsia-900/50',
     headerColor: 'from-fuchsia-900 to-slate-900',
     tagColor: 'bg-fuchsia-500',
-    desc: '공격하며 체력을 회복하는 자기 유지형 덱. 장기전에 강하며 어떤 상황에서도 살아남습니다.',
-    tips: '뱀파이어의 검은 반드시 3장 넣으세요. 핵심 카드입니다.',
+    desc: '공격과 동시에 체력을 회복하는 자립형 덱. 장기전에서 절대 죽지 않습니다.',
+    tips: '뱀파이어의 검(vampire_sword)은 핵심. 공격하면 할수록 체력이 찹니다.',
     cards: {
-      vampire_sword: 3, vampiric_strike: 3, soul_harvest: 3,
-      shadow_cloak: 3, blood_strike: 3, divine_shield: 3,
-      first_aid: 2
+      vampire_sword: 3,   // 20 피해 + 회복 10 + 약화 1
+      vampiric_strike: 3, // 18 피해 + 회복 8
+      soul_harvest: 3,    // 6 피해 + 마나 1 + 회복 2
+      blood_strike: 3,    // 잃은 체력의 30% 피해
+      shadow_cloak: 3,    // 방어 7 + 재생 1
+      divine_shield: 3,   // 방어 15 + 회복 5
+      short_rest: 2       // 마나 1 + 회복 8
     }
   },
   {
     id: 'strength_rush',
     name: '💪 근력 폭주',
     tier: 'B',
-    style: '버프형',
+    style: '버프·공격',
     color: 'border-orange-500 shadow-orange-900/50',
     headerColor: 'from-orange-900 to-slate-900',
     tagColor: 'bg-orange-600',
-    desc: '근력 스택을 쌓고 모든 공격 카드의 피해를 배수로 늘립니다. 후반으로 갈수록 기하급수적으로 강해집니다.',
-    tips: '게임 초반에 버티면서 근력을 쌓으면 이후 원턴킬이 가능합니다.',
+    desc: '근력을 쌓아 모든 공격을 강화. 버프 후 강타들로 압도적인 데미지를 뽑습니다.',
+    tips: '근력 3~4 스택 후 blade_dance(6×3)면 거의 원턴킬 수준!',
     cards: {
-      muscle_training: 3, combat_prep: 3, kihap: 3,
-      empower: 3, heavy_strike: 3, blade_dance: 3,
-      smash: 2
+      muscle_training: 3, // 근력 2
+      kihap: 2,           // 마나 1 + 근력 1
+      empower: 2,         // 근력 1 + 드로우 1
+      heavy_strike: 3,    // 18 피해
+      blade_dance: 3,     // 6×3 피해
+      execute: 3,         // 25 피해 + 취약 2
+      smash: 2,           // 18 피해 + 드로우 1
+      combat_prep: 2      // 방어 4 + 근력 1
     }
   }
 ];
@@ -192,16 +219,24 @@ export default function DeckBuilder({
     const availableCards = allUnlockedCards.length > 0 ? allUnlockedCards : filteredCards;
     const allIds = new Set(availableCards.map(c => c.id));
 
-    // 테마별 핵심 카드 ID 정의 (DECK_PRESETS와 동일한 로직)
+    // 테마별 핵심 카드 ID 정의 — 공격+방어+유틸 균형
     const THEME_PRIORITY = {
-      bleed:    ['vein_cut','bleed_cut','weakness_exploit','expose_weakness','beast_tear','dig_in'],
-      block:    ['barrier','iron_wall','absolute_defense','spiked_shield','magic_shield','warcry'],
-      poison:   ['poison_flask','toxic_cloud','venom_coating','toxic_strike','neutralize','poison_dart'],
-      mana:     ['mana_potion','catalyst','overcharge','arcane_intellect','blood_pact','adrenaline'],
-      vampire:  ['vampire_sword','vampiric_strike','soul_harvest','shadow_cloak','blood_strike','divine_shield'],
-      strength: ['muscle_training','combat_prep','kihap','empower','heavy_strike','blade_dance'],
-      burn:     ['heatwave','pillar_of_fire','flame_slash','molotov','fireball','toxic_cloud'],
-      special:  ['adversity_power','primal_roar','pain_lash','pain_conversion','vital_absorption','second_wind'],
+      // 출혈: 공격(출혈부여) + 취약부여 + 드로우
+      bleed:    ['vein_cut','bleed_cut','weakness_exploit','expose_weakness','beast_tear','dig_in','focus','counter'],
+      // 방어: 공방겸용 카드 우선 + 순수방어 + 가시
+      block:    ['dash','vanguard','shield_bash','counter','spiked_shield','magic_shield','barrier','warcry'],
+      // 독: 독부여 + 직접공격 + 약화 + 드로우
+      poison:   ['poison_flask','toxic_strike','poison_dart','venom_coating','toxic_cloud','neutralize','sweep','vital_strike'],
+      // 마나: 마나충전 + 강력한 공격 피니셔 + 드로우
+      mana:     ['overcharge','catalyst','execute','fireball','blade_dance','arcane_intellect','adrenaline','mana_drain'],
+      // 흡혈: 공격+회복 카드 + 방어+회복 카드
+      vampire:  ['vampire_sword','vampiric_strike','soul_harvest','blood_strike','shadow_cloak','divine_shield','short_rest'],
+      // 근력: 버프 + 강한 공격 + 드로우+방어 보조
+      strength: ['muscle_training','kihap','empower','heavy_strike','blade_dance','execute','smash','combat_prep'],
+      // 화상: 화상부여 + 직접공격 + 약화
+      burn:     ['heatwave','pillar_of_fire','flame_slash','fireball','toxic_cloud','neutralize','sweep','warcry'],
+      // 정화: 특수카드 + 직접공격 + 방어
+      special:  ['adversity_power','primal_roar','pain_lash','pain_conversion','vital_absorption','second_wind','execute','barrier'],
     };
 
     // 보조 카드 (어떤 테마든 유용한 카드)
