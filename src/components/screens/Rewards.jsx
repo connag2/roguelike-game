@@ -1,5 +1,5 @@
 // src/components/screens/Rewards.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, AlertTriangle, Star, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
 import { CARD_LIBRARY, BOSS_LOOT_CARDS } from '../../constants/gameData';
@@ -36,11 +36,106 @@ export default function Rewards({
   playerRelics,
   unlockedRelics,
   handleEnemyDropClaim,
-  handleSpecialBossRewardClaim: handleSpecialClaim
+  handleSpecialBossRewardClaim: handleSpecialClaim,
+  autoReward = false,
+  autoRewardType = 'card',
+  autoRelic = true,
 }) {
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedRelics, setSelectedRelics] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const processedRef = useRef(false); // 한 번 처리됐으면 재실행 방지
+
+  // gameState 바뀔 때마다 처리 플래그 리셋
+  useEffect(() => {
+    processedRef.current = false;
+    setIsProcessing(false);
+  }, [gameState]);
+
+  // 🤖 AUTO 보상 자동 선택 (안전한 단순 타이머 방식)
+  useEffect(() => {
+    if (!autoReward || !combatState || isProcessing || processedRef.current) return;
+
+    // 유물 자동 획득
+    if (gameState === 'RELIC_REWARD' && autoRelic && pendingRelicReward && handleRelicRewardClaim) {
+      processedRef.current = true;
+      const t = setTimeout(() => handleRelicRewardClaim(), 500);
+      return () => clearTimeout(t);
+    }
+
+    // 보스 유물 3지선다 자동 선택 (첫 번째 유물)
+    if (gameState === 'BOSS_RELIC_CHOICE' && autoRelic && pendingRelicChoices && pendingRelicChoices.length > 0 && handleRelicChoiceClaim) {
+      processedRef.current = true;
+      const t = setTimeout(() => handleRelicChoiceClaim(pendingRelicChoices[0]), 500);
+      return () => clearTimeout(t);
+    }
+
+    // 기본 보상 화면 (카드 추가 or 회복)
+    if (gameState === 'REWARDS') {
+      processedRef.current = true;
+      setIsProcessing(true);
+      const t = setTimeout(() => {
+        if (autoRewardType === 'heal') {
+          const p = { ...combatState.player };
+          p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
+          p.debuffs = { weak: 0, vulnerable: 0, poison: 0 };
+          startNextStage(p, combatState.baseDeck);
+        } else {
+          // 카드 추가: 카드 3장 생성 후 최고 등급 자동 선택
+          const baseDeck = combatState.baseDeck || [];
+          const pool = CARD_LIBRARY.filter(c => {
+            if (!c || !c.id) return false;
+            const count = baseDeck.filter(dc => dc && dc.id === c.id).length;
+            return count < 3;
+          });
+          const avPool = pool.length > 0 ? [...pool] : [...CARD_LIBRARY];
+          const stage = combatState.stage || 1;
+          const legendProb = Math.floor(stage / 10) * 0.01;
+          const selected = [];
+          const remaining = [...avPool];
+          for (let i = 0; i < 3 && remaining.length > 0; i++) {
+            const r = Math.random();
+            const t = r < legendProb ? 'rare' : r < legendProb + 0.15 ? 'uncommon' : 'common';
+            let pList = remaining.filter(c => c.rarity === t);
+            if (pList.length === 0) pList = remaining;
+            const picked = pList[Math.floor(Math.random() * pList.length)];
+            if (picked) {
+              const def = typeof getCardDef === 'function' ? getCardDef(picked.id, shopUpgrades) : null;
+              selected.push(def && def.id ? def : picked);
+              const idx = remaining.findIndex(c => c.id === picked.id);
+              if (idx > -1) remaining.splice(idx, 1);
+            }
+          }
+          // null 방어 후 최고 등급 선택
+          const valid = selected.filter(Boolean);
+          if (valid.length === 0) {
+            // 카드가 없으면 회복으로 대체
+            const p = { ...combatState.player };
+            p.hp = Math.min(p.maxHp, p.hp + Math.floor(p.maxHp * 0.3));
+            startNextStage(p, combatState.baseDeck);
+            return;
+          }
+          const rarityRank = { mythic: 5, rare: 4, special: 4, loot: 4, uncommon: 3, common: 2 };
+          const best = [...valid].sort((a, b) => (rarityRank[b.rarity] || 1) - (rarityRank[a.rarity] || 1))[0];
+          const newDeck = [...baseDeck, { ...best }];
+          let newUnlocked = unlockedCards || [];
+          let newCustomCards = customCards || [];
+          if (!newUnlocked.includes(best.id)) {
+            newUnlocked = [...newUnlocked, best.id];
+            setUnlockedCards(newUnlocked);
+          }
+          if ((best.id.startsWith('loot_') || best.rarity === 'loot') && !newCustomCards.some(c => c.id === best.id)) {
+            newCustomCards = [...newCustomCards, best];
+            setCustomCards(newCustomCards);
+          }
+          saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
+          startNextStage(combatState.player, newDeck);
+        }
+      }, 600);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState, autoReward, autoRewardType, autoRelic, isProcessing]);
 
   if (!combatState) return null;
 

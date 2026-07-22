@@ -106,7 +106,7 @@ const getEvents = (stage) => {
   ];
 };
 
-export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState }) {
+export default function EventScreen({ combatState, setCombatState, credits, setCredits, saveGame, setToastMsg, setGameState, autoReward = false, autoEventType = 'safe' }) {
   const [eventData, setEventData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -136,6 +136,24 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
     setCombatState({ ...combatState, player: p, baseDeck: d });
     setGameState('BATTLE'); 
   };
+
+  // 🤖 AUTO 이벤트 자동 선택
+  useEffect(() => {
+    if (!autoReward || !eventData || isProcessing) return;
+    const validOpts = eventData.options.filter(opt => !opt.req || opt.req(combatState?.player, credits));
+    if (validOpts.length === 0) return;
+    let chosen = validOpts[validOpts.length - 1]; // 기본: 마지막 옵션(지나치기)
+    if (autoEventType === 'safe') {
+      const safe = validOpts.find(o => o.text.includes('회복') || o.text.includes('지나') || o.text.includes('무시') || o.text.includes('곁에'));
+      if (safe) chosen = safe;
+    } else {
+      const greedy = validOpts.find(o => o.text.includes('최대 체력') || o.text.includes('크레딧') || o.text.includes('강화'));
+      if (greedy) chosen = greedy;
+    }
+    const t = setTimeout(() => handleOption(chosen), 600);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoReward, eventData, isProcessing]);
 
   if (!eventData) return null;
 

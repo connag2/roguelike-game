@@ -5,7 +5,9 @@ import Slider from '../ui/Slider';
 
 export default function Settings({
   setGameState, fastMode, setFastMode, saveGame, handleExport, setImportModalOpen,
-  couponInput, setCouponInput, handleCoupon, adminClearSave
+  couponInput, setCouponInput, handleCoupon, adminClearSave,
+  autoReward, setAutoReward, autoRewardType, setAutoRewardType,
+  autoRelic, setAutoRelic, autoEventType, setAutoEventType
 }) {
   const [deleteStep, setDeleteStep] = useState(0);
 
@@ -77,6 +79,60 @@ export default function Settings({
             <button onClick={() => { setFastMode(!fastMode); saveGame({ fastMode: !fastMode }); }} className={`px-4 py-2 rounded-lg font-bold transition-colors ${fastMode ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
               {fastMode ? '켜짐' : '꺼짐'}
             </button>
+          </div>
+        </div>
+
+        {/* 🤖 오토 보상 설정 영역 */}
+        <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
+          <h2 className="text-xl font-bold text-white mb-4 border-b border-slate-600 pb-2">🤖 자동 보상 설정</h2>
+          <div className="flex flex-col gap-3">
+
+            {/* 보상 자동 진행 마스터 스위치 */}
+            <div className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700">
+              <div>
+                <div className="font-bold text-cyan-400">🎁 보상 자동 진행</div>
+                <div className="text-xs text-slate-400 mt-1">전투 완료 후 보상·유물·이벤트를 자동으로 처리합니다.</div>
+              </div>
+              <button onClick={() => { const next = !autoReward; setAutoReward(next); saveGame({ autoReward: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-colors ${autoReward ? 'bg-cyan-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                {autoReward ? '켜짐' : '꺼짐'}
+              </button>
+            </div>
+
+            {/* 카드 추가 vs 회복 */}
+            <div className={`flex flex-col sm:flex-row justify-between sm:items-center bg-slate-900 p-4 rounded-xl border border-slate-700 gap-3 transition-opacity ${!autoReward ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div>
+                <div className="font-bold text-amber-400">🃏 클리어 보상 방식</div>
+                <div className="text-xs text-slate-400 mt-1">스테이지 승리 후 자동 선택할 보상 종류.</div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => { setAutoRewardType('card'); saveGame({ autoRewardType: 'card' }); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoRewardType === 'card' ? 'bg-amber-600 text-white border border-amber-400' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>🃏 카드 추가</button>
+                <button onClick={() => { setAutoRewardType('heal'); saveGame({ autoRewardType: 'heal' }); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoRewardType === 'heal' ? 'bg-emerald-600 text-white border border-emerald-400' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>💖 회복 &amp; 정화</button>
+              </div>
+            </div>
+
+            {/* 유물 자동 획득 */}
+            <div className={`flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-700 transition-opacity ${!autoReward ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div>
+                <div className="font-bold text-purple-400">🛡️ 유물 자동 획득</div>
+                <div className="text-xs text-slate-400 mt-1">유물 발견 및 보스 유물 3지선다를 자동 선택합니다.</div>
+              </div>
+              <button onClick={() => { const next = !autoRelic; setAutoRelic(next); saveGame({ autoRelic: next }); }} className={`px-4 py-2 rounded-lg font-bold transition-colors ${autoRelic ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                {autoRelic ? '켜짐' : '꺼짐'}
+              </button>
+            </div>
+
+            {/* 이벤트 성향 */}
+            <div className={`flex flex-col sm:flex-row justify-between sm:items-center bg-slate-900 p-4 rounded-xl border border-slate-700 gap-3 transition-opacity ${!autoReward ? 'opacity-40 pointer-events-none' : ''}`}>
+              <div>
+                <div className="font-bold text-fuchsia-400">🔮 이벤트 &amp; 제단 성향</div>
+                <div className="text-xs text-slate-400 mt-1">이벤트 발생 시 자동 선택 우선순위.</div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => { setAutoEventType('safe'); saveGame({ autoEventType: 'safe' }); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoEventType === 'safe' ? 'bg-emerald-600 text-white border border-emerald-400' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>💖 회복 우선</button>
+                <button onClick={() => { setAutoEventType('greedy'); saveGame({ autoEventType: 'greedy' }); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${autoEventType === 'greedy' ? 'bg-fuchsia-600 text-white border border-fuchsia-400' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}>⚡ 성장 우선</button>
+              </div>
+            </div>
+
           </div>
         </div>
 
