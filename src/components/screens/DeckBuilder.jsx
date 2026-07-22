@@ -189,34 +189,99 @@ export default function DeckBuilder({
   const manaCurveMax = deckStats ? Math.max(...deckStats.manaCurve, 1) : 1;
 
   const handleAutoBuild = (theme = 'random') => {
-    const currentCount = getTotalCards(tempDeckCounts);
-    let remaining = 20 - currentCount;
-    if (remaining <= 0) return;
     const availableCards = allUnlockedCards.length > 0 ? allUnlockedCards : filteredCards;
-    const scoredCards = availableCards.map(baseCard => {
-      const cardDef = getCardDef(baseCard.id, shopUpgrades);
-      if (!cardDef) return null;
-      let score = Math.random() * 20;
-      if (theme === 'poison' && cardDef.enemyPoison) score += 150;
-      if (theme === 'bleed' && cardDef.enemyBleed) score += 150;
-      if (theme === 'burn' && cardDef.enemyBurn) score += 150;
-      if (theme === 'block' && (cardDef.block || cardDef.selfThorns || cardDef.selfRegen)) score += 150;
-      if (theme === 'special' && cardDef.type === 'special') score += 150;
-      if (cardDef.isUpgraded) score += 30;
-      const rarityScores = { mythic: 60, special: 40, rare: 30, uncommon: 15, common: 5 };
-      score += rarityScores[cardDef.rarity] || 0;
-      if (cardDef.draw) score += 20;
-      if (cardDef.manaGain) score += 20;
-      return { id: baseCard.id, cardDef, score };
-    }).filter(Boolean).sort((a, b) => b.score - a.score);
-    const newCounts = { ...tempDeckCounts };
-    for (const sc of scoredCards) {
-      if (remaining <= 0) break;
-      const cur = newCounts[sc.id] || 0;
-      const maxCopies = sc.cardDef.rarity === 'mythic' ? 1 : 3;
-      const canAdd = maxCopies - cur;
-      if (canAdd > 0) { const toAdd = Math.min(canAdd, remaining); newCounts[sc.id] = cur + toAdd; remaining -= toAdd; }
+    const allIds = new Set(availableCards.map(c => c.id));
+
+    // 테마별 핵심 카드 ID 정의 (DECK_PRESETS와 동일한 로직)
+    const THEME_PRIORITY = {
+      bleed:    ['vein_cut','bleed_cut','weakness_exploit','expose_weakness','beast_tear','dig_in'],
+      block:    ['barrier','iron_wall','absolute_defense','spiked_shield','magic_shield','warcry'],
+      poison:   ['poison_flask','toxic_cloud','venom_coating','toxic_strike','neutralize','poison_dart'],
+      mana:     ['mana_potion','catalyst','overcharge','arcane_intellect','blood_pact','adrenaline'],
+      vampire:  ['vampire_sword','vampiric_strike','soul_harvest','shadow_cloak','blood_strike','divine_shield'],
+      strength: ['muscle_training','combat_prep','kihap','empower','heavy_strike','blade_dance'],
+      burn:     ['heatwave','pillar_of_fire','flame_slash','molotov','fireball','toxic_cloud'],
+      special:  ['adversity_power','primal_roar','pain_lash','pain_conversion','vital_absorption','second_wind'],
+    };
+
+    // 보조 카드 (어떤 테마든 유용한 카드)
+    const UTILITY_BONUS = [
+      'focus','warcry','adrenaline','arcane_intellect','blood_pact','mind_read',
+      'mana_drain','energy_shield','tactical_retreat','meditate','kihap'
+    ];
+
+    const newCounts = {};
+
+    if (theme === 'random') {
+      // 무작위: 희귀도 점수 기반으로 랜덤 선택
+      const scored = availableCards.map(c => {
+        const def = getCardDef(c.id, shopUpgrades);
+        if (!def) return null;
+        const rarityScore = { mythic:80, rare:50, uncommon:30, common:10 }[def.rarity] || 10;
+        return { id: c.id, def, score: rarityScore + Math.random() * 40 };
+      }).filter(Boolean).sort((a,b) => b.score - a.score);
+
+      let rem = 20;
+      for (const { id, def } of scored) {
+        if (rem <= 0) break;
+        const max = def.rarity === 'mythic' ? 1 : 3;
+        const add = Math.min(max, rem);
+        newCounts[id] = add;
+        rem -= add;
+      }
+    } else {
+      // 테마 덧: 핵심 카드를 먼저 채워넣음 (3장씩)
+      const priority = THEME_PRIORITY[theme] || [];
+      let rem = 20;
+
+      // 1단계: 핵심 카드 (3장씩, 최대 18장)
+      for (const id of priority) {
+        if (rem <= 0) break;
+        const def = getCardDef(id, shopUpgrades);
+        if (!def) continue;
+        const add = Math.min(3, rem);
+        newCounts[id] = add;
+        rem -= add;
+      }
+
+      // 2단계: 보조 카드 (해당 테마와 관련된 유효 카드로 나머지 체워넣기)
+      if (rem > 0) {
+        // 테마별 버퀴 카드군
+        const themeBonus = {
+          bleed:    c => c.enemyBleed || c.enemyVuln || c.draw,
+          block:    c => c.block || c.selfThorns || c.selfRegen || c.selfDex,
+          poison:   c => c.enemyPoison || c.enemyWeak || c.draw,
+          mana:     c => c.manaGain || c.draw,
+          vampire:  c => c.heal || c.manaGain || c.block,
+          strength: c => c.selfStrength || c.damage > 12 || c.draw,
+          burn:     c => c.enemyBurn || c.enemyWeak || c.damage > 10,
+          special:  c => c.type === 'special' || c.cleanse || c.draw,
+        }[theme] || (() => true);
+
+        const filler = availableCards
+          .filter(c => !newCounts[c.id])
+          .map(c => {
+            const def = getCardDef(c.id, shopUpgrades);
+            if (!def) return null;
+            let score = { mythic:80, rare:50, uncommon:25, common:10 }[def.rarity] || 10;
+            if (themeBonus(def)) score += 60;
+            if (UTILITY_BONUS.includes(c.id)) score += 30;
+            if (def.isUpgraded) score += 20;
+            return { id: c.id, def, score };
+          })
+          .filter(Boolean)
+          .sort((a,b) => b.score - a.score);
+
+        for (const { id, def } of filler) {
+          if (rem <= 0) break;
+          const max = def.rarity === 'mythic' ? 1 : 3;
+          const add = Math.min(max, rem);
+          newCounts[id] = (newCounts[id] || 0) + add;
+          rem -= add;
+        }
+      }
     }
+
     setTempDeckCounts(newCounts);
   };
 
@@ -264,9 +329,24 @@ export default function DeckBuilder({
               <Sparkles className="w-4 h-4"/> 자동 편성 <ChevronDown className="w-4 h-4" />
             </button>
             {showAutoFillMenu && (
-              <div className="absolute top-full right-0 mt-2 w-52 bg-slate-800 border border-slate-600 rounded-lg shadow-2xl z-[999] overflow-hidden">
-                {[['random','🎲 무작위 채우기','slate'],['poison','🧪 추천: 맹독 덱','green'],['bleed','🩸 추천: 출혈 덱','red'],['burn','🔥 추천: 화상 덱','orange'],['block','🛡️ 추천: 철벽 덱','blue'],['special','✨ 추천: 정화 특화','emerald']].map(([theme, label, color]) => (
-                  <button key={theme} onClick={() => { handleAutoBuild(theme); setShowAutoFillMenu(false); }} className={`w-full text-left px-4 py-3 text-sm font-bold hover:bg-${color}-900/40 border-b border-slate-700 last:border-0 text-${color === 'slate' ? 'slate-200' : color + '-400'}`}>{label}</button>
+              <div className="absolute top-full right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[999] overflow-hidden">
+                <div className="px-3 py-2 text-[10px] text-slate-500 font-bold border-b border-slate-800 bg-slate-950">🎯 테마 선택 후 20장으로 자동 완성</div>
+                {[
+                  ['random',   '🎲 무작위',      'slate-400',  'hover:bg-slate-800'],
+                  ['bleed',    '🩸 출혈 학살자',  'red-400',    'hover:bg-red-900/30'],
+                  ['block',    '🛡️ 철벽 요새',   'blue-400',   'hover:bg-blue-900/30'],
+                  ['poison',   '🧪 맹독 지옥',   'green-400',  'hover:bg-green-900/30'],
+                  ['mana',     '⚡ 마나 엔진',    'purple-400', 'hover:bg-purple-900/30'],
+                  ['vampire',  '🧛 흡혈 재생',   'fuchsia-400','hover:bg-fuchsia-900/30'],
+                  ['strength', '💪 근력 폭주',   'orange-400', 'hover:bg-orange-900/30'],
+                  ['burn',     '🔥 화상 특화',   'amber-400',  'hover:bg-amber-900/30'],
+                  ['special',  '✨ 정화 특화',   'emerald-400','hover:bg-emerald-900/30'],
+                ].map(([theme, label, textColor, hoverBg]) => (
+                  <button key={theme}
+                    onClick={() => { handleAutoBuild(theme); setShowAutoFillMenu(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-bold border-b border-slate-800 last:border-0 text-${textColor} ${hoverBg} transition-colors`}>
+                    {label}
+                  </button>
                 ))}
               </div>
             )}
