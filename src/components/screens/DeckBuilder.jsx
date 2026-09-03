@@ -4,12 +4,36 @@ import { Eraser, Download, Upload, Save, Maximize2, HelpCircle, Layers, X, Chevr
 import Card from '../common/Card';
 import FilterBar from '../common/FilterBar';
 import { RELIC_LIBRARY } from '../../constants/relicData';
+import { MANA_CARD_IDS } from '../../constants/gameData';
 
 import scrollImg from '../../assets/images/items/scroll.svg';
 import shieldImg from '../../assets/images/items/shield.svg';
 
-// 🏆 큐레이팅된 강한 덱 프리셋 (공격+방어+마나+회복 균형)
+// 🏆 큐레이팅된 강한 덱 프리셋 (공격+방어+마나+회복+정화 황금 밸런스)
 const DECK_PRESETS = [
+  {
+    id: 'balanced_all',
+    name: '⭐ 올인원 밸런스 (추천)',
+    tier: 'S',
+    style: '만능 밸런스',
+    color: 'border-amber-400 shadow-amber-900/50',
+    headerColor: 'from-amber-900 to-slate-900',
+    tagColor: 'bg-amber-500 text-black',
+    desc: '마나 2장 + 드로우 + 정화(디버프 해제) + 고화력 참수/흡혈 딜이 완벽히 조화된 만능 덱.',
+    tips: '마나와 드로우가 풍부해 패가 마르지 않고, 정화로 침묵/속박/중독을 즉시 해제합니다.',
+    cards: {
+      execute: 2,         // 25 피해 + 취약 2 (극딜)
+      vampire_sword: 2,   // 20 피해 + 회복 10 + 약화 (극딜+흡혈)
+      heavy_strike: 2,    // 18 피해 (고화력)
+      blade_dance: 2,     // 6×3 피해 (연타 고딜)
+      dash: 2,            // 16 피해 + 16 방어 (공방일체)
+      vanguard: 2,        // 14 피해 + 16 방어 (공방일체)
+      focus: 2,           // 드로우 2 (패 순환)
+      warcry: 2,          // 방어 8 + 드로우 2 (방어+패 순환)
+      meditate: 2,        // 마나 2 + 방어 5 (규칙 허용 최대 2장)
+      short_rest: 2,      // 마나 1 + 회복 8 (마나+체력 보조)
+    }
+  },
   {
     id: 'aggro_bleed',
     name: '🩸 출혈 학살자',
@@ -27,8 +51,8 @@ const DECK_PRESETS = [
       expose_weakness: 2,  // 취약 3 부여
       beast_tear: 2,       // 18 피해 + 취약 2
       counter: 2,          // 4 피해 + 방어 8
-      meditate: 2,         // 마나 2 + 방어 5 ← 마나 공급
-      short_rest: 2,       // 마나 1 + 회복 8 ← 회복/마나
+      meditate: 2,         // 마나 2 + 방어 5 (마나 공급)
+      short_rest: 2,       // 마나 1 + 회복 8 (마나/회복)
       focus: 2             // 드로우 2
     }
   },
@@ -41,16 +65,16 @@ const DECK_PRESETS = [
     headerColor: 'from-blue-900 to-slate-900',
     tagColor: 'bg-blue-500',
     desc: '공방 겸용 카드 + 마나 회복으로 턴마다 여러 장을 플레이하는 균형 덱.',
-    tips: 'dash(16공+16방)와 meditate(마나2+방어5)를 조합하면 마나가 넘칩니다.',
+    tips: 'dash(16공+16방)와 vanguard로 공격하면서 동시에 철벽 방어를 유지합니다.',
     cards: {
       dash: 3,             // 16 피해 + 16 방어
-      vanguard: 2,         // 14 피해 + 16 방어
+      vanguard: 3,         // 14 피해 + 16 방어
       shield_bash: 3,      // 7 피해 + 7 방어
       counter: 2,          // 4 피해 + 방어 8
       spiked_shield: 2,    // 방어 5 + 가시 2
       barrier: 2,          // 방어 25
-      meditate: 3,         // 마나 2 + 방어 5 ← 핵심 마나원
-      first_aid: 3         // 회복 8 ← 회복
+      meditate: 2,         // 마나 2 + 방어 5 (마나 규정 준수)
+      first_aid: 3         // 회복 8
     }
   },
   {
@@ -66,12 +90,12 @@ const DECK_PRESETS = [
     cards: {
       poison_flask: 3,     // 독 4
       toxic_strike: 3,     // 4×2 피해 + 취약 1
-      poison_dart: 2,      // 5 피해 + 드로우 1
+      poison_dart: 3,      // 5 피해 + 드로우 1
       venom_coating: 2,    // 독 3 + 가시 2
       toxic_cloud: 2,      // 독 5 + 약화 1
       neutralize: 2,       // 약화 3
-      meditate: 3,         // 마나 2 + 방어 5 ← 마나 공급
-      short_rest: 3        // 마나 1 + 회복 8 ← 회복/마나
+      meditate: 2,         // 마나 2 + 방어 5 (마나 규정 준수)
+      short_rest: 3        // 마나 1 + 회복 8
     }
   },
   {
@@ -83,16 +107,17 @@ const DECK_PRESETS = [
     headerColor: 'from-purple-900 to-slate-900',
     tagColor: 'bg-purple-500',
     desc: '마나를 폭발적으로 확보해 강력한 공격을 연속으로 퍼붓는 콤보 덱.',
-    tips: 'overcharge+catalyst로 마나를 채운 뒤 execute+fireball로 폭격!',
+    tips: 'catalyst+meditate로 마나를 챙기고 execute+fireball로 폭격!',
     cards: {
-      overcharge: 2,       // 마나 3 (체력 -3)
-      catalyst: 3,         // 마나 2
-      meditate: 2,         // 마나 2 + 방어 5
-      execute: 3,          // 25 피해 + 취약 2
-      fireball: 3,         // 22 피해
-      blade_dance: 3,      // 6×3 피해
-      arcane_intellect: 2, // 마나 1 + 드로우 2
-      first_aid: 2         // 회복 8 ← 회복
+      catalyst: 1,         // 마나 2
+      meditate: 1,         // 마나 2 + 방어 5 (마나 규정 합계 2장 준수)
+      execute: 3,          // 25 피해 + 취약 2 (극딜)
+      fireball: 3,         // 22 피해 (고화력)
+      blade_dance: 3,      // 6×3 피해 (연타)
+      arcane_intellect: 3, // 마나 1 + 드로우 2 (마나/드로우 보조)
+      first_aid: 2,        // 회복 8
+      warcry: 2,           // 방어 8 + 드로우 2
+      counter: 2           // 4 피해 + 방어 8
     }
   },
   {
@@ -108,12 +133,12 @@ const DECK_PRESETS = [
     cards: {
       vampire_sword: 3,    // 20 피해 + 회복 10 + 약화 1
       vampiric_strike: 3,  // 18 피해 + 회복 8
-      soul_harvest: 3,     // 6 피해 + 마나 1 + 회복 2 ← 마나 자급
+      soul_harvest: 3,     // 6 피해 + 마나 1 + 회복 2 (마나 자급)
       blood_strike: 2,     // 잃은 체력의 30% 피해
       shadow_cloak: 2,     // 방어 7 + 재생 1
       divine_shield: 2,    // 방어 15 + 회복 5
-      short_rest: 3,       // 마나 1 + 회복 8 ← 회복/마나
-      first_aid: 2         // 회복 8 ← 추가 회복
+      meditate: 2,         // 마나 2 + 방어 5 (마나 규정 준수)
+      first_aid: 3         // 회복 8
     }
   },
   {
@@ -128,17 +153,19 @@ const DECK_PRESETS = [
     tips: '근력 3~4 스택 후 blade_dance(6×3)면 거의 원턴킬 수준!',
     cards: {
       muscle_training: 3,  // 근력 2
-      kihap: 3,            // 마나 1 + 근력 1 ← 마나 자급
+      kihap: 2,            // 마나 1 + 근력 1 (마나 자급)
       empower: 2,          // 근력 1 + 드로우 1
-      heavy_strike: 2,     // 18 피해
+      heavy_strike: 3,     // 18 피해
       blade_dance: 3,      // 6×3 피해
       execute: 3,          // 25 피해 + 취약 2
-      combat_prep: 2,      // 방어 4 + 근력 1
-      short_rest: 2        // 마나 1 + 회복 8 ← 회복/마나
+      meditate: 2,         // 마나 2 + 방어 5 (마나 규정 준수)
+      short_rest: 2        // 마나 1 + 회복 8
     }
   }
+];
 
 const TIER_COLOR = { S: 'bg-yellow-500 text-black', A: 'bg-orange-500 text-white', B: 'bg-blue-600 text-white' };
+
 
 
 export default function DeckBuilder({
@@ -219,105 +246,219 @@ export default function DeckBuilder({
 
   const manaCurveMax = deckStats ? Math.max(...deckStats.manaCurve, 1) : 1;
 
-  const handleAutoBuild = (theme = 'random') => {
+  const handleAutoBuild = (theme = 'smart') => {
     const availableCards = allUnlockedCards.length > 0 ? allUnlockedCards : filteredCards;
-    const allIds = new Set(availableCards.map(c => c.id));
 
-    // 테마별 핵심 카드 ID 정의 — 공격+방어+유틸 균형
-    const THEME_PRIORITY = {
-      // 출혈: 공격(출혈부여) + 취약부여 + 드로우
-      bleed:    ['vein_cut','bleed_cut','weakness_exploit','expose_weakness','beast_tear','dig_in','focus','counter'],
-      // 방어: 공방겸용 카드 우선 + 순수방어 + 가시
-      block:    ['dash','vanguard','shield_bash','counter','spiked_shield','magic_shield','barrier','warcry'],
-      // 독: 독부여 + 직접공격 + 약화 + 드로우
-      poison:   ['poison_flask','toxic_strike','poison_dart','venom_coating','toxic_cloud','neutralize','sweep','vital_strike'],
-      // 마나: 마나충전 + 강력한 공격 피니셔 + 드로우
-      mana:     ['overcharge','catalyst','execute','fireball','blade_dance','arcane_intellect','adrenaline','mana_drain'],
-      // 흡혈: 공격+회복 카드 + 방어+회복 카드
-      vampire:  ['vampire_sword','vampiric_strike','soul_harvest','blood_strike','shadow_cloak','divine_shield','short_rest'],
-      // 근력: 버프 + 강한 공격 + 드로우+방어 보조
-      strength: ['muscle_training','kihap','empower','heavy_strike','blade_dance','execute','smash','combat_prep'],
-      // 화상: 화상부여 + 직접공격 + 약화
-      burn:     ['heatwave','pillar_of_fire','flame_slash','fireball','toxic_cloud','neutralize','sweep','warcry'],
-      // 정화: 특수카드 + 직접공격 + 방어
-      special:  ['adversity_power','primal_roar','pain_lash','pain_conversion','vital_absorption','second_wind','execute','barrier'],
+    // ── 1. 현재 덱 상황 정밀 분석 ───────────────────────────────────
+    const currentDeck = Object.entries(tempDeckCounts)
+      .filter(([, cnt]) => cnt > 0)
+      .flatMap(([id, cnt]) => Array(cnt).fill(getCardDef(id, shopUpgrades)))
+      .filter(Boolean);
+
+    const currentTotal = currentDeck.length;
+    const slotsLeft = 20 - currentTotal;
+    if (slotsLeft <= 0) return; // 이미 20장 완성됨
+
+    // 마나 카드 (MANA_CARD_IDS 규정 준수: meditate, catalyst 등)
+    const currentManaCardCount = Object.entries(tempDeckCounts)
+      .filter(([id, cnt]) => cnt > 0 && MANA_CARD_IDS.includes(id))
+      .reduce((acc, [, cnt]) => acc + cnt, 0);
+
+    // 마나 보조/자급 카드 (short_rest, kihap, arcane_intellect 등)
+    const currentManaGainCount = currentDeck.filter(c => (c.manaGain || 0) > 0).length;
+
+    // 드로우 카드
+    const currentDrawCount = currentDeck.filter(c => (c.draw || 0) > 0).length;
+
+    // 디버프 해제/정화 카드 (cleanse, cleanseAll, purify 등)
+    const currentCleanseCount = currentDeck.filter(c => c.cleanse || c.cleanseAll || c.id === 'purify').length;
+
+    const newCounts = { ...tempDeckCounts };
+
+    // 헬퍼: 안전하게 카드 추가 (규정 준수)
+    const addCard = (id, count = 1) => {
+      const def = getCardDef(id, shopUpgrades);
+      if (!def) return 0;
+      // 미보유 카드 방어
+      if (!availableCards.find(c => c.id === id)) return 0;
+      // 덱 전체 장수 확인
+      const curTotal = Object.values(newCounts).reduce((a, b) => a + b, 0);
+      if (curTotal >= 20) return 0;
+
+      // 마나 카드 2장 제한 엄수
+      if (MANA_CARD_IDS.includes(id)) {
+        const curManaTotal = Object.entries(newCounts)
+          .filter(([cid, cnt]) => cnt > 0 && MANA_CARD_IDS.includes(cid))
+          .reduce((acc, [, cnt]) => acc + cnt, 0);
+        if (curManaTotal >= 2) return 0;
+      }
+
+      const curCardCount = newCounts[id] || 0;
+      const maxCopies = def.rarity === 'mythic' ? 1 : 3;
+      if (curCardCount >= maxCopies) return 0;
+
+      const canAdd = Math.min(count, maxCopies - curCardCount, 20 - curTotal);
+      if (canAdd <= 0) return 0;
+
+      // 마나 카드 추가 한도 체크
+      if (MANA_CARD_IDS.includes(id)) {
+        const curManaTotal = Object.entries(newCounts)
+          .filter(([cid, cnt]) => cnt > 0 && MANA_CARD_IDS.includes(cid))
+          .reduce((acc, [, cnt]) => acc + cnt, 0);
+        const manaAllowed = Math.min(canAdd, 2 - curManaTotal);
+        if (manaAllowed <= 0) return 0;
+        newCounts[id] = curCardCount + manaAllowed;
+        return manaAllowed;
+      }
+
+      newCounts[id] = curCardCount + canAdd;
+      return canAdd;
     };
 
-    // 보조 카드 (어떤 테마든 유용한 카드)
-    const UTILITY_BONUS = [
-      'focus','warcry','adrenaline','arcane_intellect','blood_pact','mind_read',
-      'mana_drain','energy_shield','tactical_retreat','meditate','kihap'
-    ];
+    // ── 2. 테마 감지 (smart 모드 시 현재 덱 시너지 반영) ────────────
+    const detectBestTheme = () => {
+      if (theme !== 'smart' && theme !== 'random') return theme;
+      const bleedCards = currentDeck.filter(c => c.enemyBleed).length;
+      const poisonCards = currentDeck.filter(c => c.enemyPoison).length;
+      const burnCards = currentDeck.filter(c => c.enemyBurn).length;
+      const strCards = currentDeck.filter(c => c.selfStrength).length;
+      const blockCards = currentDeck.filter(c => (c.block || 0) > 10).length;
+      const vampireCards = currentDeck.filter(c => c.heal && c.damage).length;
 
-    const newCounts = {};
+      const scores = {
+        bleed: bleedCards * 4,
+        poison: poisonCards * 4,
+        burn: burnCards * 4,
+        strength: strCards * 4,
+        block: blockCards * 3,
+        vampire: vampireCards * 4,
+      };
+      const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+      return sorted[0] && sorted[0][1] >= 4 ? sorted[0][0] : 'balanced';
+    };
+    const activeTheme = detectBestTheme();
 
-    if (theme === 'random') {
-      // 무작위: 희귀도 점수 기반으로 랜덤 선택
-      const scored = availableCards.map(c => {
-        const def = getCardDef(c.id, shopUpgrades);
-        if (!def) return null;
-        const rarityScore = { mythic:80, rare:50, uncommon:30, common:10 }[def.rarity] || 10;
-        return { id: c.id, def, score: rarityScore + Math.random() * 40 };
-      }).filter(Boolean).sort((a,b) => b.score - a.score);
+    // ── 3. 필수 요소 보충 ──────────────────────────────────────────
 
-      let rem = 20;
-      for (const { id, def } of scored) {
-        if (rem <= 0) break;
-        const max = def.rarity === 'mythic' ? 1 : 3;
-        const add = Math.min(max, rem);
-        newCounts[id] = add;
-        rem -= add;
+    // [요소 A] 디버프 없애기 (정화): 덱에 최소 1~2장 필수
+    if (currentCleanseCount < 1) {
+      const cleansePool = ['purify', 'second_wind', 'iron_will', 'emergency_kit'];
+      for (const cid of cleansePool) {
+        if (addCard(cid, 1) > 0) break;
       }
-    } else {
-      // 테마 덧: 핵심 카드를 먼저 채워넣음 (3장씩)
-      const priority = THEME_PRIORITY[theme] || [];
-      let rem = 20;
+    }
 
-      // 1단계: 핵심 카드 (3장씩, 최대 18장)
-      for (const id of priority) {
-        if (rem <= 0) break;
-        const def = getCardDef(id, shopUpgrades);
-        if (!def) continue;
-        const add = Math.min(3, rem);
-        newCounts[id] = add;
-        rem -= add;
+    // [요소 B] 마나 적당히 (MANA_CARD_IDS 규정상 최대 2장 꽉 채움)
+    if (currentManaCardCount < 2) {
+      const manaPriority = ['meditate', 'catalyst', 'mana_potion', 'overcharge'];
+      for (const cid of manaPriority) {
+        const curManaTotal = Object.entries(newCounts)
+          .filter(([id, cnt]) => cnt > 0 && MANA_CARD_IDS.includes(id))
+          .reduce((acc, [, cnt]) => acc + cnt, 0);
+        if (curManaTotal >= 2) break;
+        addCard(cid, 2 - curManaTotal);
       }
+    }
 
-      // 2단계: 보조 카드 (해당 테마와 관련된 유효 카드로 나머지 체워넣기)
-      if (rem > 0) {
-        // 테마별 버퀴 카드군
-        const themeBonus = {
-          bleed:    c => c.enemyBleed || c.enemyVuln || c.draw,
-          block:    c => c.block || c.selfThorns || c.selfRegen || c.selfDex,
-          poison:   c => c.enemyPoison || c.enemyWeak || c.draw,
-          mana:     c => c.manaGain || c.draw,
-          vampire:  c => c.heal || c.manaGain || c.block,
-          strength: c => c.selfStrength || c.damage > 12 || c.draw,
-          burn:     c => c.enemyBurn || c.enemyWeak || c.damage > 10,
-          special:  c => c.type === 'special' || c.cleanse || c.draw,
-        }[theme] || (() => true);
+    // [요소 C] 마나 보조 및 유지력 (short_rest, kihap, arcane_intellect 등)
+    if (currentManaGainCount < 2) {
+      const manaGainPool = ['short_rest', 'arcane_intellect', 'kihap'];
+      for (const cid of manaGainPool) {
+        if (addCard(cid, 1) > 0) break;
+      }
+    }
 
-        const filler = availableCards
-          .filter(c => !newCounts[c.id])
-          .map(c => {
-            const def = getCardDef(c.id, shopUpgrades);
-            if (!def) return null;
-            let score = { mythic:80, rare:50, uncommon:25, common:10 }[def.rarity] || 10;
-            if (themeBonus(def)) score += 60;
-            if (UTILITY_BONUS.includes(c.id)) score += 30;
-            if (def.isUpgraded) score += 20;
-            return { id: c.id, def, score };
-          })
-          .filter(Boolean)
-          .sort((a,b) => b.score - a.score);
+    // [요소 D] 덱 뽑기 (드로우) 적당히: 패 마름 방지 2~3장 확보
+    const curDraw = currentDeck.filter(c => (c.draw || 0) > 0).length;
+    if (curDraw < 3) {
+      const drawPool = ['focus', 'warcry', 'arcane_intellect', 'refresh', 'adrenaline', 'stab'];
+      for (const cid of drawPool) {
+        const dCount = Object.keys(newCounts)
+          .map(cId => getCardDef(cId, shopUpgrades))
+          .filter(c => c && (c.draw || 0) > 0)
+          .reduce((acc, c) => acc + (newCounts[c.id] || 0), 0);
+        if (dCount >= 3) break;
+        addCard(cid, 2);
+      }
+    }
 
-        for (const { id, def } of filler) {
-          if (rem <= 0) break;
-          const max = def.rarity === 'mythic' ? 1 : 3;
-          const add = Math.min(max, rem);
-          newCounts[id] = (newCounts[id] || 0) + add;
-          rem -= add;
-        }
+    // [요소 E] 딜은 강한 것들만! (고화력 공격 카드 우선 배치)
+    const THEME_POWER_ATTACKS = {
+      bleed:    ['beast_tear', 'vein_cut', 'weakness_exploit', 'bleed_cut', 'dig_in'],
+      poison:   ['toxic_strike', 'sweep', 'vital_strike', 'poison_dart'],
+      burn:     ['fireball', 'heatwave', 'flame_slash', 'pillar_of_fire'],
+      vampire:  ['vampire_sword', 'vampiric_strike', 'blood_strike', 'soul_harvest'],
+      strength: ['execute', 'blade_dance', 'heavy_strike', 'smash'],
+      block:    ['dash', 'vanguard', 'shield_bash', 'counter'],
+      balanced: ['execute', 'vampire_sword', 'heavy_strike', 'blade_dance', 'dash', 'vanguard', 'beast_tear']
+    };
+
+    const THEME_UTILITY = {
+      bleed:    ['expose_weakness', 'counter'],
+      poison:   ['neutralize', 'toxic_cloud', 'venom_coating'],
+      burn:     ['neutralize', 'toxic_cloud'],
+      vampire:  ['divine_shield', 'shadow_cloak', 'first_aid'],
+      strength: ['muscle_training', 'empower', 'combat_prep'],
+      block:    ['spiked_shield', 'barrier', 'magic_shield'],
+      balanced: ['counter', 'first_aid', 'warcry', 'spiked_shield']
+    };
+
+    // 1차: 고화력 테마 딜 카드 투입
+    const highDmgIds = THEME_POWER_ATTACKS[activeTheme] || THEME_POWER_ATTACKS.balanced;
+    for (const cid of highDmgIds) {
+      const curTotal = Object.values(newCounts).reduce((a, b) => a + b, 0);
+      if (curTotal >= 18) break;
+      addCard(cid, 2);
+    }
+
+    // 2차: 테마 시너지 보조 카드 투입
+    const utilIds = THEME_UTILITY[activeTheme] || THEME_UTILITY.balanced;
+    for (const cid of utilIds) {
+      const curTotal = Object.values(newCounts).reduce((a, b) => a + b, 0);
+      if (curTotal >= 19) break;
+      addCard(cid, 1);
+    }
+
+    // [요소 F] 20장 꽉 채우기 (남은 자리는 보유 카드 중 최고 스펙으로 자동 선별)
+    const curTotal = Object.values(newCounts).reduce((a, b) => a + b, 0);
+    if (curTotal < 20) {
+      const candidateList = availableCards
+        .map(c => {
+          const def = getCardDef(c.id, shopUpgrades);
+          if (!def) return null;
+          // type === 'special' 중 정화/클렌즈가 아닌 것은 제외
+          if (def.type === 'special' && !def.cleanse && !def.cleanseAll) return null;
+          // MANA_CARD_IDS는 이미 2장 찼으면 제외
+          if (MANA_CARD_IDS.includes(c.id)) {
+            const curManaTotal = Object.entries(newCounts)
+              .filter(([cid, cnt]) => cnt > 0 && MANA_CARD_IDS.includes(cid))
+              .reduce((acc, [, cnt]) => acc + cnt, 0);
+            if (curManaTotal >= 2) return null;
+          }
+
+          let score = { mythic: 90, rare: 60, uncommon: 35, common: 15 }[def.rarity] || 15;
+          // 딜이 강한 카드 대폭 우대
+          if ((def.damage || 0) >= 20) score += 60;
+          else if ((def.damage || 0) >= 14) score += 40;
+          else if ((def.damage || 0) >= 8) score += 20;
+          // 약한 카드 감점
+          if ((def.damage || 0) > 0 && (def.damage || 0) <= 5 && !def.draw && !def.cleanse) score -= 20;
+
+          if (def.draw) score += 30;
+          if (def.manaGain) score += 25;
+          if (def.heal) score += 20;
+          if (def.cleanse || def.cleanseAll) score += 35;
+          if (def.isUpgraded) score += 20;
+
+          return { id: c.id, def, score };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score);
+
+      for (const { id } of candidateList) {
+        const nowTotal = Object.values(newCounts).reduce((a, b) => a + b, 0);
+        if (nowTotal >= 20) break;
+        addCard(id, 1);
       }
     }
 
@@ -371,7 +512,7 @@ export default function DeckBuilder({
               <div className="absolute top-full right-0 mt-2 w-56 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-[999] overflow-hidden">
                 <div className="px-3 py-2 text-[10px] text-slate-500 font-bold border-b border-slate-800 bg-slate-950">🎯 테마 선택 후 20장으로 자동 완성</div>
                 {[
-                  ['random',   '🎲 무작위',      'slate-400',  'hover:bg-slate-800'],
+                  ['smart',    '⭐ 맞춤 자동 완성 (추천)', 'amber-300', 'hover:bg-amber-900/40'],
                   ['bleed',    '🩸 출혈 학살자',  'red-400',    'hover:bg-red-900/30'],
                   ['block',    '🛡️ 철벽 요새',   'blue-400',   'hover:bg-blue-900/30'],
                   ['poison',   '🧪 맹독 지옥',   'green-400',  'hover:bg-green-900/30'],
@@ -379,7 +520,7 @@ export default function DeckBuilder({
                   ['vampire',  '🧛 흡혈 재생',   'fuchsia-400','hover:bg-fuchsia-900/30'],
                   ['strength', '💪 근력 폭주',   'orange-400', 'hover:bg-orange-900/30'],
                   ['burn',     '🔥 화상 특화',   'amber-400',  'hover:bg-amber-900/30'],
-                  ['special',  '✨ 정화 특화',   'emerald-400','hover:bg-emerald-900/30'],
+                  ['random',   '🎲 무작위 완성',  'slate-400',  'hover:bg-slate-800'],
                 ].map(([theme, label, textColor, hoverBg]) => (
                   <button key={theme}
                     onClick={() => { handleAutoBuild(theme); setShowAutoFillMenu(false); }}
