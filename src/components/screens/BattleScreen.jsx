@@ -434,6 +434,8 @@ export default function BattleScreen({
               <StatusIcon type="frail" value={player.debuffs?.frail} />
               <StatusIcon type="silence" value={player.debuffs?.silence} />
               <StatusIcon type="bind" value={player.debuffs?.bind} />
+              <StatusIcon type="phantomWalk" value={player.buffs?.phantomWalk} />
+              <StatusIcon type="genesis" value={player.buffs?.genesis} />
             </div>
 
             <div className={`w-20 h-20 md:w-30 md:h-30 bg-gradient-to-br from-slate-700 to-slate-900 rounded-full flex justify-center items-center mb-2 border-4 border-indigo-500 relative shadow-[0_0_30px_rgba(79,70,229,0.3)] ${combatState?.hitEffect?.targetUid === 'player' ? 'animate-hit-shake animate-hit-flash' : ''}`}>
@@ -620,7 +622,30 @@ export default function BattleScreen({
 
           <div className="flex justify-center items-end w-full px-16 md:px-36 h-full pb-2 overflow-visible">
             {hand.map((card, idx) => {
-              const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect;
+              // 스택 비례 개별 카드 잠금 (속박/침묵) 계산
+              const bindCount = player.debuffs?.bind || 0;
+              const silenceCount = player.debuffs?.silence || 0;
+              
+              let ccLockedType = null;
+              if (card.type === 'attack' && bindCount > 0) {
+                // 손패 중 앞선 bindCount개의 공격 카드만 잠금
+                const attackIndices = hand
+                  .map((c, i) => (c.type === 'attack' ? i : -1))
+                  .filter(i => i !== -1);
+                if (attackIndices.slice(0, bindCount).includes(idx)) {
+                  ccLockedType = 'bind';
+                }
+              } else if (card.type === 'skill' && silenceCount > 0) {
+                // 손패 중 앞선 silenceCount개의 스킬 카드만 잠금
+                const skillIndices = hand
+                  .map((c, i) => (c.type === 'skill' ? i : -1))
+                  .filter(i => i !== -1);
+                if (skillIndices.slice(0, silenceCount).includes(idx)) {
+                  ccLockedType = 'silence';
+                }
+              }
+
+              const canPlay = isPlayerTurn && player.mana >= card.cost && !playEffect && !ccLockedType;
               const isHovered = hoveredCard === idx && !discardingHand; 
               const offset = idx - (hand.length - 1) / 2;
               
@@ -661,7 +686,7 @@ export default function BattleScreen({
                          animationFillMode: 'backwards' 
                        }}>
                     <div onClick={() => canPlay && handlePlayCard(idx)} className={`w-28 h-42 sm:w-30 sm:h-44 md:w-36 md:h-52 bg-slate-900 shadow-xl rounded-xl transition-all ${canPlay ? 'cursor-pointer hover:ring-4 ring-indigo-400 hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]' : 'cursor-not-allowed brightness-60 opacity-70'}`}>
-                      <Card card={getDynamicCardDef(card, player)} isLocked={false} />
+                      <Card card={getDynamicCardDef(card, player)} isLocked={false} ccLockedType={ccLockedType} />
                     </div>
                   </div>
 

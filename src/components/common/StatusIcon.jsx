@@ -20,8 +20,10 @@ const statusConfig = {
   // ✨ 신규 디버프 4종 추가
   mark: { name: '표식', color: 'bg-fuchsia-900 border-fuchsia-500 text-fuchsia-100', desc: '타격 당할 때마다 추가 고정 피해를 받습니다.', pulse: true },
   frail: { name: '허약', color: 'bg-yellow-900 border-yellow-600 text-yellow-100', desc: '방어도 획득량이 25% 감소합니다.', pulse: true },
-  silence: { name: '침묵', color: 'bg-gray-800 border-gray-500 text-white', desc: '스킬 카드를 사용할 수 없습니다.', pulse: true },
-  bind: { name: '속박', color: 'bg-zinc-800 border-zinc-500 text-white', desc: '공격 카드를 사용할 수 없습니다.', pulse: true },
+  silence: { name: '침묵', color: 'bg-gray-800 border-gray-500 text-white', desc: '스택 수만큼 스킬 카드가 잠깁니다.', pulse: true },
+  bind: { name: '속박', color: 'bg-zinc-800 border-zinc-500 text-white', desc: '스택 수만큼 공격 카드가 잠깁니다.', pulse: true },
+  phantomWalk: { name: '환영 보법', color: 'bg-indigo-900 border-indigo-400 text-indigo-100', desc: '받는 피해가 75% 감소하고, 감소한 피해의 50%를 반사합니다.' },
+  genesis: { name: '창세기', color: 'bg-amber-900 border-amber-400 text-amber-100', desc: '모든 피해량과 방어도가 25% 증가합니다.' },
   
   // 🔥 화상, 출혈, 동상
   burn: { name: '화상', color: 'bg-red-950 border-red-600 text-red-300', desc: '턴 시작 시 수치만큼 체력이 감소하고 절반으로 줄어듭니다.', pulse: true },

@@ -250,13 +250,26 @@ export function useBattle({
 
     const pDebuffs = combatState.player.debuffs || {};
 
+    // 스택 비례 개별 카드 잠금 검사
     if (card.type === 'attack' && (pDebuffs.bind || 0) > 0) {
-      setToastMsg("속박되어 공격 카드를 사용할 수 없습니다!");
-      return;
+      const attackIndices = combatState.hand
+        .map((c, i) => (c.type === 'attack' ? i : -1))
+        .filter(i => i !== -1);
+      const lockedIndices = attackIndices.slice(0, pDebuffs.bind);
+      if (lockedIndices.includes(cardIndex)) {
+        setToastMsg(`속박으로 잠긴 카드입니다! (남은 속박: ${pDebuffs.bind}장)`);
+        return;
+      }
     }
     if (card.type === 'skill' && (pDebuffs.silence || 0) > 0) {
-      setToastMsg("침묵 상태라 스킬 카드를 사용할 수 없습니다!");
-      return;
+      const skillIndices = combatState.hand
+        .map((c, i) => (c.type === 'skill' ? i : -1))
+        .filter(i => i !== -1);
+      const lockedIndices = skillIndices.slice(0, pDebuffs.silence);
+      if (lockedIndices.includes(cardIndex)) {
+        setToastMsg(`침묵으로 잠긴 카드입니다! (남은 침묵: ${pDebuffs.silence}장)`);
+        return;
+      }
     }
     // special 타입은 침묵·속박 무시
 
@@ -273,8 +286,19 @@ export function useBattle({
       setCombatState(currentState);
     };
 
-    let p = { ...currentState.player, buffs: { ...currentState.player.buffs }, debuffs: { ...currentState.player.debuffs } };
+        let p = { ...currentState.player, buffs: { ...currentState.player.buffs }, debuffs: { ...currentState.player.debuffs } };
     p.mana -= (card.cost || 0);
+    const prevSpent = currentState.spentManaThisTurn || 0;
+    const newSpent = prevSpent + (card.cost || 0);
+
+    // CC 스택 감소: 사용한 카드의 종류에 따라 속박/침묵 스택 1 해제
+    if (card.type === 'attack' && (p.debuffs.bind || 0) > 0) {
+      p.debuffs.bind = Math.max(0, p.debuffs.bind - 1);
+    }
+    if (card.type === 'skill' && (p.debuffs.silence || 0) > 0) {
+      p.debuffs.silence = Math.max(0, p.debuffs.silence - 1);
+    }
+
     let newHand = [...currentState.hand];
     let newDraw = [...currentState.drawPile];
     let newDiscard = [...currentState.discardPile];
@@ -310,11 +334,47 @@ export function useBattle({
     
     if (isWin) {
       if (card.gamble) setToastMsg('도박 성공!');
-      if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) p.block += calculateBlock(card.block, p.buffs.dexterity, p.debuffs.frail || 0);
+      
+      let gainedBlock = 0;
+      if (card.block && !card.doubleBlock && !card.percentBlockMaxHp) gainedBlock = calculateBlock(card.block, p.buffs.dexterity, p.debuffs.frail || 0);
       if (card.doubleBlock) p.block *= 2;
-      if (card.percentBlockMaxHp) p.block += Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
+      if (card.percentBlockMaxHp) gainedBlock = Math.floor(p.maxHp * (card.percentBlockMaxHp / 100)) + (p.buffs.dexterity || 0);
+      
+      if ((p.buffs?.genesis || 0) > 0 && gainedBlock > 0) gainedBlock = Math.floor(gainedBlock * 1.25);
+      p.block += gainedBlock;
+
+      if (card.percentManaRefund) {
+        const refund = Math.max(2, Math.floor(newSpent * card.percentManaRefund));
+        p.mana = clampStack(p.mana + refund, p.maxMana + 99);
+        setToastMsg(`전지전능: 소모 마나 환원 (+${refund} 마나)`);
+      }
+      if (card.percentMaxHpHeal) {
+        const healAmt = Math.floor(p.maxHp * card.percentMaxHpHeal);
+        p.hp = Math.min(p.maxHp, p.hp + healAmt);
+        setToastMsg(`창세기: 최대 체력 30% 회복 (+${healAmt} HP)`);
+      }
+      if (card.selfGenesis) {
+        p.buffs.genesis = (p.buffs.genesis || 0) + 1;
+        setToastMsg('창세기: 이번 전투 공격/방어 25% 증폭 활성화!');
+      }
+      if (card.selfPhantomWalk) {
+        p.buffs.phantomWalk = (p.buffs.phantomWalk || 0) + 1;
+        setToastMsg('환영 보법: 1턴 동안 받는 피해 75% 감소 및 50% 반사 활성화!');
+      }
+      if (card.winDraw) {
+        card.draw = (card.draw || 0) + card.winDraw;
+      }
+      if (card.winNextTurnMana) {
+        p.buffs.nextTurnMana = (p.buffs.nextTurnMana || 0) + card.winNextTurnMana;
+      }
+      if (card.winAllInHand) {
+        const handCount = newHand.length;
+        p.mana = clampStack(p.mana + handCount, p.maxMana + 99);
+        p.buffs.strength = clampStack((p.buffs.strength || 0) + handCount);
+        setToastMsg(`올인 대성공! 손패 ${handCount}장으로 마나 +${handCount}, 근력 +${handCount}!`);
+      }
+
       if (card.cleanse) {
-          // 현재 가장 스택이 높은 상태이상 1개만 제거
           const debuffKeys = ['poison', 'burn', 'bleed', 'weak', 'vulnerable', 'mark', 'frail', 'frost', 'silence', 'bind'];
           const active = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0);
           if (active.length > 0) {
@@ -326,6 +386,7 @@ export function useBattle({
           }
       }
       if (card.heal && !card.gamble) p.hp = Math.min(p.maxHp, p.hp + (Number(card.heal) || 0));
+      if (card.winHeal) p.hp = Math.min(p.maxHp, p.hp + (Number(card.winHeal) || 0));
       if (card.manaGain && !card.gamble) p.mana = clampStack(p.mana + (Number(card.manaGain) || 0), p.maxMana + 99);
       if (card.winManaGain) p.mana += (Number(card.winManaGain) || 0);
       if (card.selfStrength) p.buffs.strength = clampStack((p.buffs.strength || 0) + card.selfStrength);
@@ -341,12 +402,10 @@ export function useBattle({
       if (card.id === 'summon_golem') p.minion = { id: 'golem', name: '바위 골렘', hp: 40, maxHp: 40 };
       if (card.id === 'summon_fairy') p.minion = { id: 'fairy', name: '숲의 요정', hp: 15, maxHp: 15 };
       if (card.cleanseAll) {
-          // 모든 상태이상 초기화
           p.debuffs = { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, burn: 0, bleed: 0, frost: 0 };
           setToastMsg('모든 상태 이상이 해제되었습니다!');
       }
       if (card.debuffToBlock) {
-          // 활성 디버프 1개당 방어도 획득
           const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
           const debuffCount = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0).length;
           const gained = debuffCount * card.debuffToBlock;
@@ -354,7 +413,6 @@ export function useBattle({
           setToastMsg(`고통을 방어로 전환! +${gained} 방어도`);
       }
       if (card.debuffToHeal) {
-          // 활성 디버프 1개당 체력 회복
           const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
           const debuffCount = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0).length;
           const gained = debuffCount * card.debuffToHeal;
@@ -362,7 +420,6 @@ export function useBattle({
           setToastMsg(`고통을 생명으로 전환! +${gained} 체력`);
       }
       if (card.debuffToStrength) {
-          // 활성 디버프 1개당 근력 획득 후 디버프 제거
           const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
           const active = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0);
           const gained = active.length * card.debuffToStrength;
@@ -375,6 +432,29 @@ export function useBattle({
       setToastMsg('도박 실패...');
       if (card.loseSelfDamage) p.hp -= (Number(card.loseSelfDamage) || 0);
       if (card.losePercentMaxHpDamage) p.hp -= Math.floor(p.maxHp * card.losePercentMaxHpDamage);
+      if (card.losePercentCurrentHpDamage) {
+        const dmgAmt = Math.max(1, Math.floor(p.hp * card.losePercentCurrentHpDamage));
+        p.hp = Math.max(1, p.hp - dmgAmt);
+        setToastMsg(`악마의 주사위 실패! 현재 체력 20% 손실 (-${dmgAmt} HP)`);
+      }
+      if (card.loseSelfVuln) p.debuffs.vulnerable = clampStack((p.debuffs.vulnerable || 0) + card.loseSelfVuln);
+      if (card.loseSelfBurn) p.debuffs.burn = clampStack((p.debuffs.burn || 0) + card.loseSelfBurn);
+      if (card.loseBlock) {
+        let lBlock = calculateBlock(card.loseBlock, p.buffs.dexterity, p.debuffs.frail || 0);
+        if ((p.buffs?.genesis || 0) > 0) lBlock = Math.floor(lBlock * 1.25);
+        p.block += lBlock;
+      }
+      if (card.loseDraw) {
+        card.draw = (card.draw || 0) + card.loseDraw;
+      }
+      if (card.loseAllInHand) {
+        newDiscard.push(...newHand);
+        newHand = [];
+        let emergencyBlock = calculateBlock(15, p.buffs.dexterity, p.debuffs.frail || 0);
+        if ((p.buffs?.genesis || 0) > 0) emergencyBlock = Math.floor(emergencyBlock * 1.25);
+        p.block += emergencyBlock;
+        setToastMsg('올인 실패! 손패를 모두 버리고 긴급 방어도 15를 얻습니다.');
+      }
     }
 
     for (let i = 0; i < (card.draw || 0); i++) {
@@ -387,12 +467,13 @@ export function useBattle({
       if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
     }
 
-    await mutate(prev => ({ ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw, exhaustPile: newExhaust, enemies: newEnemies }));
+    await mutate(prev => ({ ...prev, player: p, hand: newHand, discardPile: newDiscard, drawPile: newDraw, exhaustPile: newExhaust, enemies: newEnemies, spentManaThisTurn: newSpent }));
 
     if (newEnemies.length > 0) {
       let currentDamage = Number(card.damage) || 0;
       if (p.stance === 'offensive' && currentDamage > 0) currentDamage = Math.floor(currentDamage * 1.5);
       if (p.stance === 'defensive' && currentDamage > 0) currentDamage = Math.floor(currentDamage * 0.75);
+      if ((p.buffs?.genesis || 0) > 0 && currentDamage > 0) currentDamage = Math.floor(currentDamage * 1.25);
 
       const hits = (card.damage && isWin) ? (card.multiHit || 1) : 1;
       let currentTargetIdx = targetIndex;
@@ -406,11 +487,30 @@ export function useBattle({
           if (i === 0) {
             const applySpecialDamage = (amt) => {
               let dmg = calculateDamage(amt, p.buffs?.strength || 0, p.debuffs?.weak || 0, target.debuffs?.vulnerable || 0, target.debuffs?.mark || 0, target.buffs?.intangible || 0);
+              if ((p.buffs?.genesis || 0) > 0) dmg = Math.floor(dmg * 1.25);
               if (target.block >= dmg) target.block -= dmg; 
               else { target.hp = Math.max(0, target.hp - (dmg - target.block)); target.block = 0; }
               checkRevive(target, newEnemies);
             };
-            if (card.winDamage) applySpecialDamage(target.isBoss ? card.winDamageBoss : card.winDamage);
+            if (card.winDamage) applySpecialDamage(target.isBoss ? (card.winDamageBoss || card.winDamage) : card.winDamage);
+            if (card.winPercentCurrentHpDamage) {
+              const pctDmg = Math.max(1, Math.floor(target.hp * card.winPercentCurrentHpDamage));
+              if (target.block >= pctDmg) target.block -= pctDmg;
+              else { target.hp = Math.max(0, target.hp - (pctDmg - target.block)); target.block = 0; }
+              checkRevive(target, newEnemies);
+              setToastMsg(`러시안 룰렛 성공! 적 현재 체력 50% 소멸 (-${pctDmg})!`);
+            }
+            if (card.percentEnemyCurrentHp) {
+              newEnemies.forEach(en => {
+                const pctDmg = Math.max(1, Math.floor(en.hp * card.percentEnemyCurrentHp));
+                if (en.block >= pctDmg) en.block -= pctDmg;
+                else { en.hp = Math.max(0, en.hp - (pctDmg - en.block)); en.block = 0; }
+                if (card.enemyWeak) en.debuffs.weak = clampStack((en.debuffs.weak || 0) + card.enemyWeak);
+                if (card.enemyVuln) en.debuffs.vulnerable = clampStack((en.debuffs.vulnerable || 0) + card.enemyVuln);
+                checkRevive(en, newEnemies);
+              });
+              setToastMsg('전지전능: 모든 적 현재 체력 15% 소멸!');
+            }
             if (card.missingHpDamage) applySpecialDamage((Number(card.damage) || 0) + Math.floor((p.maxHp - p.hp) * card.missingHpDamage));
             else if (card.consumeAllMana) { 
                 applySpecialDamage((Number(card.damage) || 0) + Math.floor(currentState.player.mana * (card.manaMultiplier || 0))); 
@@ -418,23 +518,24 @@ export function useBattle({
             }
             if (card.exhaustStackDamage) applySpecialDamage((Number(card.damage) || 0) + Math.floor(newExhaust.length * card.exhaustStackDamage));
             if (card.debuffToDamage) {
-              // 내 활성 디버프 수 × debuffToDamage 피해
               const debuffKeys = ['poison','burn','bleed','weak','vulnerable','mark','frail','frost','silence','bind'];
               const debuffCount = debuffKeys.filter(k => (p.debuffs[k] || 0) > 0).length;
               applySpecialDamage(debuffCount * card.debuffToDamage);
             }
             if (card.doubleDamageIfVuln && target.debuffs?.vulnerable > 0) currentDamage *= 2;
 
-            if (card.enemyWeak) target.debuffs.weak = clampStack((target.debuffs.weak || 0) + card.enemyWeak);
-            if (card.enemyVuln) target.debuffs.vulnerable = clampStack((target.debuffs.vulnerable || 0) + card.enemyVuln);
+            if (card.winEnemyVuln) target.debuffs.vulnerable = clampStack((target.debuffs.vulnerable || 0) + card.winEnemyVuln);
+            if (card.winEnemyBurn) target.debuffs.burn = clampStack((target.debuffs.burn || 0) + card.winEnemyBurn);
+            if (card.enemyWeak && !card.percentEnemyCurrentHp) target.debuffs.weak = clampStack((target.debuffs.weak || 0) + card.enemyWeak);
+            if (card.enemyVuln && !card.percentEnemyCurrentHp) target.debuffs.vulnerable = clampStack((target.debuffs.vulnerable || 0) + card.enemyVuln);
             if (card.enemyPoison) target.debuffs.poison = clampStack((target.debuffs.poison || 0) + card.enemyPoison);
             if (card.enemyMark) target.debuffs.mark = clampStack((target.debuffs.mark || 0) + card.enemyMark);
             if (card.enemyFrail) target.debuffs.frail = clampStack((target.debuffs.frail || 0) + card.enemyFrail);
             if (card.enemyBurn) target.debuffs.burn = clampStack((target.debuffs.burn || 0) + card.enemyBurn);
             if (card.enemyBleed) target.debuffs.bleed = clampStack((target.debuffs.bleed || 0) + card.enemyBleed);
             if (card.enemyFrost) target.debuffs.frost = clampStack((target.debuffs.frost || 0) + card.enemyFrost);
-            if (card.enemySilence) target.debuffs.silence = clampStack((target.debuffs.silence || 0) + card.enemySilence, 999, true);
-            if (card.enemyBind) target.debuffs.bind = clampStack((target.debuffs.bind || 0) + card.enemyBind, 999, true);
+            if (card.enemySilence) target.debuffs.silence = clampStack((target.debuffs.silence || 0) + card.enemySilence);
+            if (card.enemyBind) target.debuffs.bind = clampStack((target.debuffs.bind || 0) + card.enemyBind);
           }
 
           if (card.damage && !card.missingHpDamage && !card.consumeAllMana && !card.exhaustStackDamage) { 
@@ -444,9 +545,24 @@ export function useBattle({
             checkRevive(target, newEnemies);
             if (card.increasingDamage) currentDamage += (Number(card.increasingDamage) || 0); 
           }
+
+          // Furioso 피니셔: 마지막 타격에 적 잃은 체력의 25% 추가 처형 피해
+          if (card.percentMissingHpFinisher && i === hits - 1) {
+            const missingHp = Math.max(0, target.maxHp - target.hp);
+            const finisherDmg = Math.floor(missingHp * card.percentMissingHpFinisher);
+            if (finisherDmg > 0) {
+              let fdmg = calculateDamage(finisherDmg, p.buffs?.strength || 0, p.debuffs?.weak || 0, target.debuffs?.vulnerable || 0, target.debuffs?.mark || 0, target.buffs?.intangible || 0);
+              if ((p.buffs?.genesis || 0) > 0) fdmg = Math.floor(fdmg * 1.25);
+              if (target.block >= fdmg) target.block -= fdmg;
+              else { target.hp = Math.max(0, target.hp - (fdmg - target.block)); target.block = 0; }
+              checkRevive(target, newEnemies);
+              setToastMsg(`Furioso 피니셔! 적 잃은 체력의 25% 추가 처형 피해 (+${fdmg})!`);
+            }
+          }
         } else if (i === 0) {
           if (card.loseDamage) {
             let dmg = calculateDamage(card.loseDamage, p.buffs?.strength || 0, p.debuffs?.weak || 0, target.debuffs?.vulnerable || 0, target.debuffs?.mark || 0, target.buffs?.intangible || 0);
+            if ((p.buffs?.genesis || 0) > 0) dmg = Math.floor(dmg * 1.25);
             if (target.block >= dmg) target.block -= dmg; 
             else { target.hp = Math.max(0, target.hp - (dmg - target.block)); target.block = 0; }
             checkRevive(target, newEnemies);
@@ -454,7 +570,7 @@ export function useBattle({
         }
         
         await mutate(prev => ({ ...prev, player: p, enemies: [...newEnemies], hitEffect: { targetUid: target.uid, type: 'hit' } }));
-        await new Promise(r => setTimeout(r, 150)); // 💥 다단히트 지연
+        await new Promise(r => setTimeout(r, 150));
         await mutate(prev => ({ ...prev, hitEffect: null }));
       }
     }

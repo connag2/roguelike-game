@@ -314,7 +314,7 @@ export default function App() {
     let initialPlayer = { 
       hp: basePlayerHp, maxHp: basePlayerHp, mana: classData.baseMana, maxMana: classData.baseMana, block: 0, 
       debuffs: { weak: 0, vulnerable: 0, poison: 0, mark: 0, frail: 0, silence: 0, bind: 0, bleed: 0, frost: 0, burn: 0 }, 
-      buffs: { strength: alchemistBuffs.strength, dexterity: 0, thorns: 0, intangible: 0, regen: alchemistBuffs.regen, rage: 0, insight: (classData.id === 'mage' ? 1 : 0) + alchemistBuffs.insight },
+      buffs: { strength: alchemistBuffs.strength, dexterity: 0, thorns: 0, intangible: 0, regen: alchemistBuffs.regen, rage: 0, insight: (classData.id === 'mage' ? 1 : 0) + alchemistBuffs.insight, phantomWalk: 0, genesis: 0, nextTurnMana: 0 },
       classId: classData.id,
       minion: null,
       stance: 'normal'
@@ -501,6 +501,16 @@ export default function App() {
               if (e.debuffs.weak > 0) dmg = Math.floor(dmg * 0.97); 
               if ((p.debuffs?.mark || 0) > 0) dmg += p.debuffs.mark;
               if ((p.buffs?.intangible || 0) > 0) { dmg = 1; }
+              if ((p.buffs?.phantomWalk || 0) > 0) {
+                const origDmg = dmg;
+                dmg = Math.max(1, Math.floor(dmg * 0.25)); // 75% 감소
+                const reduced = origDmg - dmg;
+                const reflectDmg = Math.floor(reduced * 0.5); // 50% 반사
+                if (reflectDmg > 0) {
+                  e.hp = Math.max(0, e.hp - reflectDmg);
+                  checkRevive(e, null);
+                }
+              }
               if (p.stance === 'defensive') dmg = Math.floor(dmg * 0.5);
               if (p.stance === 'offensive') dmg = Math.floor(dmg * 1.25);
 
@@ -571,6 +581,11 @@ export default function App() {
       
       p.hp -= selfDamage;
       if (p.hp <= 0) { setGameState('GAME_OVER'); return; } 
+      if ((p.buffs?.nextTurnMana || 0) > 0) {
+        turnMana += p.buffs.nextTurnMana;
+        p.buffs.nextTurnMana = 0;
+      }
+      p.buffs.phantomWalk = 0;
       p.block += turnBlock; p.mana = p.maxMana + turnMana; p.buffs.strength += turnStrength;
       turnDraw += (p.buffs?.insight || 0);
 
@@ -582,7 +597,7 @@ export default function App() {
           if (newDraw.length === 0) { if (newDiscard.length === 0) break; newDraw = shuffle(newDiscard); newDiscard = []; }
           if (newDraw.length > 0) newHand.push({ ...newDraw.pop(), uid: Math.random().toString() });
         }
-        return { ...prev, player: p, enemies: newEnemies, turn: 'PLAYER', hand: newHand, drawPile: newDraw, discardPile: newDiscard };
+        return { ...prev, player: p, enemies: newEnemies, turn: 'PLAYER', hand: newHand, drawPile: newDraw, discardPile: newDiscard, spentManaThisTurn: 0 };
       });
     };
     

@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { Sword, Shield, Lock, Star, Sparkles } from 'lucide-react';
 import Tooltip from './Tooltip';
 
-const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, onRemove, onClick, canAdd = true }) {
+const Card = memo(function Card({ card, count = null, isLocked = false, ccLockedType = null, onAdd, onRemove, onClick, canAdd = true }) {
   if (!card) return null;
   
   const isAttack = card.type === 'attack';
@@ -91,19 +91,38 @@ const Card = memo(function Card({ card, count = null, isLocked = false, onAdd, o
     }
   }
 
+  const isCardDisabled = isLocked || !!ccLockedType;
   const cardStatusStyle = isLocked 
     ? 'opacity-50 grayscale border-slate-700 bg-slate-900' 
-    : `${borderStyle} ${rarityShadow} ${bgStyle}`;
+    : ccLockedType === 'bind'
+      ? 'border-yellow-500 bg-zinc-950 ring-2 ring-yellow-500/50'
+      : ccLockedType === 'silence'
+        ? 'border-gray-500 bg-zinc-950 ring-2 ring-gray-500/50'
+        : `${borderStyle} ${rarityShadow} ${bgStyle}`;
 
   return (
     <div 
       onClick={onClick}
-      className={`border-2 p-1 md:p-1.5 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isLocked ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border overflow-hidden select-none`}
+      className={`border-2 p-1 md:p-1.5 rounded-xl flex flex-col relative transition-all duration-300 ${onClick && !isCardDisabled ? 'cursor-pointer hover:-translate-y-2 hover:scale-105' : ''} ${cardStatusStyle} w-full h-full aspect-[2/3] shrink-0 box-border overflow-hidden select-none`}
     >
       {isLocked && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-slate-950/90 backdrop-blur-sm pointer-events-none">
           <Lock className="w-8 h-8 md:w-10 md:h-10 text-slate-400 mb-1 drop-shadow-md"/>
           <span className="text-yellow-500 font-black text-xs bg-slate-900/90 px-2 py-1 rounded border border-slate-700 shadow-xl">미해금</span>
+        </div>
+      )}
+
+      {ccLockedType === 'bind' && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-zinc-950/80 backdrop-blur-[2px] pointer-events-none border border-yellow-500/60 shadow-inner">
+          <div className="text-2xl md:text-3xl mb-1 animate-pulse">⛓️</div>
+          <span className="text-yellow-400 font-black text-[10px] md:text-xs bg-zinc-900/95 px-2 py-0.5 rounded border border-yellow-600 shadow-xl">속박됨</span>
+        </div>
+      )}
+
+      {ccLockedType === 'silence' && (
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-xl bg-zinc-950/80 backdrop-blur-[2px] pointer-events-none border border-gray-500/60 shadow-inner">
+          <div className="text-2xl md:text-3xl mb-1 animate-pulse">🔇</div>
+          <span className="text-gray-300 font-black text-[10px] md:text-xs bg-zinc-900/95 px-2 py-0.5 rounded border border-gray-600 shadow-xl">침묵됨</span>
         </div>
       )}
       
