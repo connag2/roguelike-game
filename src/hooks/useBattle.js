@@ -1,5 +1,5 @@
 // src/hooks/useBattle.js
-import { useCallback } from 'react'; 
+import { useCallback, useRef } from 'react'; 
 import { shuffle, calculateDamage, calculateBlock, clampStack } from '../utils/gameLogic';
 import { GAME_RULES, CARD_LIBRARY, BOSS_LOOT_CARDS } from '../constants/gameData';
 import { RELIC_LIBRARY } from '../constants/relicData';
@@ -15,6 +15,7 @@ export function useBattle({
   setEnemyDropCard,
   setPendingRelicChoices
 }) {
+  const victoryProcessedStageRef = useRef(null);
 
   const checkRevive = useCallback((target, enemiesArray) => {
     if (target.hp <= 0) {
@@ -32,6 +33,12 @@ export function useBattle({
 
   const handleVictory = useCallback((prevCombat, p) => {
     try {
+      if (!prevCombat) return;
+      if (victoryProcessedStageRef.current === prevCombat.stage) {
+        return; // 이번 스테이지 승리 처리는 이미 완료됨 (중복 호출 방지)
+      }
+      victoryProcessedStageRef.current = prevCombat.stage;
+
       const isSpecialBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 50 === 0) : [25, 50, 75, 100].includes(prevCombat.stage);
       const isNormalBoss = prevCombat.mode === 'HARD' ? (prevCombat.stage % 10 === 0 && !isSpecialBoss) : (prevCombat.stage % 5 === 0 && !isSpecialBoss);
       
@@ -242,7 +249,7 @@ export function useBattle({
       const isHidden = typeof document !== 'undefined' && document.hidden;
       setTimeout(() => setGameState('REWARDS'), isHidden ? 20 : 600);
     }
-  }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setToastMsg]);
+  }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setToastMsg, setPendingRelicChoices]);
 
   // ✨ 플레이어 카드 사용 로직 안정화 (버그 방지)
   const playCard = useCallback(async (cardIndex, targetIndex = 0) => {

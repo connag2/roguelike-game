@@ -55,6 +55,33 @@ export default function Rewards({
     setIsProcessing(false);
   }, [gameState]);
 
+  // 🛡️ 보스 보상 / 유물 로딩 화면 무한 정체 방지 안전 타이머
+  useEffect(() => {
+    let t;
+    if (gameState === 'BOSS_RELIC_CHOICE' && (!pendingRelicChoices || pendingRelicChoices.length === 0)) {
+      t = setTimeout(() => {
+        if (specialBossRewardCard) {
+          setGameState('BOSS_CLEAR_REWARD');
+        } else {
+          setGameState('REWARDS');
+        }
+      }, 400);
+    } else if (gameState === 'RELIC_REWARD' && !pendingRelicReward) {
+      t = setTimeout(() => {
+        if (specialBossRewardCard) {
+          setGameState('BOSS_CLEAR_REWARD');
+        } else {
+          setGameState('REWARDS');
+        }
+      }, 400);
+    } else if (gameState === 'BOSS_CLEAR_REWARD' && !specialBossRewardCard) {
+      t = setTimeout(() => {
+        setGameState('REWARDS');
+      }, 400);
+    }
+    return () => { if (t) clearTimeout(t); };
+  }, [gameState, pendingRelicChoices, pendingRelicReward, specialBossRewardCard, setGameState]);
+
   // 🤖 AUTO 보상 자동 선택 (백그라운드 지원 & BOSS_CLEAR_REWARD 포함)
   useEffect(() => {
     if (!autoReward || !combatState || isProcessing || processedRef.current) return;
@@ -66,25 +93,41 @@ export default function Rewards({
       if (processedRef.current || isProcessing) return;
 
       // 1. 유물 자동 획득
-      if (gameState === 'RELIC_REWARD' && autoRelic && pendingRelicReward && handleRelicRewardClaim) {
-        processedRef.current = true;
-        handleRelicRewardClaim();
-        return;
+      if (gameState === 'RELIC_REWARD') {
+        if (autoRelic && pendingRelicReward && handleRelicRewardClaim) {
+          processedRef.current = true;
+          handleRelicRewardClaim();
+          return;
+        } else if (!pendingRelicReward) {
+          processedRef.current = true;
+          setGameState(specialBossRewardCard ? 'BOSS_CLEAR_REWARD' : 'REWARDS');
+          return;
+        }
       }
 
       // 2. 보스 유물 3지선다 자동 선택 (첫 번째 유물)
-      if (gameState === 'BOSS_RELIC_CHOICE' && autoRelic && pendingRelicChoices && pendingRelicChoices.length > 0 && handleRelicChoiceClaim) {
-        processedRef.current = true;
-        handleRelicChoiceClaim(pendingRelicChoices[0]);
-        return;
+      if (gameState === 'BOSS_RELIC_CHOICE') {
+        if (autoRelic && pendingRelicChoices && pendingRelicChoices.length > 0 && handleRelicChoiceClaim) {
+          processedRef.current = true;
+          handleRelicChoiceClaim(pendingRelicChoices[0]);
+          return;
+        } else if (!pendingRelicChoices || pendingRelicChoices.length === 0) {
+          processedRef.current = true;
+          setGameState(specialBossRewardCard ? 'BOSS_CLEAR_REWARD' : 'REWARDS');
+          return;
+        }
       }
 
       // 3. 보스 처치 특수 카드 자동 획득 (BOSS_CLEAR_REWARD 누락 방지)
       if (gameState === 'BOSS_CLEAR_REWARD') {
         const claimFn = handleSpecialClaim || handleSpecialBossRewardClaim;
-        if (claimFn) {
+        if (specialBossRewardCard && claimFn) {
           processedRef.current = true;
           claimFn();
+          return;
+        } else if (!specialBossRewardCard) {
+          processedRef.current = true;
+          setGameState('REWARDS');
           return;
         }
       }
@@ -190,9 +233,19 @@ export default function Rewards({
 
   // 🌟 0. 유물 발견 보상 화면 (최우선 표시)
   if (gameState === 'RELIC_REWARD') {
-    // 데이터 아직 없으면 로딩 표시 (검은화면 방지)
+    // 데이터 아직 없으면 로딩 표시 및 수동 넘기기 제공
     if (!pendingRelicReward) {
-      return <div className="flex items-center justify-center min-h-[100dvh] bg-slate-900 text-white text-2xl font-bold animate-pulse">🌟 유물 로딩 중...</div>;
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 gap-4">
+          <div className="text-2xl font-bold text-amber-400 animate-pulse">🌟 유물 준비 중...</div>
+          <button 
+            onClick={() => setGameState(specialBossRewardCard ? 'BOSS_CLEAR_REWARD' : 'REWARDS')}
+            className="mt-4 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95"
+          >
+            다음 보상으로 이동
+          </button>
+        </div>
+      );
     }
     let rColor = 'text-slate-400';
     let rBorder = 'border-slate-400';
@@ -227,7 +280,17 @@ export default function Rewards({
   // 🌟 0.5 보스 유물 3지선다 화면
   if (gameState === 'BOSS_RELIC_CHOICE') {
     if (!pendingRelicChoices || pendingRelicChoices.length === 0) {
-      return <div className="flex items-center justify-center min-h-[100dvh] bg-slate-900 text-white text-2xl font-bold animate-pulse">🏆 보스 보상 로딩 중...</div>;
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 gap-4">
+          <div className="text-2xl font-bold text-amber-400 animate-pulse">🏆 보스 보상 준비 중...</div>
+          <button 
+            onClick={() => setGameState(specialBossRewardCard ? 'BOSS_CLEAR_REWARD' : 'REWARDS')}
+            className="mt-4 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95"
+          >
+            다음 보상으로 이동
+          </button>
+        </div>
+      );
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative overflow-hidden">
@@ -440,7 +503,17 @@ export default function Rewards({
   // 4. 보스 클리어 특수 보상 화면
   if (gameState === 'BOSS_CLEAR_REWARD') {
     if (!specialBossRewardCard) {
-      return <div className="flex items-center justify-center min-h-[100dvh] bg-slate-900 text-white text-2xl font-bold animate-pulse">✨ 특수 보상 로딩 중...</div>;
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 gap-4">
+          <div className="text-2xl font-bold text-fuchsia-400 animate-pulse">✨ 특수 보상 준비 중...</div>
+          <button 
+            onClick={() => setGameState('REWARDS')}
+            className="mt-4 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold text-sm shadow-lg transition-all active:scale-95"
+          >
+            다음 보상으로 이동
+          </button>
+        </div>
+      );
     }
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-slate-900 text-white p-4 relative z-50 overflow-hidden">

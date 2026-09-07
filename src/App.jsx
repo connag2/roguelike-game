@@ -419,7 +419,7 @@ export default function App() {
     setToastMsg(`🌟 ${pendingRelicReward.name} 장착 완료!`);
     setPendingRelicReward(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
-    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { 
+    else if (combatState?.mode === 'NORMAL' && (combatState?.stage || 0) >= 100) { 
       setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); 
     } 
     else { setGameState('REWARDS'); }
@@ -436,7 +436,7 @@ export default function App() {
     setToastMsg(`🌟 ${relic.name} 획득!`);
     setPendingRelicChoices(null);
     if (specialBossRewardCard) { setGameState('BOSS_CLEAR_REWARD'); } 
-    else if (combatState.mode === 'NORMAL' && combatState.stage >= 100) { 
+    else if (combatState?.mode === 'NORMAL' && (combatState?.stage || 0) >= 100) { 
       setNormalCleared(true); saveGame({ normalCleared: true }); setGameState('GAME_CLEAR'); 
     } 
     else { setGameState('REWARDS'); }
