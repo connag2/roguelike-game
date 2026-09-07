@@ -24,6 +24,7 @@ import AdminPanel from './components/admin/AdminPanel';
 import ClassSelectScreen from './components/screens/ClassSelectScreen';
 import TownScreen from './components/screens/TownScreen';
 import EventScreen from './components/screens/EventScreen';
+import { startAudioKeepAlive } from './utils/backgroundAudioKeepAlive';
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
@@ -127,6 +128,21 @@ export default function App() {
   useEffect(() => {
     document.body.style.margin = '0';
     document.body.style.backgroundColor = '#0f172a';
+  }, []);
+
+  // 🎵 크롬/엣지 브라우저 백그라운드 동결 및 탭 절전 방지를 위한 Audio Keep-Alive
+  useEffect(() => {
+    const handleTriggerAudio = () => {
+      startAudioKeepAlive();
+    };
+    window.addEventListener('click', handleTriggerAudio);
+    window.addEventListener('keydown', handleTriggerAudio);
+    window.addEventListener('touchstart', handleTriggerAudio);
+    return () => {
+      window.removeEventListener('click', handleTriggerAudio);
+      window.removeEventListener('keydown', handleTriggerAudio);
+      window.removeEventListener('touchstart', handleTriggerAudio);
+    };
   }, []);
 
   useEffect(() => {
@@ -439,7 +455,8 @@ export default function App() {
     };
 
     const processEnemyTurn = async () => {
-      await new Promise(r => setTimeout(r, fastMode ? 200 : 500));
+      const isHidden = typeof document !== 'undefined' && document.hidden;
+      await new Promise(r => setTimeout(r, isHidden ? 10 : (fastMode ? 200 : 500)));
       if (isCancelled) return;
 
       
@@ -490,8 +507,8 @@ export default function App() {
             }
             if (e.hp <= 0) break;
 
-            // 🎬 컷씬 체크
-            if (intent.cutscene || (e.isBoss && intent.type.includes('attack') && intent.value >= 25 && !fastMode)) {
+            // 🎬 컷씬 체크 (백그라운드 시 스킵)
+            if ((intent.cutscene || (e.isBoss && intent.type.includes('attack') && intent.value >= 25 && !fastMode)) && !isHidden) {
               await mutate(prev => ({ ...prev, cutsceneData: { name: e.name, skillName: intent.name || '치명적인 공격' } }));
               await new Promise(r => setTimeout(r, 1500)); // 컷씬 지속 시간
               await mutate(prev => ({ ...prev, cutsceneData: null }));
@@ -528,13 +545,13 @@ export default function App() {
                 }
                 if (p.buffs?.thorns > 0) { e.hp -= p.buffs.thorns; checkRevive(e, null); }
 
-                await mutate(prev => ({ ...prev, player: p, enemies: [...newEnemies], hitEffect: { targetUid: 'player', type: 'hit' } }));
-                await new Promise(r => setTimeout(r, fastMode ? 100 : 200));
+                await mutate(prev => ({ ...prev, player: p, enemies: [...newEnemies], hitEffect: isHidden ? null : { targetUid: 'player', type: 'hit' } }));
+                await new Promise(r => setTimeout(r, isHidden ? 10 : (fastMode ? 100 : 200)));
                 await mutate(prev => ({ ...prev, hitEffect: null }));
                 if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
               }
             } else {
-              await new Promise(r => setTimeout(r, 150));
+              await new Promise(r => setTimeout(r, isHidden ? 10 : 150));
             }
             
             if (e.hp <= 0) break; 
@@ -553,7 +570,7 @@ export default function App() {
             if (intent.type.includes('heal')) e.hp = Math.min(e.maxHp, e.hp + (intent.heal || 0));
           }
         } 
-
+        
         ['weak', 'vulnerable', 'mark', 'frail', 'silence', 'bind', 'bleed', 'frost', 'burn'].forEach(k => { e.debuffs[k] = decayStack(e.debuffs[k] || 0, ['silence', 'bind'].includes(k), k); });
         ['strength', 'intangible', 'regen', 'rage'].forEach(k => { e.buffs[k] = decayStack(e.buffs[k] || 0, k === 'intangible'); });
         e.intentCards = generateEnemyIntent(e, e.dmgMultiplier || 1);
@@ -561,7 +578,7 @@ export default function App() {
 
       newEnemies = newEnemies.filter(e => e.hp > 0);
       if (p.hp <= 0) { setGameState('GAME_OVER'); return; }
-      if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), 600); await mutate(prev => ({ ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] })); return; }
+      if (newEnemies.length === 0) { setTimeout(() => setGameState('REWARDS'), isHidden ? 20 : 600); await mutate(prev => ({ ...prev, player: p, enemies: [], hand: [], discardPile: [], drawPile: [] })); return; }
       
       p.block = 0; p.mana = p.maxMana;
       if ((p.buffs?.regen || 0) > 0) { p.hp = Math.min(p.maxHp, p.hp + p.buffs.regen); }
@@ -980,7 +997,13 @@ export default function App() {
             setAutoPlay={(val) => {
               const next = typeof val === 'function' ? val(autoPlay) : val;
               setAutoPlay(next);
-              saveGame({ autoPlay: next });
+              if (next && !autoReward) {
+                setAutoReward(true);
+                saveGame({ autoPlay: next, autoReward: true });
+                setToastMsg('🤖 자동 전투 및 자동 보상 진행이 활성화되었습니다');
+              } else {
+                saveGame({ autoPlay: next });
+              }
             }}
             saveGame={saveGame}
             viewingEnemy={viewingEnemy}
@@ -996,7 +1019,7 @@ export default function App() {
         
         {gameState === 'MONSTER_DEX' && <MonsterDex seenEnemies={seenEnemies} dexViewingEnemy={dexViewingEnemy} setDexViewingEnemy={setDexViewingEnemy} toggleFullScreen={toggleFullScreen} setGameState={setGameState} />}
         
-        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD', 'BOSS_RELIC_CHOICE'].includes(gameState)) && (
+        {(['REWARDS', 'REWARD_CARD', 'REWARD_REMOVE', 'BOSS_CLEAR_REWARD', 'RELIC_REWARD', 'BOSS_RELIC_CHOICE', 'HARD_CLEAR_RELIC_CHOICE'].includes(gameState)) && (
           <Rewards 
             gameState={gameState} 
             rewardCards={rewardCards} 

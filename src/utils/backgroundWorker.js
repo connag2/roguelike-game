@@ -2,11 +2,17 @@
 // 브라우저 탭이 비활성화되거나 최소화되어도 타이머가 중단되지 않도록 Web Worker를 활용한 백그라운드 틱 제공
 
 let workerInstance = null;
+let fallbackInterval = null;
 const tickListeners = new Set();
+
+const dispatchTick = () => {
+  tickListeners.forEach(cb => {
+    try { cb(); } catch (err) { /* ignore */ }
+  });
+};
 
 export const getBackgroundWorker = () => {
   if (typeof window === 'undefined') return null;
-  if (window.require) return null; // Electron 환경에서는 BrowserWindow backgroundThrottling: false 로 자체 처리됨
   if (!workerInstance && typeof Worker !== 'undefined') {
     try {
       const workerCode = `
@@ -16,7 +22,7 @@ export const getBackgroundWorker = () => {
             if (!timer) {
               timer = setInterval(function() {
                 self.postMessage('tick');
-              }, 150);
+              }, 120);
             }
           } else if (e.data === 'stop') {
             if (timer) {
@@ -29,15 +35,18 @@ export const getBackgroundWorker = () => {
       const blob = new Blob([workerCode], { type: 'application/javascript' });
       workerInstance = new Worker(URL.createObjectURL(blob));
       workerInstance.onmessage = () => {
-        tickListeners.forEach(cb => {
-          try { cb(); } catch (err) { /* ignore */ }
-        });
+        dispatchTick();
       };
       workerInstance.postMessage('start');
     } catch (e) {
       console.warn('Web Worker background timer initialization skipped', e);
     }
   }
+
+  if (!workerInstance && !fallbackInterval) {
+    fallbackInterval = setInterval(dispatchTick, 120);
+  }
+
   return workerInstance;
 };
 

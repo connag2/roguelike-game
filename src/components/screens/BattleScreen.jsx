@@ -50,7 +50,8 @@ export default function BattleScreen({
         setDiscardingHand(false);
       }
 
-      const timer = setTimeout(() => setTurnBanner(null), 800); 
+      const isHidden = typeof document !== 'undefined' && document.hidden;
+      const timer = setTimeout(() => setTurnBanner(null), isHidden ? 50 : 800); 
       return () => clearTimeout(timer);
     }
   }, [combatState?.turn]);
@@ -72,9 +73,11 @@ export default function BattleScreen({
   const handleTurnEndClick = async () => {
     if (!isPlayerTurn || discardingHand) return;
     
+    const isHidden = typeof document !== 'undefined' && document.hidden;
     setDiscardingHand(true);
-    await new Promise(r => setTimeout(r, 300 + (hand?.length || 0) * 50)); 
+    await new Promise(r => setTimeout(r, isHidden ? 10 : (fastMode ? 80 : (300 + (hand?.length || 0) * 50)))); 
     setCombatState(prev => ({ ...prev, turn: 'ENEMY' }));
+    setDiscardingHand(false);
   };
 
   const handlePlayCard = async (idx) => {
@@ -83,42 +86,50 @@ export default function BattleScreen({
 
     const card = hand[idx];
     if (!card) return;
+    const isHidden = typeof document !== 'undefined' && document.hidden;
     const isAttack = card.type === 'attack';
     const hits = card.multiHit || 1;
     const tier = card.rarity || 'common';
-    const delay = fastMode ? 20 : (isAttack ? 50 : 30);
+    const delay = isHidden ? 5 : (fastMode ? 20 : (isAttack ? 50 : 30));
 
-    setAnimatingCardIndex(idx);
-    await new Promise(r => setTimeout(r, 20)); 
+    try {
+      if (!isHidden) {
+        setAnimatingCardIndex(idx);
+        await new Promise(r => setTimeout(r, 20)); 
+      }
 
-    // 🌟 궁극기(신화) 카드 컷신 연출
-    if (card.rarity === 'mythic' && !fastMode) {
-      setShowUltimate(card);
-      await new Promise(r => setTimeout(r, 2800)); // 컷신 종료 대기
-      setShowUltimate(null);
-    }
-    
-    playCard(idx, targetIndex);
-    setAnimatingCardIndex(null);
+      // 🌟 궁극기(신화) 카드 컷신 연출 (백그라운드 또는 배속 시 즉시 스킵)
+      if (card.rarity === 'mythic' && !fastMode && !isHidden) {
+        setShowUltimate(card);
+        await new Promise(r => setTimeout(r, 2800)); // 컷신 종료 대기
+        setShowUltimate(null);
+      }
+      
+      playCard(idx, targetIndex);
+      setAnimatingCardIndex(null);
 
-    if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
-      for (let i = 0; i < hits; i++) {
-        let effectName = null;
-        if (card.id === 'mana_potion') effectName = 'mana_potion'; 
-        else if (card.id === 'purify') effectName = 'purify_effect';
-        else if (card.id === 'furioso') effectName = 'furioso';
-        else if (card.id === 'meteor_fall') effectName = 'meteor';
-        else if (card.id === 'snipe') effectName = 'snipe';
-        else effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`;
+      if (isAttack || card.id === 'mana_potion' || card.id === 'purify') {
+        for (let i = 0; i < hits; i++) {
+          let effectName = null;
+          if (card.id === 'mana_potion') effectName = 'mana_potion'; 
+          else if (card.id === 'purify') effectName = 'purify_effect';
+          else if (card.id === 'furioso') effectName = 'furioso';
+          else if (card.id === 'meteor_fall') effectName = 'meteor';
+          else if (card.id === 'snipe') effectName = 'snipe';
+          else effectName = tier === 'common' ? 'common_hit' : `${tier}_attack`;
 
-        setPlayEffect({ id: Date.now() + i, name: effectName, tier, cardId: card.id, hits });
+          if (!isHidden) {
+            setPlayEffect({ id: Date.now() + i, name: effectName, tier, cardId: card.id, hits });
+          }
+          await new Promise(r => setTimeout(r, delay));
+        }
+      } else {
         await new Promise(r => setTimeout(r, delay));
       }
-    } else {
-      await new Promise(r => setTimeout(r, delay));
+    } finally {
+      setAnimatingCardIndex(null);
+      setPlayEffect(null);
     }
-    
-    setPlayEffect(null);
   };
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
@@ -195,20 +206,27 @@ export default function BattleScreen({
 
         if (scored.length > 0) {
           isAutoExecutingRef.current = true;
-          await handlePlayCard(scored[0].idx);
-          isAutoExecutingRef.current = false;
+          try {
+            await handlePlayCard(scored[0].idx);
+          } finally {
+            isAutoExecutingRef.current = false;
+          }
         }
       } else {
         // 2. 낼 수 있는 카드가 진짜 0장일 때만 자동 턴 종료!
         if (!discardingHand && isPlayerTurn) {
           isAutoExecutingRef.current = true;
-          await handleTurnEndClick();
-          isAutoExecutingRef.current = false;
+          try {
+            await handleTurnEndClick();
+          } finally {
+            isAutoExecutingRef.current = false;
+          }
         }
       }
     };
 
-    const timer = setTimeout(runAutoStep, fastMode ? 100 : 250);
+    const isHidden = typeof document !== 'undefined' && document.hidden;
+    const timer = setTimeout(runAutoStep, isHidden ? 30 : (fastMode ? 100 : 250));
     const unsubscribe = subscribeBackgroundTick(runAutoStep);
 
     return () => {

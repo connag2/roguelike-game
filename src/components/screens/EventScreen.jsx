@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Heart, Zap, Coins, ArrowRight } from 'lucide-react';
 import { shuffle } from '../../utils/gameLogic';
+import { subscribeBackgroundTick } from '../../utils/backgroundWorker';
 
 const getEvents = (stage) => {
   const hpPenalty1 = 15 + Math.floor(stage * 0.5);
@@ -150,8 +151,19 @@ export default function EventScreen({ combatState, setCombatState, credits, setC
       const greedy = validOpts.find(o => o.text.includes('최대 체력') || o.text.includes('크레딧') || o.text.includes('강화'));
       if (greedy) chosen = greedy;
     }
-    const t = setTimeout(() => handleOption(chosen), 600);
-    return () => clearTimeout(t);
+    const isHidden = typeof document !== 'undefined' && document.hidden;
+    const executeEvent = () => {
+      if (!isProcessing) {
+        handleOption(chosen);
+      }
+    };
+    const t = setTimeout(executeEvent, isHidden ? 20 : 600);
+    const unsubscribe = subscribeBackgroundTick(executeEvent);
+
+    return () => {
+      clearTimeout(t);
+      unsubscribe();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoReward, eventData, isProcessing]);
 

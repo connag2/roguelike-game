@@ -4,6 +4,7 @@ import { Trash2, AlertTriangle, Star, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
 import { CARD_LIBRARY, BOSS_LOOT_CARDS } from '../../constants/gameData';
 import { RELIC_LIBRARY } from '../../constants/relicData';
+import { subscribeBackgroundTick } from '../../utils/backgroundWorker';
 
 import scrollImg from '../../assets/images/items/scroll.svg';
 import potionImg from '../../assets/images/items/potion.svg';
@@ -54,31 +55,68 @@ export default function Rewards({
     setIsProcessing(false);
   }, [gameState]);
 
-  // 🤖 AUTO 보상 자동 선택 (안전한 단순 타이머 방식)
+  // 🤖 AUTO 보상 자동 선택 (백그라운드 지원 & BOSS_CLEAR_REWARD 포함)
   useEffect(() => {
     if (!autoReward || !combatState || isProcessing || processedRef.current) return;
 
-    // 유물 자동 획득
-    if (gameState === 'RELIC_REWARD' && autoRelic && pendingRelicReward && handleRelicRewardClaim) {
-      processedRef.current = true;
-      const t = setTimeout(() => handleRelicRewardClaim(), 500);
-      return () => clearTimeout(t);
-    }
+    const isHidden = typeof document !== 'undefined' && document.hidden;
+    const baseDelay = isHidden ? 20 : 500;
 
-    // 보스 유물 3지선다 자동 선택 (첫 번째 유물)
-    if (gameState === 'BOSS_RELIC_CHOICE' && autoRelic && pendingRelicChoices && pendingRelicChoices.length > 0 && handleRelicChoiceClaim) {
-      processedRef.current = true;
-      const t = setTimeout(() => handleRelicChoiceClaim(pendingRelicChoices[0]), 500);
-      return () => clearTimeout(t);
-    }
+    const executeAuto = () => {
+      if (processedRef.current || isProcessing) return;
 
-    // 기본 보상 화면 (카드 추가 or 회복)
-    if (gameState === 'REWARDS') {
-      processedRef.current = true;
-      const t = setTimeout(() => {
+      // 1. 유물 자동 획득
+      if (gameState === 'RELIC_REWARD' && autoRelic && pendingRelicReward && handleRelicRewardClaim) {
+        processedRef.current = true;
+        handleRelicRewardClaim();
+        return;
+      }
+
+      // 2. 보스 유물 3지선다 자동 선택 (첫 번째 유물)
+      if (gameState === 'BOSS_RELIC_CHOICE' && autoRelic && pendingRelicChoices && pendingRelicChoices.length > 0 && handleRelicChoiceClaim) {
+        processedRef.current = true;
+        handleRelicChoiceClaim(pendingRelicChoices[0]);
+        return;
+      }
+
+      // 3. 보스 처치 특수 카드 자동 획득 (BOSS_CLEAR_REWARD 누락 방지)
+      if (gameState === 'BOSS_CLEAR_REWARD') {
+        const claimFn = handleSpecialClaim || handleSpecialBossRewardClaim;
+        if (claimFn) {
+          processedRef.current = true;
+          claimFn();
+          return;
+        }
+      }
+
+      // 4. 하드 모드 300층 클리어 유물 3개 자동 선택
+      if (gameState === 'HARD_CLEAR_RELIC_CHOICE') {
+        processedRef.current = true;
+        const availableRelics = RELIC_LIBRARY.filter(r => !(playerRelics || []).some(pr => pr?.id === r.id));
+        const pick = availableRelics.slice(0, 3);
+        const selectedRelicObjects = RELIC_LIBRARY.filter(r => pick.map(p => p.id).includes(r.id));
+        const updatedRelics = [...(playerRelics || []), ...selectedRelicObjects];
+        let newUnlocked = [...(unlockedRelics || [])];
+        selectedRelicObjects.forEach(r => {
+          if (!newUnlocked.includes(r.id)) newUnlocked.push(r.id);
+        });
+        setUnlockedRelics(newUnlocked);
+        saveGame({ unlockedRelics: newUnlocked });
+        setGameState('GAME_CLEAR');
+        return;
+      }
+
+      // 5. 기본 보상 화면 (카드 추가 or 회복)
+      if (gameState === 'REWARDS') {
+        processedRef.current = true;
         setIsProcessing(true);
-        const cs = combatStateRef.current; // ✅ 최신 combatState 사용
+        const cs = combatStateRef.current;
         if (!cs || !cs.player) return;
+
+        // 적이 드랍한 전리품 카드가 있다면 자동 흡수
+        if (enemyDropCard && typeof handleEnemyDropClaim === 'function') {
+          try { handleEnemyDropClaim(); } catch (e) { /* ignore */ }
+        }
 
         if (autoRewardType === 'heal') {
           const p = { ...cs.player };
@@ -90,7 +128,6 @@ export default function Rewards({
           const baseDeck = cs.baseDeck || [];
           const pool = CARD_LIBRARY.filter(c => {
             if (!c || !c.id) return false;
-            // 특수(special) 타입과 loot 유형은 보상에서 제외
             if (c.type === 'special' || c.rarity === 'special' || c.rarity === 'loot') return false;
             const count = baseDeck.filter(dc => dc && dc.id === c.id).length;
             return count < 3;
@@ -136,11 +173,18 @@ export default function Rewards({
           saveGame({ unlockedCards: newUnlocked, customCards: newCustomCards });
           startNextStage(cs.player, newDeck);
         }
-      }, 600);
-      return () => clearTimeout(t);
-    }
+      }
+    };
+
+    const timer = setTimeout(executeAuto, baseDelay);
+    const unsubscribe = subscribeBackgroundTick(executeAuto);
+
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState, autoReward, autoRewardType, autoRelic, isProcessing]);
+  }, [gameState, autoReward, autoRewardType, autoRelic, isProcessing, pendingRelicReward, pendingRelicChoices, specialBossRewardCard]);
 
   if (!combatState) return null;
 

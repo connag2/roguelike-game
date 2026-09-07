@@ -208,17 +208,20 @@ export function useBattle({
 
       saveGame({ credits: credits + earned, maxStageReached: prevCombat.stage >= maxStageReached ? prevCombat.stage + 1 : maxStageReached, gameStats: newStats });
       
+      const isHidden = typeof document !== 'undefined' && document.hidden;
+      const victoryDelay = isHidden ? 20 : 600;
+
       if (droppedRelicChoices && droppedRelicChoices.length > 0) {
         if (typeof setPendingRelicChoices === 'function') {
            setPendingRelicChoices(droppedRelicChoices);
         }
-        setTimeout(() => setGameState('BOSS_RELIC_CHOICE'), 600);
+        setTimeout(() => setGameState('BOSS_RELIC_CHOICE'), victoryDelay);
       } else if (droppedRelic) {
         setPendingRelicReward(droppedRelic);
-        setTimeout(() => setGameState('RELIC_REWARD'), 600);
+        setTimeout(() => setGameState('RELIC_REWARD'), victoryDelay);
       } else {
         if (finalBossCard) {
-          setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), 600);
+          setTimeout(() => setGameState('BOSS_CLEAR_REWARD'), victoryDelay);
         } else if ((prevCombat.mode === 'NORMAL' && prevCombat.stage >= 100) || (prevCombat.mode === 'HARD' && prevCombat.stage >= 300)) { 
           if (prevCombat.mode === 'NORMAL') {
             setNormalCleared(true);
@@ -226,17 +229,18 @@ export function useBattle({
           }
           else if (prevCombat.mode === 'HARD' && prevCombat.stage >= 300) {
             setToastMsg('🎉 하드 모드 완전 클리어! 유물 3개를 선택하세요!');
-            setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), 600);
+            setTimeout(() => setGameState('HARD_CLEAR_RELIC_CHOICE'), victoryDelay);
             return;
           }
           setGameState('GAME_CLEAR'); 
         } else {
-          setTimeout(() => setGameState('REWARDS'), 600);
+          setTimeout(() => setGameState('REWARDS'), victoryDelay);
         }
       }
     } catch (err) {
       console.error("보상 처리 중 에러 발생:", err);
-      setTimeout(() => setGameState('REWARDS'), 600);
+      const isHidden = typeof document !== 'undefined' && document.hidden;
+      setTimeout(() => setGameState('REWARDS'), isHidden ? 20 : 600);
     }
   }, [gameStats, maxStageReached, playerRelics, credits, setGameStats, setCredits, setMaxStageReached, setPendingRelicReward, setSpecialBossRewardCard, saveGame, setGameState, setNormalCleared, setToastMsg]);
 
@@ -575,8 +579,9 @@ export function useBattle({
           }
         }
         
-        await mutate(prev => ({ ...prev, player: p, enemies: [...newEnemies], hitEffect: { targetUid: target.uid, type: 'hit' } }));
-        await new Promise(r => setTimeout(r, 150));
+        const isHidden = typeof document !== 'undefined' && document.hidden;
+        await mutate(prev => ({ ...prev, player: p, enemies: [...newEnemies], hitEffect: isHidden ? null : { targetUid: target.uid, type: 'hit' } }));
+        await new Promise(r => setTimeout(r, isHidden ? 5 : 150));
         await mutate(prev => ({ ...prev, hitEffect: null }));
       }
     }
