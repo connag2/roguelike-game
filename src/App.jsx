@@ -47,6 +47,8 @@ export default function App() {
   const [gameState, setGameState] = useState('MENU');
   const [user, setUser] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+  const [showSaveIndicator, setShowSaveIndicator] = useState(false);
+  const saveTimerRef = useRef(null);
   const [credits, setCredits] = useState(0);
   const [shopUpgrades, setShopUpgrades] = useState({ maxHp: 0, upgradedCards: [] });
   const [unlockedCards, setUnlockedCards] = useState(BASE_CARDS);
@@ -723,7 +725,20 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className={isCssFullScreen ? 'fixed inset-0 z-50 bg-slate-950' : 'bg-slate-900 min-h-screen text-white'}>
-        {toastMsg && <div className="fixed top-10 left-1/2 -translate-x-1/2 bg-indigo-600 px-6 py-3 rounded-full z-[9999] shadow-2xl animate-bounce font-bold">{toastMsg}</div>}
+        {/* 눈 아프지 않은 세련된 토스트 메시지 (바운스 제거 및 부드러운 다크 글래스모피즘) */}
+        {toastMsg && (
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] pointer-events-none px-5 py-2.5 rounded-2xl bg-slate-900/90 backdrop-blur-md border border-slate-700/80 text-slate-100 text-sm font-semibold shadow-2xl transition-all duration-300 flex items-center gap-2">
+            <span>{toastMsg}</span>
+          </div>
+        )}
+
+        {/* 눈에 편안하고 단순한 저장 완료 뱃지 */}
+        {showSaveIndicator && (
+          <div className="fixed bottom-5 right-5 z-[9999] pointer-events-none flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/80 backdrop-blur-md border border-slate-700/60 text-slate-300 text-xs font-medium shadow-lg transition-all duration-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>저장되었습니다</span>
+          </div>
+        )}
 
         <GameGuide isOpen={tutorialModalOpen} onClose={() => setTutorialModalOpen(false)} />
 

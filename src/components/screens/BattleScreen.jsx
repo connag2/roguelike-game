@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, ArrowRightCircle, HelpCircle, FastForward, Sword, Zap, Heart } from 'lucide-react'; 
 import { getDynamicCardDef } from '../../utils/gameLogic';
+import { subscribeBackgroundTick } from '../../utils/backgroundWorker';
 import Card from '../common/Card';
 import StatusIcon from '../common/StatusIcon';
 import CommonEffects from '../effects/CommonEffects';
@@ -122,14 +123,15 @@ export default function BattleScreen({
 
   const isShaking = playEffect && ['enemy_attack', 'furioso', 'meteor', 'snipe', 'mythic', 'rare', 'special'].includes(playEffect.name);
 
-  // 🤖 쾌속 자동 전투 AI (중단 없이 연속 실행 + 낼 카드 없을 때만 자동 턴 종료)
+  // 🤖 쾌속 자동 전투 AI (백그라운드에서도 연속 실행 + 낼 카드 없을 때만 자동 턴 종료)
   useEffect(() => {
     if (!autoPlay || !isPlayerTurn || playEffect || discardingHand || animatingCardIndex !== null) {
       return;
     }
 
-    const timer = setTimeout(async () => {
+    const runAutoStep = async () => {
       if (isAutoExecutingRef.current) return;
+      if (!isPlayerTurn || playEffect || discardingHand || animatingCardIndex !== null) return;
 
       const p = combatState?.player;
       const enemies = combatState?.enemies || [];
@@ -137,20 +139,26 @@ export default function BattleScreen({
       if (!p || !enemy || !hand) return;
 
       const debuffs = p.debuffs || {};
-      const isBound = (debuffs.bind || 0) > 0;
-      const isSilenced = (debuffs.silence || 0) > 0;
+      const bindCount = debuffs.bind || 0;
+      const silenceCount = debuffs.silence || 0;
       const isDebuffed = Object.values(debuffs).some(v => (v || 0) > 0);
+
+      const attackIndices = hand.map((c, i) => c.type === 'attack' ? i : -1).filter(i => i !== -1);
+      const lockedAttackIndices = attackIndices.slice(0, bindCount);
+
+      const skillIndices = hand.map((c, i) => c.type === 'skill' ? i : -1).filter(i => i !== -1);
+      const lockedSkillIndices = skillIndices.slice(0, silenceCount);
 
       // 동적 카드 정의를 사용해 실제 마나 및 효과 정확히 계산
       const playableCards = hand.map((rawCard, idx) => {
         const card = getDynamicCardDef(rawCard, p) || rawCard;
         return { card, idx };
-      }).filter(({ card }) => {
+      }).filter(({ card, idx }) => {
         if (!card) return false;
         const cost = card.cost !== undefined ? card.cost : 0;
         if ((p.mana || 0) < cost) return false;
-        if (card.type === 'attack' && isBound) return false;
-        if (card.type === 'skill' && isSilenced) return false;
+        if (card.type === 'attack' && lockedAttackIndices.includes(idx)) return false;
+        if (card.type === 'skill' && lockedSkillIndices.includes(idx)) return false;
         return true;
       });
 
@@ -191,16 +199,22 @@ export default function BattleScreen({
           isAutoExecutingRef.current = false;
         }
       } else {
-        // 2. 낼 할 수 있는 카드가 진짜 0장일 때만 자동 턴 종료!
+        // 2. 낼 수 있는 카드가 진짜 0장일 때만 자동 턴 종료!
         if (!discardingHand && isPlayerTurn) {
           isAutoExecutingRef.current = true;
           await handleTurnEndClick();
           isAutoExecutingRef.current = false;
         }
       }
-    }, fastMode ? 100 : 250);
+    };
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(runAutoStep, fastMode ? 100 : 250);
+    const unsubscribe = subscribeBackgroundTick(runAutoStep);
+
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [autoPlay, isPlayerTurn, hand, playEffect, combatState, targetIndex, fastMode, discardingHand, animatingCardIndex]);
 
   const getEnemyImage = (name) => {

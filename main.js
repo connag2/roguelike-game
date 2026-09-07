@@ -14,9 +14,14 @@ function createWindow() {
     height: 720,
     webPreferences: {
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+      backgroundThrottling: false
     },
   });
+
+  if (win.webContents && win.webContents.setBackgroundThrottling) {
+    win.webContents.setBackgroundThrottling(false);
+  }
 
   const startUrl = process.env.ELECTRON_START_URL || `file://${path.join(__dirname, 'dist/index.html')}`;
   win.loadURL(startUrl);
