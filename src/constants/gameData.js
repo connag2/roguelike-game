@@ -243,7 +243,7 @@ export const CARD_LIBRARY = [
   { id: 'soul_collapse', name: '영혼 붕괴', type: 'attack', cost: 2, rarity: 'rare', damage: 30, selfDamage: 5, exhaust: true, desc: '스스로의 영혼의 일부를 부수며 30의 강력한 피해를 주지만 체력을 5 잃습니다. (사용 후 소멸)' },
   { id: 'last_flame', name: '최후의 불꽃', type: 'attack', cost: 2, rarity: 'rare', damage: 5, exhaustStackDamage: 5, desc: '모든 것을 잃은 자리에서 불꽃을 피웁니다. 5의 피해를 주며 이번 전투에서 소멸된 카드 1장당 피해가 5 증가합니다.' },
 
-    { id: 'russian_roulette', name: '러시안 룰렛', type: 'attack', cost: 1, rarity: 'rare', gamble: true, gambleWinChance: 0.167, winPercentCurrentHpDamage: 0.5, loseSelfDamage: 8, loseDraw: 1, desc: '리볼버의 탄창을 돌리고 방아쇠를 당깁니다. 1/6 확률(약 17%)로 대상 현재 체력의 50%를 즉시 소멸시킵니다. 실패 시 자신에게 8의 반동 피해를 입고 카드를 1장 뽑습니다.' },
+  { id: 'russian_roulette', name: '러시안 룰렛', type: 'attack', cost: 1, rarity: 'rare', gamble: true, gambleWinChance: 0.167, winPercentCurrentHpDamage: 0.7, losePercentCurrentHpDamage: 0.5, loseSelfVuln: 2, desc: '리볼버의 탄창을 돌리고 방아쇠를 당깁니다. 1/6 확률(약 17%)로 대상 현재 체력의 70%를 즉시 소멸시킵니다. 실패 시 총구가 역류해 현재 체력의 50%를 잃고 취약 2를 받습니다.' },
   { id: 'devils_dice', name: '악마의 주사위', type: 'skill', cost: 2, rarity: 'rare', gamble: true, gambleWinChance: 0.5, winHeal: 35, winNextTurnMana: 2, losePercentCurrentHpDamage: 0.2, loseSelfVuln: 2, desc: '영혼을 걸고 주사위를 굴립니다. 50% 확률로 체력을 35 회복하고 다음 턴 마나를 2 추가로 얻습니다. 실패 시 현재 체력의 20%를 잃고 취약 2를 받습니다.' },
   { id: 'all_in', name: '올인', type: 'skill', cost: 2, rarity: 'rare', gamble: true, gambleWinChance: 0.5, winAllInHand: true, loseAllInHand: true, desc: '모든 판돈을 겁니다. 50% 확률로 남은 손패 1장당 마나 1과 근력 1을 얻습니다. 실패 시 손패를 모두 버리고 방어도 15를 얻습니다.' },
   // 특수 (Special)

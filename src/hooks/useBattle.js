@@ -435,7 +435,12 @@ export function useBattle({
       if (card.losePercentCurrentHpDamage) {
         const dmgAmt = Math.max(1, Math.floor(p.hp * card.losePercentCurrentHpDamage));
         p.hp = Math.max(1, p.hp - dmgAmt);
-        setToastMsg(`악마의 주사위 실패! 현재 체력 20% 손실 (-${dmgAmt} HP)`);
+        const percentText = Math.round(card.losePercentCurrentHpDamage * 100);
+        if (card.id === 'russian_roulette') {
+          setToastMsg(`러시안 룰렛 실패! 총구가 역류해 현재 체력 ${percentText}% 손실 (-${dmgAmt} HP) 및 취약 2!`);
+        } else {
+          setToastMsg(`${card.name} 실패! 현재 체력 ${percentText}% 손실 (-${dmgAmt} HP)`);
+        }
       }
       if (card.loseSelfVuln) p.debuffs.vulnerable = clampStack((p.debuffs.vulnerable || 0) + card.loseSelfVuln);
       if (card.loseSelfBurn) p.debuffs.burn = clampStack((p.debuffs.burn || 0) + card.loseSelfBurn);
@@ -498,7 +503,8 @@ export function useBattle({
               if (target.block >= pctDmg) target.block -= pctDmg;
               else { target.hp = Math.max(0, target.hp - (pctDmg - target.block)); target.block = 0; }
               checkRevive(target, newEnemies);
-              setToastMsg(`러시안 룰렛 성공! 적 현재 체력 50% 소멸 (-${pctDmg})!`);
+              const winPctText = Math.round(card.winPercentCurrentHpDamage * 100);
+              setToastMsg(`러시안 룰렛 대성공! 적 현재 체력 ${winPctText}% 소멸 (-${pctDmg})!`);
             }
             if (card.percentEnemyCurrentHp) {
               newEnemies.forEach(en => {
