@@ -6,6 +6,7 @@ const tickListeners = new Set();
 
 export const getBackgroundWorker = () => {
   if (typeof window === 'undefined') return null;
+  if (window.require) return null; // Electron 환경에서는 BrowserWindow backgroundThrottling: false 로 자체 처리됨
   if (!workerInstance && typeof Worker !== 'undefined') {
     try {
       const workerCode = `
